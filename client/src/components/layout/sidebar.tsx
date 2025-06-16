@@ -31,7 +31,12 @@ export default function Sidebar({ currentWorldId, setCurrentWorldId }: SidebarPr
     queryKey: ["/api/worlds"],
   });
 
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<{
+    locations: number;
+    characters: number;
+    creatures: number;
+    total: number;
+  }>({
     queryKey: ["/api/worlds", currentWorldId, "stats"],
     enabled: !!currentWorldId,
   });

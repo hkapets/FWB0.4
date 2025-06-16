@@ -39,7 +39,12 @@ export default function Dashboard() {
   const currentWorld = worlds.length > 0 ? worlds[0] : null;
   const worldId = currentWorld?.id || null;
 
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<{
+    locations: number;
+    characters: number;
+    creatures: number;
+    total: number;
+  }>({
     queryKey: ["/api/worlds", worldId, "stats"],
     enabled: !!worldId,
   });
