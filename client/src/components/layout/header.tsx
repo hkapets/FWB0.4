@@ -1,11 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Save, Download, Crown } from "lucide-react";
+import LanguageSelector from "@/components/ui/language-selector";
+import { useTranslation } from "@/lib/i18n";
 
 interface HeaderProps {
   currentWorldId: number | null;
 }
 
 export default function Header({ currentWorldId }: HeaderProps) {
+  const t = useTranslation();
   const handleSave = () => {
     // TODO: Implement save functionality
     console.log("Saving project...");
@@ -25,7 +28,7 @@ export default function Header({ currentWorldId }: HeaderProps) {
               <Crown className="text-purple-900 text-xl" />
             </div>
             <h1 className="text-2xl lg:text-3xl font-fantasy font-bold text-yellow-200">
-              Fantasy World Builder
+              {t.header.title}
             </h1>
           </div>
           <div className="flex items-center space-x-4">
@@ -35,7 +38,7 @@ export default function Header({ currentWorldId }: HeaderProps) {
               disabled={!currentWorldId}
             >
               <Save className="mr-2 h-4 w-4" />
-              Save Project
+              {t.header.saveProject}
             </Button>
             <Button 
               className="fantasy-button px-4 py-2 text-white font-medium"
@@ -43,8 +46,9 @@ export default function Header({ currentWorldId }: HeaderProps) {
               disabled={!currentWorldId}
             >
               <Download className="mr-2 h-4 w-4" />
-              Export
+              {t.header.export}
             </Button>
+            <LanguageSelector />
           </div>
         </div>
       </div>

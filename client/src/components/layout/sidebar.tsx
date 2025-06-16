@@ -14,6 +14,7 @@ import {
   Plus
 } from "lucide-react";
 import CreateWorldModal from "@/components/modals/create-world-modal";
+import { useTranslation } from "@/lib/i18n";
 import type { World } from "@shared/schema";
 
 interface SidebarProps {
@@ -24,6 +25,7 @@ interface SidebarProps {
 export default function Sidebar({ currentWorldId, setCurrentWorldId }: SidebarProps) {
   const [location] = useLocation();
   const [isCreateWorldModalOpen, setIsCreateWorldModalOpen] = useState(false);
+  const t = useTranslation();
 
   const { data: worlds = [] } = useQuery<World[]>({
     queryKey: ["/api/worlds"],
@@ -37,12 +39,12 @@ export default function Sidebar({ currentWorldId, setCurrentWorldId }: SidebarPr
   const currentWorld = worlds.find(w => w.id === currentWorldId);
 
   const navigationItems = [
-    { path: "/dashboard", icon: Home, label: "Dashboard", count: null },
-    { path: "/locations", icon: MapPin, label: "Locations", count: stats?.locations },
-    { path: "/characters", icon: Users, label: "Characters", count: stats?.characters },
-    { path: "/creatures", icon: Crown, label: "Creatures", count: stats?.creatures },
-    { path: "/world-map", icon: Map, label: "World Map", count: null },
-    { path: "/settings", icon: Settings, label: "Settings", count: null },
+    { path: "/dashboard", icon: Home, label: t.navigation.dashboard, count: null },
+    { path: "/locations", icon: MapPin, label: t.navigation.locations, count: stats?.locations },
+    { path: "/characters", icon: Users, label: t.navigation.characters, count: stats?.characters },
+    { path: "/creatures", icon: Crown, label: t.navigation.creatures, count: stats?.creatures },
+    { path: "/world-map", icon: Map, label: t.navigation.worldMap, count: null },
+    { path: "/settings", icon: Settings, label: t.navigation.settings, count: null },
   ];
 
   return (
@@ -53,7 +55,7 @@ export default function Sidebar({ currentWorldId, setCurrentWorldId }: SidebarPr
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-fantasy font-semibold text-yellow-300">
                 <Globe className="inline mr-2" size={20} />
-                Current World
+                {t.navigation.currentWorld}
               </h2>
               <Button
                 size="sm"
@@ -71,13 +73,13 @@ export default function Sidebar({ currentWorldId, setCurrentWorldId }: SidebarPr
               </div>
             ) : (
               <div className="fantasy-border p-3 bg-purple-900/20">
-                <p className="text-sm text-gray-400">No world selected</p>
+                <p className="text-sm text-gray-400">{t.dashboard.noWorldSelected}</p>
                 <Button
                   size="sm"
                   className="fantasy-button mt-2 w-full"
                   onClick={() => setIsCreateWorldModalOpen(true)}
                 >
-                  Create World
+                  {t.dashboard.createWorld}
                 </Button>
               </div>
             )}
