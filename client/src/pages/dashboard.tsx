@@ -20,9 +20,11 @@ import CreateCreatureModal from "@/components/modals/create-creature-modal";
 import LocationCard from "@/components/cards/location-card";
 import CharacterCard from "@/components/cards/character-card";
 import { formatTimeAgo } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 import type { World, Location, Character } from "@shared/schema";
 
 export default function Dashboard() {
+  const t = useTranslation();
   const [isCreateWorldModalOpen, setIsCreateWorldModalOpen] = useState(false);
   const [isCreateLocationModalOpen, setIsCreateLocationModalOpen] = useState(false);
   const [isCreateCharacterModalOpen, setIsCreateCharacterModalOpen] = useState(false);
@@ -57,31 +59,31 @@ export default function Dashboard() {
 
   const quickActions = [
     {
-      title: "Create World",
-      description: "Start building a new fantasy realm",
+      title: t.dashboard.createWorld,
+      description: t.dashboard.createWorldDesc,
       icon: Plus,
       color: "bg-green-600 hover:bg-green-500",
       onClick: () => setIsCreateWorldModalOpen(true),
     },
     {
-      title: "Add Location",
-      description: "Create cities, forests, and landmarks",
+      title: t.dashboard.addLocation,
+      description: t.dashboard.addLocationDesc,
       icon: MapPin,
       color: "bg-purple-600 hover:bg-purple-500",
       onClick: () => setIsCreateLocationModalOpen(true),
       disabled: !worldId,
     },
     {
-      title: "Create Character",
-      description: "Design heroes, villains, and NPCs",
+      title: t.dashboard.createCharacter,
+      description: t.dashboard.createCharacterDesc,
       icon: UserPlus,
       color: "bg-yellow-600 hover:bg-yellow-500",
       onClick: () => setIsCreateCharacterModalOpen(true),
       disabled: !worldId,
     },
     {
-      title: "Add Creature",
-      description: "Create monsters and mythical beings",
+      title: t.dashboard.addCreature,
+      description: t.dashboard.addCreatureDesc,
       icon: Crown,
       color: "bg-red-600 hover:bg-red-500",
       onClick: () => setIsCreateCreatureModalOpen(true),
@@ -96,10 +98,10 @@ export default function Dashboard() {
           {/* Header Section */}
           <div className="mb-8">
             <h1 className="text-4xl font-fantasy font-bold text-yellow-200 mb-2">
-              Welcome to Your Fantasy World
+              {t.dashboard.welcome}
             </h1>
             <p className="text-lg text-gray-300">
-              Build, explore, and manage your mystical realms with powerful world-building tools
+              {t.dashboard.subtitle}
             </p>
           </div>
 
@@ -138,32 +140,32 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle className="text-xl font-fantasy font-semibold text-yellow-200 flex items-center">
                   <BarChart3 className="mr-2" />
-                  World Statistics
+                  {t.dashboard.worldStats}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {stats ? (
                   <>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-300">Locations</span>
-                      <span className="text-green-400 font-semibold">{stats.locations}</span>
+                      <span className="text-gray-300">{t.dashboard.locations}</span>
+                      <span className="text-green-400 font-semibold">{stats.locations || 0}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-300">Characters</span>
-                      <span className="text-yellow-400 font-semibold">{stats.characters}</span>
+                      <span className="text-gray-300">{t.dashboard.characters}</span>
+                      <span className="text-yellow-400 font-semibold">{stats.characters || 0}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-300">Creatures</span>
-                      <span className="text-purple-400 font-semibold">{stats.creatures}</span>
+                      <span className="text-gray-300">{t.dashboard.creatures}</span>
+                      <span className="text-purple-400 font-semibold">{stats.creatures || 0}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-300">Total Elements</span>
-                      <span className="text-yellow-200 font-bold">{stats.total}</span>
+                      <span className="text-gray-300">{t.dashboard.totalElements}</span>
+                      <span className="text-yellow-200 font-bold">{stats.total || 0}</span>
                     </div>
                   </>
                 ) : (
                   <div className="text-center text-gray-400">
-                    {worldId ? "Loading..." : "No world selected"}
+                    {worldId ? t.actions.loading : t.dashboard.noWorldSelected}
                   </div>
                 )}
               </CardContent>
@@ -174,13 +176,13 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle className="text-xl font-fantasy font-semibold text-yellow-200 flex items-center">
                   <History className="mr-2" />
-                  Recent Activity
+                  {t.dashboard.recentActivity}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {locations.length === 0 && characters.length === 0 ? (
                   <div className="text-center text-gray-400">
-                    No recent activity
+                    {t.dashboard.noRecentActivity}
                   </div>
                 ) : (
                   <>
@@ -188,7 +190,7 @@ export default function Dashboard() {
                       <div key={location.id} className="flex items-center space-x-3">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                         <span className="text-sm text-gray-300">
-                          Added location "{location.name}"
+                          {t.dashboard.addedLocation} "{location.name}"
                         </span>
                       </div>
                     ))}
@@ -196,7 +198,7 @@ export default function Dashboard() {
                       <div key={character.id} className="flex items-center space-x-3">
                         <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
                         <span className="text-sm text-gray-300">
-                          Created character "{character.name}"
+                          {t.dashboard.createdCharacter} "{character.name}"
                         </span>
                       </div>
                     ))}
@@ -210,26 +212,26 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle className="text-xl font-fantasy font-semibold text-yellow-200 flex items-center">
                   <HelpCircle className="mr-2" />
-                  Quick Help
+                  {t.dashboard.quickHelp}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="p-3 bg-purple-900/30 rounded-lg">
-                  <h4 className="font-semibold text-yellow-300 text-sm">Getting Started</h4>
+                  <h4 className="font-semibold text-yellow-300 text-sm">{t.dashboard.gettingStarted}</h4>
                   <p className="text-xs text-gray-400 mt-1">
-                    Begin by creating your first world or selecting an existing one
+                    {t.dashboard.gettingStartedDesc}
                   </p>
                 </div>
                 <div className="p-3 bg-green-900/30 rounded-lg">
-                  <h4 className="font-semibold text-yellow-300 text-sm">World Map</h4>
+                  <h4 className="font-semibold text-yellow-300 text-sm">{t.dashboard.worldMapHelp}</h4>
                   <p className="text-xs text-gray-400 mt-1">
-                    Visualize your world with our interactive map tool
+                    {t.dashboard.worldMapHelpDesc}
                   </p>
                 </div>
                 <div className="p-3 bg-yellow-900/30 rounded-lg">
-                  <h4 className="font-semibold text-yellow-300 text-sm">Export & Share</h4>
+                  <h4 className="font-semibold text-yellow-300 text-sm">{t.dashboard.exportShare}</h4>
                   <p className="text-xs text-gray-400 mt-1">
-                    Export your world as JSON or formatted text
+                    {t.dashboard.exportShareDesc}
                   </p>
                 </div>
               </CardContent>
@@ -242,10 +244,10 @@ export default function Dashboard() {
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
                   <MapPin className="mr-2" />
-                  Recent Locations
+                  {t.dashboard.recentLocations}
                 </h2>
                 <Button className="fantasy-button px-4 py-2">
-                  View All <ArrowRight className="ml-2 h-4 w-4" />
+                  {t.dashboard.viewAll} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
               
@@ -263,10 +265,10 @@ export default function Dashboard() {
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
                   <UserPlus className="mr-2" />
-                  Recent Characters
+                  {t.dashboard.recentCharacters}
                 </h2>
                 <Button className="fantasy-button px-4 py-2">
-                  View All <ArrowRight className="ml-2 h-4 w-4" />
+                  {t.dashboard.viewAll} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
               
