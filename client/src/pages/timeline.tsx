@@ -10,6 +10,12 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "../components/ui/tooltip";
+import { Lock } from "lucide-react";
 
 const EVENT_TYPES = [
   { value: "war", label: "Війна" },
@@ -42,6 +48,9 @@ export default function TimelinePage() {
   const [massEditSaving, setMassEditSaving] = useState(false);
   const [scenarios, setScenarios] = useState<any[]>([]);
   const [filterScenario, setFilterScenario] = useState<string>("all");
+  const [hoveredScenarioId, setHoveredScenarioId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     setLoading(true);
@@ -331,6 +340,72 @@ export default function TimelinePage() {
     });
   };
 
+  // У тулбарі додаю масові дії для сценарію
+  {
+    selectedIds.length > 0 && (
+      <div className="flex gap-2 items-center">
+        <select
+          onChange={(e) => handleMassAddScenario(e.target.value)}
+          className="fantasy-input"
+        >
+          <option value="">Додати сценарій до вибраних...</option>
+          {scenarios.map((s) => (
+            <option key={s.id} value={s.id}>
+              {typeof s.name === "object" ? s.name.uk : s.name}
+            </option>
+          ))}
+        </select>
+        <select
+          onChange={(e) => handleMassRemoveScenario(e.target.value)}
+          className="fantasy-input"
+        >
+          <option value="">Видалити сценарій з вибраних...</option>
+          {scenarios.map((s) => (
+            <option key={s.id} value={s.id}>
+              {typeof s.name === "object" ? s.name.uk : s.name}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  // Додаю функції масового додавання/видалення сценарію
+  const handleMassAddScenario = (scenarioId: string) => {
+    if (!scenarioId) return;
+    pushUndo(
+      events.map((e) =>
+        selectedIds.includes(e.id)
+          ? {
+              ...e,
+              relatedScenarioIds: Array.from(
+                new Set([...(e.relatedScenarioIds || []), scenarioId])
+              ),
+            }
+          : e
+      )
+    );
+    setSelectedIds([]);
+    toast({ title: "Сценарій додано до вибраних подій" });
+  };
+  const handleMassRemoveScenario = (scenarioId: string) => {
+    if (!scenarioId) return;
+    pushUndo(
+      events.map((e) =>
+        selectedIds.includes(e.id)
+          ? {
+              ...e,
+              relatedScenarioIds: (e.relatedScenarioIds || []).filter(
+                (id: string) => id !== scenarioId
+              ),
+            }
+          : e
+      )
+    );
+    setSelectedIds([]);
+    toast({ title: "Сценарій видалено з вибраних подій" });
+  };
+
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-4">
@@ -422,7 +497,12 @@ export default function TimelinePage() {
         >
           <option value="all">Всі сценарії</option>
           {scenarios.map((s) => (
-            <option key={s.id} value={s.id}>
+            <option
+              key={s.id}
+              value={s.id}
+              onMouseEnter={() => setHoveredScenarioId(s.id)}
+              onMouseLeave={() => setHoveredScenarioId(null)}
+            >
               {typeof s.name === "object" ? s.name.uk : s.name}
             </option>
           ))}
@@ -573,6 +653,7 @@ export default function TimelinePage() {
                   onSelect={handleSelect}
                   onDelete={handleDelete}
                   updateEventWithUndo={updateEventWithUndo}
+                  hoveredScenarioId={hoveredScenarioId}
                 />
               ))}
           </div>
@@ -612,6 +693,7 @@ function TimelineEventCard({
   onSelect,
   onDelete,
   updateEventWithUndo,
+  hoveredScenarioId,
 }: any) {
   const ref = useRef<HTMLDivElement>(null);
   const [editing, setEditing] = useState(false);
@@ -679,13 +761,32 @@ function TimelineEventCard({
     setSaving(false);
   };
 
+  // Знаходимо сценарій події
+  const scenario = scenarios.find((s: any) =>
+    (event.relatedScenarioIds || []).includes(s.id)
+  );
+  const scenarioType = scenario?.type || "main";
+  const scenarioStatus = scenario?.status || "active";
+  const scenarioColor =
+    scenarioType === "main"
+      ? "bg-blue-900/40"
+      : scenarioType === "alt"
+      ? "bg-green-900/40"
+      : "bg-yellow-900/40";
+  const isHighlighted =
+    hoveredScenarioId && scenario && scenario.id === hoveredScenarioId;
+
   return (
     <div
-      ref={ref}
       className={`flex items-center gap-4 bg-black/40 rounded p-4 shadow cursor-move hover:bg-yellow-900/20 transition-all ${
         isDragging ? "opacity-50" : ""
-      } ${selected ? "ring-2 ring-yellow-400" : ""}`}
-      style={{ borderLeft: `6px solid ${event.color || "#fbbf24"}` }}
+      } ${selected ? "ring-2 ring-yellow-400" : ""} ${scenarioColor} ${
+        selected ? "ring-2 ring-blue-400" : ""
+      } ${isHighlighted ? "ring-4 ring-yellow-400" : ""}`}
+      style={{
+        borderLeft: `6px solid ${event.color || "#fbbf24"}`,
+        opacity: scenarioStatus === "archived" ? 0.6 : 1,
+      }}
       onClick={onEdit}
       tabIndex={0}
       aria-selected={selected}
@@ -917,6 +1018,63 @@ function TimelineEventCard({
               </Popover>
             ) : null;
           })}
+        </div>
+        <div className="flex items-center gap-2">
+          {scenario && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 ${
+                    scenarioType === "main"
+                      ? "bg-blue-700/60 text-blue-100"
+                      : scenarioType === "alt"
+                      ? "bg-green-700/60 text-green-100"
+                      : "bg-yellow-700/60 text-yellow-100"
+                  }`}
+                >
+                  {typeof scenario.name === "object"
+                    ? scenario.name.uk
+                    : scenario.name}
+                  {scenarioStatus === "archived" && (
+                    <Lock className="w-3 h-3 inline ml-1" />
+                  )}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="font-bold mb-1">
+                  {typeof scenario.name === "object"
+                    ? scenario.name.uk
+                    : scenario.name}
+                </div>
+                <div className="text-xs whitespace-pre-line">
+                  {typeof scenario.description === "object"
+                    ? scenario.description.uk
+                    : scenario.description}
+                </div>
+                {scenarioStatus === "archived" && (
+                  <div className="text-xs text-yellow-400 mt-1 flex items-center gap-1">
+                    <Lock className="w-3 h-3 inline" /> Архів (read-only)
+                  </div>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onEdit(event)}
+            disabled={scenarioStatus === "archived"}
+          >
+            ✏️
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => onDelete(event.id)}
+            disabled={scenarioStatus === "archived"}
+          >
+            🗑️
+          </Button>
         </div>
       </div>
       {event.image && (

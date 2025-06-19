@@ -5,6 +5,7 @@ import {
   integer,
   boolean,
   timestamp,
+  json,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -35,6 +36,9 @@ export const locations = pgTable("locations", {
   description: text("description"),
   dangerLevel: text("danger_level").notNull(),
   worldId: integer("world_id").notNull(),
+  x: integer("x"),
+  y: integer("y"),
+  loreId: integer("lore_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -131,6 +135,19 @@ export const worldLore = pgTable("world_lore", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Regions table
+export const regions = pgTable("regions", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  color: text("color").notNull(),
+  points: json("points").notNull(), // масив {x, y}
+  type: text("type").notNull(),
+  loreId: integer("lore_id"),
+  worldId: integer("world_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -185,6 +202,12 @@ export const insertWorldLoreSchema = createInsertSchema(worldLore).omit({
   updatedAt: true,
 });
 
+export const insertRegionSchema = createInsertSchema(regions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -218,6 +241,9 @@ export type InsertWorldArtifact = z.infer<typeof insertWorldArtifactSchema>;
 
 export type WorldLore = typeof worldLore.$inferSelect;
 export type InsertWorldLore = z.infer<typeof insertWorldLoreSchema>;
+
+export type Region = typeof regions.$inferSelect;
+export type InsertRegion = z.infer<typeof insertRegionSchema>;
 
 export type Event = {
   id: string | number;

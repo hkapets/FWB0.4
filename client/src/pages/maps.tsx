@@ -25,6 +25,8 @@ const MAP_LAYERS = [
   { value: "events", label: "Події" },
 ];
 
+const worldId = 1; // TODO: замінити на актуальний спосіб отримання worldId
+
 export default function MapsPage() {
   const { toast } = useToast();
   const svgRef = useRef<SVGSVGElement>(null);
@@ -53,6 +55,8 @@ export default function MapsPage() {
   const [redoStack, setRedoStack] = useState<any[]>([]);
   const [dropActive, setDropActive] = useState(false);
   const [hoveredPolygonId, setHoveredPolygonId] = useState<number | null>(null);
+  const [scenarios, setScenarios] = useState<any[]>([]);
+  const [filterScenario, setFilterScenario] = useState("");
 
   // Завантаження маркерів та svg з localStorage
   useEffect(() => {
@@ -76,6 +80,13 @@ export default function MapsPage() {
       .then((r) => r.json())
       .then(setLore);
   }, []);
+
+  // Завантаження сценаріїв
+  useEffect(() => {
+    if (!worldId) return;
+    fetch(`/api/worlds/${worldId}/scenarios`).then(r => r.json()).then(setScenarios);
+    fetch(`/api/worlds/${worldId}/markers`).then(r => r.json()).then(setMarkers);
+  }, [worldId]);
 
   // Zoom/pan
   const handleWheel = (e: React.WheelEvent) => {
@@ -257,6 +268,11 @@ export default function MapsPage() {
     }
   };
 
+  // Додаю фільтрацію маркерів за сценарієм
+  const filteredMarkers = markers.filter((m: any) =>
+    !filterScenario || (m.relatedScenarioIds || []).includes(filterScenario)
+  );
+
   return (
     <div className="flex flex-col h-full w-full">
       <div className="flex gap-2 mb-2">
@@ -367,6 +383,14 @@ export default function MapsPage() {
             </option>
           ))}
         </select>
+        <div className="flex gap-2 mb-4 flex-wrap">
+          <select value={filterScenario} onChange={e => setFilterScenario(e.target.value)} className="px-2 py-1 rounded border bg-black/40 text-white">
+            <option value="">Всі сценарії</option>
+            {scenarios.map(s => (
+              <option key={s.id} value={s.id}>{typeof s.name === "object" ? s.name.uk : s.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
       <div
         className={`relative flex-1 bg-black/80 rounded overflow-hidden ${
@@ -441,7 +465,7 @@ export default function MapsPage() {
           }}
         />
         {/* Маркери */}
-        {markers
+        {filteredMarkers
           .filter(
             (m: any) =>
               (markerFilter === "all" || m.category === markerFilter) &&

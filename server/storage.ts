@@ -31,6 +31,8 @@ import {
   WorldMagicType,
   WorldLore,
   type InsertWorldLore,
+  type Region,
+  type InsertRegion,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -127,6 +129,16 @@ export interface IStorage {
     update: Partial<InsertWorldLore>
   ): Promise<WorldLore | undefined>;
   deleteWorldLore(id: number): Promise<boolean>;
+
+  // Region methods
+  getRegions(worldId: number): Promise<Region[]>;
+  getRegion(id: number): Promise<Region | undefined>;
+  createRegion(insertRegion: InsertRegion): Promise<Region>;
+  updateRegion(
+    id: number,
+    updateData: Partial<InsertRegion>
+  ): Promise<Region | undefined>;
+  deleteRegion(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -146,6 +158,7 @@ export class MemStorage implements IStorage {
   private worldClassesData: Map<number, WorldClass[]> = new Map();
   private worldMagicTypesData: Map<number, WorldMagicType[]> = new Map();
   private worldLoreData: Map<number, WorldLore[]> = new Map();
+  private regions: Map<number, Region> = new Map();
 
   constructor() {
     this.users = new Map();
@@ -239,6 +252,9 @@ export class MemStorage implements IStorage {
       createdAt: now,
       updatedAt: now,
       description: insertLocation.description ?? null,
+      x: insertLocation.x ?? null,
+      y: insertLocation.y ?? null,
+      loreId: insertLocation.loreId ?? null,
     };
     this.locations.set(id, location);
     return location;
@@ -255,6 +271,9 @@ export class MemStorage implements IStorage {
       ...location,
       ...updateData,
       updatedAt: new Date(),
+      x: updateData.x ?? location.x,
+      y: updateData.y ?? location.y,
+      loreId: updateData.loreId ?? location.loreId ?? null,
     };
     this.locations.set(id, updatedLocation);
     return updatedLocation;
@@ -606,6 +625,49 @@ export class MemStorage implements IStorage {
       }
     }
     return false;
+  }
+
+  // Region methods
+  async getRegions(worldId: number): Promise<Region[]> {
+    return Array.from(this.regions.values()).filter(
+      (r) => r.worldId === worldId
+    );
+  }
+
+  async getRegion(id: number): Promise<Region | undefined> {
+    return this.regions.get(id);
+  }
+
+  async createRegion(insertRegion: InsertRegion): Promise<Region> {
+    const id = this.currentId++;
+    const now = new Date();
+    const region: Region = {
+      ...insertRegion,
+      id,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.regions.set(id, region);
+    return region;
+  }
+
+  async updateRegion(
+    id: number,
+    updateData: Partial<InsertRegion>
+  ): Promise<Region | undefined> {
+    const region = this.regions.get(id);
+    if (!region) return undefined;
+    const updatedRegion: Region = {
+      ...region,
+      ...updateData,
+      updatedAt: new Date(),
+    };
+    this.regions.set(id, updatedRegion);
+    return updatedRegion;
+  }
+
+  async deleteRegion(id: number): Promise<boolean> {
+    return this.regions.delete(id);
   }
 }
 

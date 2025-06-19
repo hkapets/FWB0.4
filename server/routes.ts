@@ -10,6 +10,7 @@ import {
   insertWorldClassSchema,
   insertWorldMagicTypeSchema,
   insertWorldLoreSchema,
+  insertRegionSchema,
 } from "@shared/schema";
 import path from "path";
 import fs from "fs";
@@ -393,6 +394,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ url });
   });
 
+  // Upload map image
+  app.post("/api/upload/map-image", async (req, res) => {
+    const files = req.files as expressFileUpload.FileArray | undefined;
+    if (!files || !files.image) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+    const file = files.image as expressFileUpload.UploadedFile;
+    const ext = path.extname(file.name).toLowerCase();
+    if (![".jpg", ".jpeg", ".png", ".webp", ".svg"].includes(ext)) {
+      return res.status(400).json({ message: "Invalid file type" });
+    }
+    const fileName = `map_${Date.now()}${ext}`;
+    const savePath = path.join(__dirname, "../attached_assets", fileName);
+    await file.mv(savePath);
+    const url = `/attached_assets/${fileName}`;
+    res.json({ url });
+  });
+
   // Classes CRUD
   app.get("/api/worlds/:worldId/classes", async (req, res) => {
     try {
@@ -570,6 +589,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const openapi = readFileSync(join(__dirname, "../openapi.json"), "utf-8");
     res.setHeader("Content-Type", "application/json");
     res.send(openapi);
+  });
+
+  // Regions CRUD
+  app.get("/api/worlds/:worldId/regions", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const regions = await storage.getRegions(worldId);
+      res.json(regions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch regions" });
+    }
+  });
+
+  app.post("/api/worlds/:worldId/regions", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const regionData = insertRegionSchema.parse({ ...req.body, worldId });
+      const region = await storage.createRegion(regionData);
+      res.status(201).json(region);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid region data" });
+    }
+  });
+
+  app.get("/api/regions/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const region = await storage.getRegion(id);
+      if (!region) return res.status(404).json({ message: "Region not found" });
+      res.json(region);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch region" });
+    }
+  });
+
+  app.put("/api/regions/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updateData = insertRegionSchema.partial().parse(req.body);
+      const region = await storage.updateRegion(id, updateData);
+      if (!region) return res.status(404).json({ message: "Region not found" });
+      res.json(region);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid region data" });
+    }
+  });
+
+  app.delete("/api/regions/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteRegion(id);
+      if (!deleted)
+        return res.status(404).json({ message: "Region not found" });
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete region" });
+    }
   });
 
   const httpServer = createServer(app);

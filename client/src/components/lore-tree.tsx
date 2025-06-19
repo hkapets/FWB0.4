@@ -197,13 +197,7 @@ const LoreTreeNode: React.FC<LoreTreeNodeProps> = ({
   const [editing, setEditing] = useState<null | "name" | "icon" | "type">(null);
   const [editValue, setEditValue] = useState<string>("");
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [isOver, setIsOver] = React.useState(false);
-
-  useEffect(() => {
-    if (editing && inputRef.current) inputRef.current.focus();
-  }, [editing]);
-
-  const [, drop] = useDrop<LoreItem>({
+  const [{ isOver }, drop] = useDrop<LoreItem, void, { isOver: boolean }>({
     accept: ITEM_TYPE,
     drop: (dragged) => {
       if (dragged.id !== item.id) {
@@ -289,14 +283,11 @@ const LoreTreeNode: React.FC<LoreTreeNodeProps> = ({
 
   return (
     <div
-      ref={ref}
-      className={`flex items-center gap-2 p-2 rounded border bg-white/5 transition-all duration-200 ${
-        isDragging ? "opacity-50" : ""
-      } ${isSelected ? "ring-2 ring-yellow-400" : ""} ${
-        isOver ? "bg-yellow-100/10 border-yellow-400" : ""
+      ref={drop}
+      className={`flex items-center gap-2 p-2 rounded transition-all duration-200 ${
+        isOver ? "bg-yellow-200/40 ring-2 ring-yellow-400" : ""
       }`}
       style={{ marginLeft: level * 24 }}
-      onMouseLeave={() => setIsOver(false)}
     >
       {onSelectLore && (
         <input
@@ -421,6 +412,9 @@ const LoreTreeNode: React.FC<LoreTreeNodeProps> = ({
             />
           ))}
         </div>
+      )}
+      {isOver && (
+        <span className="text-xs text-yellow-600 ml-2">Скинути сюди</span>
       )}
     </div>
   );
