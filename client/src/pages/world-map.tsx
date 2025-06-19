@@ -35,15 +35,17 @@ import { useToast } from "../hooks/use-toast";
 // @ts-ignore
 import { SketchPicker } from "react-color";
 import { useI18n } from "../lib/i18n";
+import { useTranslation } from "@/lib/i18n";
 
 export default function WorldMap() {
+  const t = useTranslation();
   const { data: worlds = [] } = useQuery<World[]>({
     queryKey: ["/api/worlds"],
   });
 
   // Use the first world as current world for now
   const currentWorld = worlds.length > 0 ? worlds[0] : null;
-  const worldId = currentWorld?.id || null;
+  const worldId = currentWorld?.id ?? undefined;
 
   const { data: locations = [] } = useQuery<Location[]>({
     queryKey: ["/api/worlds", worldId, "locations"],
@@ -68,17 +70,17 @@ export default function WorldMap() {
 
   // Marker type options
   const markerTypes = [
-    { value: "city", label: "City" },
-    { value: "dungeon", label: "Dungeon" },
-    { value: "forest", label: "Forest" },
-    { value: "custom", label: "Custom" },
+    { value: "city", label: t.mapTypes.city },
+    { value: "dungeon", label: t.mapTypes.dungeon },
+    { value: "forest", label: t.mapTypes.forest },
+    { value: "custom", label: t.mapTypes.custom },
   ];
 
   const PERIODS = [
-    { value: "ancient", label: "Ancient" },
-    { value: "middle", label: "Middle Ages" },
-    { value: "modern", label: "Modern" },
-    { value: "future", label: "Future" },
+    { value: "ancient", label: t.periods.ancient },
+    { value: "middle", label: t.periods.middle },
+    { value: "modern", label: t.periods.modern },
+    { value: "future", label: t.periods.future },
   ];
 
   type Marker = {
@@ -404,22 +406,22 @@ export default function WorldMap() {
           name: draftName,
           type: draftType,
           description: draftDescription,
-          x: Math.round(draftCoords.x),
-          y: Math.round(draftCoords.y),
-          worldId,
+          x: draftCoords.x ?? undefined,
+          y: draftCoords.y ?? undefined,
+          worldId: worldId ?? undefined,
           dangerLevel,
-          loreId: draftLoreId ?? null,
+          loreId: draftLoreId ?? undefined,
         });
       } else {
         createLocation.mutate({
           name: draftName,
           type: draftType,
           description: draftDescription,
-          x: Math.round(draftCoords.x),
-          y: Math.round(draftCoords.y),
-          worldId,
+          x: draftCoords.x ?? undefined,
+          y: draftCoords.y ?? undefined,
+          worldId: worldId ?? undefined,
           dangerLevel,
-          loreId: draftLoreId ?? null,
+          loreId: draftLoreId ?? undefined,
         });
       }
     });
@@ -519,7 +521,9 @@ export default function WorldMap() {
     e.stopPropagation();
     const startX = e.clientX;
     const startY = e.clientY;
-    const selected = locations.filter((m) => selectedMarkers.includes(Number(m.id)));
+    const selected = locations.filter((m) =>
+      selectedMarkers.includes(Number(m.id))
+    );
     const startCoords = selected.map((m) => ({
       id: Number(m.id),
       x: m.x ?? 400,
@@ -617,13 +621,13 @@ export default function WorldMap() {
   const [drawingRegion, setDrawingRegion] = useState<Region | null>(null);
   const [regionModalOpen, setRegionModalOpen] = useState(false);
   const [regionDraft, setRegionDraft] = useState<Partial<Region>>({
-    name: { uk: '', en: '' },
-    description: { uk: '', en: '' },
-    color: '',
+    name: { uk: "", en: "" },
+    description: { uk: "", en: "" },
+    color: "",
     points: [],
-    type: '',
+    type: "",
     loreId: undefined,
-    imageUrl: '',
+    imageUrl: "",
     periods: [],
   });
   const regionTypes = [
@@ -738,8 +742,11 @@ export default function WorldMap() {
   }
 
   // Фільтрація областей за періодом
-  const filteredRegions = regions.filter(region =>
-    !region.periods || region.periods.length === 0 || region.periods.includes(currentPeriod)
+  const filteredRegions = regions.filter(
+    (region) =>
+      !region.periods ||
+      region.periods.length === 0 ||
+      region.periods.includes(currentPeriod)
   );
 
   const { language } = useI18n();
@@ -750,15 +757,26 @@ export default function WorldMap() {
     e.stopPropagation();
     const touch = e.touches[0];
     setDraggedId(marker.id.toString());
-    setDragOffset({ x: Number(marker.x ?? 400) - touch.clientX, y: Number(marker.y ?? 300) - touch.clientY });
+    setDragOffset({
+      x: Number(marker.x ?? 400) - touch.clientX,
+      y: Number(marker.y ?? 300) - touch.clientY,
+    });
     function handleTouchMove(ev: TouchEvent) {
       if (!draggedId) return;
-      const rect = (e.target as HTMLElement).closest('.relative')?.getBoundingClientRect();
+      const rect = (e.target as HTMLElement)
+        .closest(".relative")
+        ?.getBoundingClientRect();
       if (!rect) return;
       const t = ev.touches[0];
       const x = ((t.clientX - rect.left) / rect.width) * 800;
       const y = ((t.clientY - rect.top) / rect.height) * 600;
-      withUndo(() => updateLocation.mutate({ id: Number(marker.id), x: Math.round(x), y: Math.round(y) }));
+      withUndo(() =>
+        updateLocation.mutate({
+          id: Number(marker.id),
+          x: Math.round(x),
+          y: Math.round(y),
+        })
+      );
     }
     function handleTouchEnd() {
       setDraggedId(null);
@@ -972,7 +990,7 @@ export default function WorldMap() {
             <option value="">All</option>
             {lore.map((l) => (
               <option key={l.id} value={String(l.id)}>
-                {l.name}
+                {typeof l.name === "object" ? l.name.uk : l.name}
               </option>
             ))}
           </select>
@@ -980,8 +998,16 @@ export default function WorldMap() {
 
         <div className="flex items-center gap-2 mb-4">
           <span className="font-bold text-yellow-200">Period:</span>
-          <select className="px-2 py-1 rounded bg-gray-800 text-gray-100" value={currentPeriod} onChange={e => setCurrentPeriod(e.target.value)}>
-            {PERIODS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+          <select
+            className="px-2 py-1 rounded bg-gray-800 text-gray-100"
+            value={currentPeriod}
+            onChange={(e) => setCurrentPeriod(e.target.value)}
+          >
+            {PERIODS.map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.label}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -1036,11 +1062,19 @@ export default function WorldMap() {
                       >
                         <div
                           className="relative w-full max-w-[clamp(320px,90vw,900px)] h-[clamp(300px,60vw,700px)] mx-auto"
-                          onClick={drawingRegion ? handleMapClickForRegion : handleMapClick}
-                          onDoubleClick={drawingRegion ? finishDrawRegion : undefined}
-                          style={{ cursor: drawingRegion ? "crosshair" : "pointer" }}
+                          onClick={
+                            drawingRegion
+                              ? handleMapClickForRegion
+                              : handleMapClick
+                          }
+                          onDoubleClick={
+                            drawingRegion ? finishDrawRegion : undefined
+                          }
+                          style={{
+                            cursor: drawingRegion ? "crosshair" : "pointer",
+                          }}
                           onDrop={handleMapDrop}
-                          onDragOver={e => e.preventDefault()}
+                          onDragOver={(e) => e.preventDefault()}
                           role="region"
                           aria-label="World map interactive area"
                         >
@@ -1149,29 +1183,64 @@ export default function WorldMap() {
                           {filteredLocations.map((marker) => (
                             <div
                               key={marker.id}
-                              className={`absolute marker-pin transform -translate-x-1/2 -translate-y-1/2 group z-10 ${selectMode && selectedMarkers.includes(Number(marker.id)) ? "ring-4 ring-yellow-400" : ""}`}
-                              style={{ left: `${marker.x ?? 400}px`, top: `${marker.y ?? 300}px`, touchAction: "none" }}
-                              onMouseDown={selectMode && selectedMarkers.includes(Number(marker.id)) ? (e) => handleGroupMouseDown(e, marker) : (!selectMode ? (e) => handleMarkerMouseDown(e, marker) : undefined)}
-                              onTouchStart={e => handleMarkerTouchStart(e, marker)}
+                              className={`absolute marker-pin transform -translate-x-1/2 -translate-y-1/2 group z-10 ${
+                                selectMode &&
+                                selectedMarkers.includes(Number(marker.id))
+                                  ? "ring-4 ring-yellow-400"
+                                  : ""
+                              }`}
+                              style={{
+                                left: `${marker.x ?? 400}px`,
+                                top: `${marker.y ?? 300}px`,
+                                touchAction: "none",
+                              }}
+                              onMouseDown={
+                                selectMode &&
+                                selectedMarkers.includes(Number(marker.id))
+                                  ? (e) => handleGroupMouseDown(e, marker)
+                                  : !selectMode
+                                  ? (e) => handleMarkerMouseDown(e, marker)
+                                  : undefined
+                              }
+                              onTouchStart={(e) =>
+                                handleMarkerTouchStart(e, marker)
+                              }
                               onClick={(e) => handleMarkerSelect(marker, e)}
                               tabIndex={0}
                               aria-label={marker.name || "Marker"}
-                              onKeyDown={e => { if (e.key === "Enter") handleMarkerSelect(marker, e as any); }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter")
+                                  handleMarkerSelect(marker, e as any);
+                              }}
                             >
-                              {('imageUrl' in marker) && marker.imageUrl && <img src={marker.imageUrl} alt={marker.name || ""} className="w-14 h-14 object-contain absolute -top-14 left-1/2 -translate-x-1/2" />}
+                              {"imageUrl" in marker && marker.imageUrl && (
+                                <img
+                                  src={marker.imageUrl}
+                                  alt={marker.name || ""}
+                                  className="w-14 h-14 object-contain absolute -top-14 left-1/2 -translate-x-1/2"
+                                />
+                              )}
                               <div
-                                className={`bg-yellow-500 rounded-full p-2 shadow-lg cursor-pointer hover:bg-yellow-400 transition-colors ${selectMode ? "border-2 border-yellow-300" : ""}`}
+                                className={`bg-yellow-500 rounded-full p-2 shadow-lg cursor-pointer hover:bg-yellow-400 transition-colors ${
+                                  selectMode ? "border-2 border-yellow-300" : ""
+                                }`}
                               >
                                 <MapPin className="h-4 w-4 text-white" />
                               </div>
                               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black bg-opacity-75 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                                 {marker.name || "Unnamed"}
-                                {('loreId' in marker) && marker.loreId && (
+                                {"loreId" in marker && marker.loreId && (
                                   <div className="mt-1 text-[10px] text-blue-200">
-                                    {
-                                      lore.find((l) => l.id === marker.loreId)
-                                        ?.name
-                                    }
+                                    {typeof lore.find(
+                                      (l) => l.id === marker.loreId
+                                    )?.name === "object"
+                                      ? lore.find((l) => l.id === marker.loreId)
+                                          ?.name.uk
+                                      : String(
+                                          lore.find(
+                                            (l) => l.id === marker.loreId
+                                          )?.name
+                                        )}
                                   </div>
                                 )}
                               </div>
@@ -1259,7 +1328,9 @@ export default function WorldMap() {
                             <SelectItem value="">None</SelectItem>
                             {lore.map((l) => (
                               <SelectItem key={l.id} value={String(l.id)}>
-                                {l.name}
+                                {typeof l.name === "object"
+                                  ? l.name.uk
+                                  : l.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -1431,17 +1502,59 @@ export default function WorldMap() {
           </DialogHeader>
           <div className="space-y-2">
             <div className="flex gap-2">
-              <Input placeholder="Name (uk)" value={regionDraft.name?.uk || ''} onChange={e => setRegionDraft(rd => ({ ...rd, name: { uk: e.target.value, en: rd.name?.en ?? '' } }))} />
-              <Input placeholder="Name (en)" value={regionDraft.name?.en || ''} onChange={e => setRegionDraft(rd => ({ ...rd, name: { uk: rd.name?.uk ?? '', en: e.target.value } }))} />
+              <Input
+                placeholder="Name (uk)"
+                value={regionDraft.name?.uk || ""}
+                onChange={(e) =>
+                  setRegionDraft((rd) => ({
+                    ...rd,
+                    name: { uk: e.target.value, en: rd.name?.en ?? "" },
+                  }))
+                }
+              />
+              <Input
+                placeholder="Name (en)"
+                value={regionDraft.name?.en || ""}
+                onChange={(e) =>
+                  setRegionDraft((rd) => ({
+                    ...rd,
+                    name: { uk: rd.name?.uk ?? "", en: e.target.value },
+                  }))
+                }
+              />
             </div>
             <div className="flex gap-2">
-              <Textarea placeholder="Description (uk)" value={regionDraft.description?.uk || ''} onChange={e => setRegionDraft(rd => ({ ...rd, description: { uk: e.target.value, en: rd.description?.en ?? '' } }))} />
-              <Textarea placeholder="Description (en)" value={regionDraft.description?.en || ''} onChange={e => setRegionDraft(rd => ({ ...rd, description: { uk: rd.description?.uk ?? '', en: e.target.value } }))} />
+              <Textarea
+                placeholder="Description (uk)"
+                value={regionDraft.description?.uk || ""}
+                onChange={(e) =>
+                  setRegionDraft((rd) => ({
+                    ...rd,
+                    description: {
+                      uk: e.target.value,
+                      en: rd.description?.en ?? "",
+                    },
+                  }))
+                }
+              />
+              <Textarea
+                placeholder="Description (en)"
+                value={regionDraft.description?.en || ""}
+                onChange={(e) =>
+                  setRegionDraft((rd) => ({
+                    ...rd,
+                    description: {
+                      uk: rd.description?.uk ?? "",
+                      en: e.target.value,
+                    },
+                  }))
+                }
+              />
             </div>
             <span>Color:</span>
             <SketchPicker
               color={regionDraft.color || "#a3e635"}
-              onChange={(c) =>
+              onChange={(c: { hex: string }) =>
                 setRegionDraft((rd) => ({ ...rd, color: c.hex }))
               }
             />
@@ -1463,30 +1576,37 @@ export default function WorldMap() {
             <select
               className="w-full"
               value={regionDraft.loreId ?? ""}
-              onChange={e => setRegionDraft(rd => ({ ...rd, loreId: e.target.value ? Number(e.target.value) : undefined }))}
+              onChange={(e) =>
+                setRegionDraft((rd) => ({
+                  ...rd,
+                  loreId: e.target.value ? Number(e.target.value) : undefined,
+                }))
+              }
             >
               <option value="">None</option>
               {lore.map((l) => (
                 <option key={l.id} value={l.id}>
-                  {l.name}
+                  {typeof l.name === "object" ? l.name.uk : l.name}
                 </option>
               ))}
             </select>
             <div>
-            <Input
-              placeholder="Image URL"
-              value={regionDraft.imageUrl || ""}
-              onChange={(e) =>
-                setRegionDraft((rd) => ({ ...rd, imageUrl: e.target.value }))
-              }
-            />
+              <Input
+                placeholder="Image URL"
+                value={regionDraft.imageUrl || ""}
+                onChange={(e) =>
+                  setRegionDraft((rd) => ({ ...rd, imageUrl: e.target.value }))
+                }
+              />
+            </div>
           </div>
           <DialogFooter>
             {regionDraft.id && (
               <Button
                 variant="destructive"
                 onClick={() => {
-                  if (regionDraft.id) deleteRegionHandler(regionDraft.id);
+                  if (regionDraft.id)
+                    deleteRegionHandler(Number(regionDraft.id));
                   setRegionModalOpen(false);
                 }}
               >

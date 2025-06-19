@@ -29,6 +29,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "../components/ui/tooltip";
+import { useTranslation } from "@/lib/i18n";
 
 // Тип сценарію
 interface Scenario {
@@ -507,9 +508,9 @@ function ScenarioForm({ initialData, onSave, onCancel }: any) {
         onChange={(e) => setType(e.target.value)}
         className="fantasy-input"
       >
-        <option value="main">Основний</option>
-        <option value="alt">Альтернативний</option>
-        <option value="whatif">What if</option>
+        <option value="main">{t.scenarioTypes.main}</option>
+        <option value="alt">{t.scenarioTypes.alt}</option>
+        <option value="whatif">{t.scenarioTypes.whatif}</option>
       </select>
       <Input
         value={author}
@@ -521,9 +522,9 @@ function ScenarioForm({ initialData, onSave, onCancel }: any) {
         onChange={(e) => setStatus(e.target.value as Scenario["status"])}
         className="fantasy-input"
       >
-        <option value="active">Активний</option>
-        <option value="draft">Чернетка</option>
-        <option value="archived">Архів</option>
+        <option value="active">{t.scenarioStatuses.active}</option>
+        <option value="draft">{t.scenarioStatuses.draft}</option>
+        <option value="archived">{t.scenarioStatuses.archived}</option>
       </select>
       <div className="flex gap-2 items-center flex-wrap">
         {tags.map((t, i) => (
@@ -556,7 +557,7 @@ function ScenarioForm({ initialData, onSave, onCancel }: any) {
       </div>
       <div className="flex gap-2 mt-2">
         <Button type="submit" disabled={saving}>
-          {initialData ? "Зберегти" : "Створити"}
+          {initialData ? t.labels.save : t.labels.create}
         </Button>
         <Button type="button" variant="outline" onClick={onCancel}>
           Скасувати
@@ -593,6 +594,7 @@ export default function ScenariosPage() {
       return [];
     }
   });
+  const t = useTranslation();
 
   useEffect(() => {
     fetchScenarios().then((data) => {
@@ -914,9 +916,9 @@ export default function ScenariosPage() {
           className="fantasy-input"
         >
           <option value="">Всі статуси</option>
-          <option value="active">Активний</option>
-          <option value="draft">Чернетка</option>
-          <option value="archived">Архів</option>
+          <option value="active">{t.scenarioStatuses.active}</option>
+          <option value="draft">{t.scenarioStatuses.draft}</option>
+          <option value="archived">{t.scenarioStatuses.archived}</option>
         </select>
         <select
           value={filterTag}

@@ -336,6 +336,42 @@ export interface Translations {
     artifacts: string;
     events: string;
   };
+
+  mapTypes: {
+    city: string;
+    dungeon: string;
+    forest: string;
+    custom: string;
+  };
+
+  periods: {
+    ancient: string;
+    middle: string;
+    modern: string;
+    future: string;
+  };
+
+  scenarioStatuses: {
+    active: string;
+    draft: string;
+    archived: string;
+  };
+
+  scenarioTypes: {
+    main: string;
+    alt: string;
+    whatif: string;
+  };
+
+  labels: {
+    author: string;
+    descriptionUk: string;
+    descriptionEn: string;
+    preview: string;
+    addTag: string;
+    save: string;
+    create: string;
+  };
 }
 
 export const translations: Record<Language, Translations> = {
@@ -631,6 +667,37 @@ export const translations: Record<Language, Translations> = {
       artifacts: "Артефакти",
       events: "Події",
     },
+    mapTypes: {
+      city: "Місто",
+      dungeon: "Підземелля",
+      forest: "Ліс",
+      custom: "Інше",
+    },
+    periods: {
+      ancient: "Стародавній",
+      middle: "Середньовіччя",
+      modern: "Сучасність",
+      future: "Майбутнє",
+    },
+    scenarioStatuses: {
+      active: "Активний",
+      draft: "Чернетка",
+      archived: "Архів",
+    },
+    scenarioTypes: {
+      main: "Основний",
+      alt: "Альтернативний",
+      whatif: "Що як...",
+    },
+    labels: {
+      author: "Автор",
+      descriptionUk: "Опис (укр, markdown)",
+      descriptionEn: "Опис (en, markdown)",
+      preview: "Прев'ю",
+      addTag: "Додати тег",
+      save: "Зберегти",
+      create: "Створити",
+    },
   },
 
   en: {
@@ -922,6 +989,37 @@ export const translations: Record<Language, Translations> = {
       magic: "Magic",
       artifacts: "Artifacts",
       events: "Events",
+    },
+    mapTypes: {
+      city: "City",
+      dungeon: "Dungeon",
+      forest: "Forest",
+      custom: "Custom",
+    },
+    periods: {
+      ancient: "Ancient",
+      middle: "Middle Ages",
+      modern: "Modern",
+      future: "Future",
+    },
+    scenarioStatuses: {
+      active: "Active",
+      draft: "Draft",
+      archived: "Archived",
+    },
+    scenarioTypes: {
+      main: "Main",
+      alt: "Alternative",
+      whatif: "What if",
+    },
+    labels: {
+      author: "Author",
+      descriptionUk: "Description (ukr, markdown)",
+      descriptionEn: "Description (en, markdown)",
+      preview: "Preview",
+      addTag: "Add tag",
+      save: "Save",
+      create: "Create",
     },
   },
 
@@ -1215,6 +1313,37 @@ export const translations: Record<Language, Translations> = {
       magic: "Magia",
       artifacts: "Artefakty",
       events: "Wydarzenia",
+    },
+    mapTypes: {
+      city: "Miasto",
+      dungeon: "Lochy",
+      forest: "Las",
+      custom: "Inne",
+    },
+    periods: {
+      ancient: "Starożytność",
+      middle: "Średniowiecze",
+      modern: "Współczesność",
+      future: "Przyszłość",
+    },
+    scenarioStatuses: {
+      active: "Aktywny",
+      draft: "Szkic",
+      archived: "Archiwum",
+    },
+    scenarioTypes: {
+      main: "Główny",
+      alt: "Alternatywny",
+      whatif: "Co jeśli...",
+    },
+    labels: {
+      author: "Autor",
+      descriptionUk: "Opis (ukr, markdown)",
+      descriptionEn: "Opis (en, markdown)",
+      preview: "Podgląd",
+      addTag: "Dodaj tag",
+      save: "Zapisz",
+      create: "Stwórz",
     },
   },
 };
