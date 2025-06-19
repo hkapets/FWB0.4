@@ -31,6 +31,7 @@ import { Globe, Sparkles } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { World } from "@shared/schema";
+import { useTranslation } from "@/lib/i18n";
 
 const createWorldSchema = z.object({
   name: z.string().min(1, "World name is required").max(100, "Name too long"),
@@ -46,18 +47,14 @@ interface CreateWorldModalProps {
   onWorldCreated: (world: World) => void;
 }
 
-const worldTypes = [
-  { value: "high-fantasy", label: "High Fantasy" },
-  { value: "dark-fantasy", label: "Dark Fantasy" },
-  { value: "medieval", label: "Medieval" },
-  { value: "steampunk", label: "Steampunk Fantasy" },
-  { value: "modern-fantasy", label: "Modern Fantasy" },
-  { value: "custom", label: "Custom" },
-];
-
-export default function CreateWorldModal({ isOpen, onClose, onWorldCreated }: CreateWorldModalProps) {
+export default function CreateWorldModal({
+  isOpen,
+  onClose,
+  onWorldCreated,
+}: CreateWorldModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const t = useTranslation();
 
   const form = useForm<CreateWorldForm>({
     resolver: zodResolver(createWorldSchema),
@@ -100,16 +97,27 @@ export default function CreateWorldModal({ isOpen, onClose, onWorldCreated }: Cr
     onClose();
   };
 
+  const worldTypes = Object.entries(t.worldTypes).map(([value, label]) => ({
+    value,
+    label,
+  }));
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="fantasy-border bg-gradient-to-b from-gray-800 to-gray-900 max-w-md w-full mx-4">
+      <DialogContent
+        className="fantasy-border max-w-md w-full mx-4"
+        aria-describedby="modal-desc"
+      >
+        <div id="modal-desc" style={{ display: "none" }}>
+          {/* Опис модалки для screen reader */}
+        </div>
         <DialogHeader>
           <DialogTitle className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
             <Globe className="mr-2" />
-            Create New World
+            {t.dashboard.createWorld}
           </DialogTitle>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -117,11 +125,14 @@ export default function CreateWorldModal({ isOpen, onClose, onWorldCreated }: Cr
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-yellow-300">World Name *</FormLabel>
+                  <FormLabel className="text-yellow-300">
+                    {t.forms.name} *
+                  </FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter world name..."
-                      className="fantasy-input"
+                      style={{ color: "#fff", background: "#222" }}
+                      className="fantasy-input text-white"
+                      placeholder={t.forms.name + "..."}
                       {...field}
                     />
                   </FormControl>
@@ -129,17 +140,19 @@ export default function CreateWorldModal({ isOpen, onClose, onWorldCreated }: Cr
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-yellow-300">Description</FormLabel>
+                  <FormLabel className="text-yellow-300">
+                    {t.forms.description}
+                  </FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Describe your world..."
-                      className="fantasy-input h-24 resize-none"
+                      style={{ color: "#fff", background: "#222" }}
+                      className="fantasy-input text-white h-24 resize-none"
                       {...field}
                     />
                   </FormControl>
@@ -147,54 +160,51 @@ export default function CreateWorldModal({ isOpen, onClose, onWorldCreated }: Cr
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">World Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+              render={({ field }) => {
+                console.log("Select value:", field.value, worldTypes);
+                return (
+                  <FormItem>
+                    <FormLabel className="text-yellow-300">
+                      {t.forms.type} *
+                    </FormLabel>
                     <FormControl>
-                      <SelectTrigger className="fantasy-input">
-                        <SelectValue placeholder="Select world type" />
-                      </SelectTrigger>
+                      <Select
+                        value={field.value}
+                        onValueChange={(val) => field.onChange(val)}
+                      >
+                        <SelectTrigger className="fantasy-input text-white">
+                          <SelectValue placeholder={t.forms.type} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {worldTypes.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </FormControl>
-                    <SelectContent>
-                      {worldTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
-            
-            <div className="flex space-x-3 pt-4">
-              <Button 
-                type="submit" 
-                className="fantasy-button flex-1"
-                disabled={createWorldMutation.isPending}
-              >
-                {createWorldMutation.isPending ? (
-                  "Creating..."
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Create World
-                  </>
-                )}
+
+            <div className="flex justify-between gap-2 pt-2">
+              <Button type="submit" className="fantasy-button flex-1">
+                {t.forms.create + " " + t.navigation.dashboard}
               </Button>
-              <Button 
-                type="button" 
-                variant="outline"
+              <Button
+                type="button"
+                variant="secondary"
                 onClick={handleClose}
-                disabled={createWorldMutation.isPending}
+                className="flex-1"
               >
-                Cancel
+                {t.forms.cancel}
               </Button>
             </div>
           </form>

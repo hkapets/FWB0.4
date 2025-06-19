@@ -32,9 +32,13 @@ import { Crown, Plus, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Creature } from "@shared/schema";
+import { useTranslation } from "@/lib/i18n";
 
 const createCreatureSchema = z.object({
-  name: z.string().min(1, "Creature name is required").max(100, "Name too long"),
+  name: z
+    .string()
+    .min(1, "Creature name is required")
+    .max(100, "Name too long"),
   type: z.string().min(1, "Creature type is required"),
   dangerLevel: z.string().min(1, "Danger level is required"),
   description: z.string().max(1000, "Description too long").optional(),
@@ -49,40 +53,16 @@ interface CreateCreatureModalProps {
   worldId: number;
 }
 
-const creatureTypes = [
-  { value: "Crown", label: "Crown" },
-  { value: "Beast", label: "Beast" },
-  { value: "Undead", label: "Undead" },
-  { value: "Demon", label: "Demon" },
-  { value: "Angel", label: "Angel" },
-  { value: "Elemental", label: "Elemental" },
-  { value: "Fey", label: "Fey" },
-  { value: "Giant", label: "Giant" },
-  { value: "Goblinoid", label: "Goblinoid" },
-  { value: "Humanoid", label: "Humanoid" },
-  { value: "Magical Beast", label: "Magical Beast" },
-  { value: "Monster", label: "Monster" },
-  { value: "Spirit", label: "Spirit" },
-  { value: "Construct", label: "Construct" },
-  { value: "Aberration", label: "Aberration" },
-  { value: "Plant", label: "Plant" },
-  { value: "Ooze", label: "Ooze" },
-];
-
-const dangerLevels = [
-  { value: "Harmless", label: "Harmless" },
-  { value: "Low", label: "Low" },
-  { value: "Moderate", label: "Moderate" },
-  { value: "High", label: "High" },
-  { value: "Extreme", label: "Extreme" },
-  { value: "Legendary", label: "Legendary" },
-];
-
-export default function CreateCreatureModal({ isOpen, onClose, worldId }: CreateCreatureModalProps) {
+export default function CreateCreatureModal({
+  isOpen,
+  onClose,
+  worldId,
+}: CreateCreatureModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [abilities, setAbilities] = useState<string[]>([]);
   const [newAbility, setNewAbility] = useState("");
+  const t = useTranslation();
 
   const form = useForm<CreateCreatureForm>({
     resolver: zodResolver(createCreatureSchema),
@@ -97,15 +77,23 @@ export default function CreateCreatureModal({ isOpen, onClose, worldId }: Create
 
   const createCreatureMutation = useMutation({
     mutationFn: async (data: CreateCreatureForm) => {
-      const response = await apiRequest("POST", `/api/worlds/${worldId}/creatures`, {
-        ...data,
-        abilities,
-      });
+      const response = await apiRequest(
+        "POST",
+        `/api/worlds/${worldId}/creatures`,
+        {
+          ...data,
+          abilities,
+        }
+      );
       return response.json();
     },
     onSuccess: (creature: Creature) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/worlds", worldId, "creatures"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/worlds", worldId, "stats"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "creatures"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "stats"],
+      });
       toast({
         title: "Creature Created",
         description: `${creature.name} has been successfully added to your world!`,
@@ -140,19 +128,29 @@ export default function CreateCreatureModal({ isOpen, onClose, worldId }: Create
   };
 
   const removeAbility = (ability: string) => {
-    setAbilities(abilities.filter(a => a !== ability));
+    setAbilities(abilities.filter((a) => a !== ability));
   };
+
+  const worldTypes = Object.entries(t.worldTypes).map(([value, label]) => ({
+    value,
+    label,
+  }));
+
+  const dangerLevels = Object.entries(t.dangerLevels).map(([value, label]) => ({
+    value,
+    label,
+  }));
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="fantasy-border bg-gradient-to-b from-gray-800 to-gray-900 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="fantasy-border max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
             <Crown className="mr-2" />
-            Add New Creature
+            {t.dashboard.addCreature}
           </DialogTitle>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -160,11 +158,13 @@ export default function CreateCreatureModal({ isOpen, onClose, worldId }: Create
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-yellow-300">Creature Name *</FormLabel>
+                  <FormLabel className="text-yellow-300">
+                    {t.forms.name} *
+                  </FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter creature name..."
-                      className="fantasy-input"
+                      placeholder={t.forms.name + "..."}
+                      className="fantasy-input text-white"
                       {...field}
                     />
                   </FormControl>
@@ -172,45 +172,53 @@ export default function CreateCreatureModal({ isOpen, onClose, worldId }: Create
                 </FormItem>
               )}
             />
-            
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-yellow-300">Type *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="fantasy-input">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                      </FormControl>
+
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-yellow-300">
+                    {t.forms.type} *
+                  </FormLabel>
+                  <FormControl>
+                    <Select
+                      value={field.value}
+                      onValueChange={(val) => field.onChange(val)}
+                    >
+                      <SelectTrigger className="fantasy-input text-white">
+                        <SelectValue placeholder={t.forms.type} />
+                      </SelectTrigger>
                       <SelectContent>
-                        {creatureTypes.map((type) => (
+                        {worldTypes.map((type) => (
                           <SelectItem key={type.value} value={type.value}>
                             {type.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="dangerLevel"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-yellow-300">Danger Level *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="fantasy-input">
-                          <SelectValue placeholder="Select danger" />
-                        </SelectTrigger>
-                      </FormControl>
+            <FormField
+              control={form.control}
+              name="dangerLevel"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-yellow-300">
+                    {t.forms.dangerLevel} *
+                  </FormLabel>
+                  <FormControl>
+                    <Select
+                      value={field.value}
+                      onValueChange={(val) => field.onChange(val)}
+                    >
+                      <SelectTrigger className="fantasy-input text-white">
+                        <SelectValue placeholder={t.forms.dangerLevel} />
+                      </SelectTrigger>
                       <SelectContent>
                         {dangerLevels.map((level) => (
                           <SelectItem key={level.value} value={level.value}>
@@ -219,22 +227,24 @@ export default function CreateCreatureModal({ isOpen, onClose, worldId }: Create
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-yellow-300">Description</FormLabel>
+                  <FormLabel className="text-yellow-300">
+                    {t.forms.description}
+                  </FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Describe this creature..."
-                      className="fantasy-input h-24 resize-none"
+                      placeholder={t.forms.description + "..."}
+                      className="fantasy-input text-white h-24 resize-none"
                       {...field}
                     />
                   </FormControl>
@@ -245,17 +255,19 @@ export default function CreateCreatureModal({ isOpen, onClose, worldId }: Create
 
             {/* Abilities Section */}
             <div className="space-y-3">
-              <FormLabel className="text-yellow-300">Abilities</FormLabel>
-              
+              <FormLabel className="text-yellow-300">
+                {t.forms.abilities}
+              </FormLabel>
+
               {/* Add ability input */}
               <div className="flex space-x-2">
                 <Input
-                  placeholder="Add an ability..."
-                  className="fantasy-input flex-1"
+                  placeholder={t.forms.addAbility + "..."}
+                  className="fantasy-input text-white flex-1"
                   value={newAbility}
                   onChange={(e) => setNewAbility(e.target.value)}
                   onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       e.preventDefault();
                       addAbility();
                     }
@@ -295,29 +307,18 @@ export default function CreateCreatureModal({ isOpen, onClose, worldId }: Create
                 </div>
               )}
             </div>
-            
-            <div className="flex space-x-3 pt-4">
-              <Button 
-                type="submit" 
-                className="fantasy-button flex-1"
-                disabled={createCreatureMutation.isPending}
-              >
-                {createCreatureMutation.isPending ? (
-                  "Creating..."
-                ) : (
-                  <>
-                    <Crown className="mr-2 h-4 w-4" />
-                    Create Creature
-                  </>
-                )}
+
+            <div className="flex justify-between gap-2 pt-2">
+              <Button type="submit" className="fantasy-button flex-1">
+                {t.forms.create + " " + t.navigation.creatures.slice(0, -1)}
               </Button>
-              <Button 
-                type="button" 
-                variant="outline"
+              <Button
+                type="button"
+                variant="secondary"
                 onClick={handleClose}
-                disabled={createCreatureMutation.isPending}
+                className="flex-1"
               >
-                Cancel
+                {t.forms.cancel}
               </Button>
             </div>
           </form>

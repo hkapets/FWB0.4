@@ -9,7 +9,7 @@ export function formatTimeAgo(date: Date | string): string {
   const now = new Date();
   const past = new Date(date);
   const diffInMs = now.getTime() - past.getTime();
-  
+
   const minute = 60 * 1000;
   const hour = 60 * minute;
   const day = 24 * hour;
@@ -18,37 +18,42 @@ export function formatTimeAgo(date: Date | string): string {
   const year = 365 * day;
 
   if (diffInMs < minute) {
-    return 'Just now';
+    return "Just now";
   } else if (diffInMs < hour) {
     const minutes = Math.floor(diffInMs / minute);
-    return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
   } else if (diffInMs < day) {
     const hours = Math.floor(diffInMs / hour);
-    return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    return `${hours} hour${hours === 1 ? "" : "s"} ago`;
   } else if (diffInMs < week) {
     const days = Math.floor(diffInMs / day);
-    return `${days} day${days === 1 ? '' : 's'} ago`;
+    return `${days} day${days === 1 ? "" : "s"} ago`;
   } else if (diffInMs < month) {
     const weeks = Math.floor(diffInMs / week);
-    return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+    return `${weeks} week${weeks === 1 ? "" : "s"} ago`;
   } else if (diffInMs < year) {
     const months = Math.floor(diffInMs / month);
-    return `${months} month${months === 1 ? '' : 's'} ago`;
+    return `${months} month${months === 1 ? "" : "s"} ago`;
   } else {
     const years = Math.floor(diffInMs / year);
-    return `${years} year${years === 1 ? '' : 's'} ago`;
+    return `${years} year${years === 1 ? "" : "s"} ago`;
   }
 }
 
-export function getDangerLevelColor(dangerLevel: string): string {
+export function getDangerLevelColor(
+  dangerLevel: string | undefined | null
+): string {
+  if (!dangerLevel || typeof dangerLevel !== "string") {
+    return "danger-safe";
+  }
   switch (dangerLevel.toLowerCase()) {
-    case 'safe':
-      return 'danger-safe';
-    case 'protected':
-      return 'danger-protected';
-    case 'dangerous':
-      return 'danger-dangerous';
+    case "safe":
+      return "danger-safe";
+    case "protected":
+      return "danger-protected";
+    case "dangerous":
+      return "danger-dangerous";
     default:
-      return 'danger-safe';
+      return "danger-safe";
   }
 }

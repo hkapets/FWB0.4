@@ -31,9 +31,13 @@ import { MapPin, Mountain } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Location } from "@shared/schema";
+import { useTranslation } from "@/lib/i18n";
 
 const createLocationSchema = z.object({
-  name: z.string().min(1, "Location name is required").max(100, "Name too long"),
+  name: z
+    .string()
+    .min(1, "Location name is required")
+    .max(100, "Name too long"),
   type: z.string().min(1, "Location type is required"),
   description: z.string().max(1000, "Description too long").optional(),
   dangerLevel: z.string().min(1, "Danger level is required"),
@@ -76,9 +80,14 @@ const dangerLevels = [
   { value: "Dangerous", label: "Dangerous" },
 ];
 
-export default function CreateLocationModal({ isOpen, onClose, worldId }: CreateLocationModalProps) {
+export default function CreateLocationModal({
+  isOpen,
+  onClose,
+  worldId,
+}: CreateLocationModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const t = useTranslation();
 
   const form = useForm<CreateLocationForm>({
     resolver: zodResolver(createLocationSchema),
@@ -92,12 +101,20 @@ export default function CreateLocationModal({ isOpen, onClose, worldId }: Create
 
   const createLocationMutation = useMutation({
     mutationFn: async (data: CreateLocationForm) => {
-      const response = await apiRequest("POST", `/api/worlds/${worldId}/locations`, data);
+      const response = await apiRequest(
+        "POST",
+        `/api/worlds/${worldId}/locations`,
+        data
+      );
       return response.json();
     },
     onSuccess: (location: Location) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/worlds", worldId, "locations"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/worlds", worldId, "stats"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "locations"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "stats"],
+      });
       toast({
         title: "Location Created",
         description: `${location.name} has been successfully added to your world!`,
@@ -124,14 +141,14 @@ export default function CreateLocationModal({ isOpen, onClose, worldId }: Create
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="fantasy-border bg-gradient-to-b from-gray-800 to-gray-900 max-w-md w-full mx-4">
+      <DialogContent className="fantasy-border max-w-md w-full mx-4">
         <DialogHeader>
           <DialogTitle className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
             <MapPin className="mr-2" />
-            Add New Location
+            {t.dashboard.addLocation}
           </DialogTitle>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -139,11 +156,13 @@ export default function CreateLocationModal({ isOpen, onClose, worldId }: Create
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-yellow-300">Location Name *</FormLabel>
+                  <FormLabel className="text-yellow-300">
+                    {t.forms.name} *
+                  </FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter location name..."
-                      className="fantasy-input"
+                      placeholder={t.forms.name + "..."}
+                      className="fantasy-input text-white"
                       {...field}
                     />
                   </FormControl>
@@ -151,27 +170,32 @@ export default function CreateLocationModal({ isOpen, onClose, worldId }: Create
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-yellow-300">Location Type *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="fantasy-input">
-                        <SelectValue placeholder="Select location type" />
+                  <FormLabel className="text-yellow-300">
+                    {t.forms.type} *
+                  </FormLabel>
+                  <FormControl>
+                    <Select
+                      value={field.value}
+                      onValueChange={(val) => field.onChange(val)}
+                    >
+                      <SelectTrigger className="fantasy-input text-white">
+                        <SelectValue placeholder={t.forms.type} />
                       </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {locationTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                      <SelectContent>
+                        {Object.entries(t.locationTypes).map(([key, label]) => (
+                          <SelectItem key={key} value={key}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -182,36 +206,43 @@ export default function CreateLocationModal({ isOpen, onClose, worldId }: Create
               name="dangerLevel"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-yellow-300">Danger Level *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="fantasy-input">
-                        <SelectValue placeholder="Select danger level" />
+                  <FormLabel className="text-yellow-300">
+                    {t.forms.dangerLevel} *
+                  </FormLabel>
+                  <FormControl>
+                    <Select
+                      value={field.value}
+                      onValueChange={(val) => field.onChange(val)}
+                    >
+                      <SelectTrigger className="fantasy-input text-white">
+                        <SelectValue placeholder={t.forms.dangerLevel} />
                       </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {dangerLevels.map((level) => (
-                        <SelectItem key={level.value} value={level.value}>
-                          {level.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                      <SelectContent>
+                        {Object.entries(t.dangerLevels).map(([key, label]) => (
+                          <SelectItem key={key} value={key}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-yellow-300">Description</FormLabel>
+                  <FormLabel className="text-yellow-300">
+                    {t.forms.description}
+                  </FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Describe this location..."
-                      className="fantasy-input h-24 resize-none"
+                      placeholder={t.forms.description + "..."}
+                      className="fantasy-input text-white h-24 resize-none"
                       {...field}
                     />
                   </FormControl>
@@ -219,29 +250,18 @@ export default function CreateLocationModal({ isOpen, onClose, worldId }: Create
                 </FormItem>
               )}
             />
-            
-            <div className="flex space-x-3 pt-4">
-              <Button 
-                type="submit" 
-                className="fantasy-button flex-1"
-                disabled={createLocationMutation.isPending}
-              >
-                {createLocationMutation.isPending ? (
-                  "Creating..."
-                ) : (
-                  <>
-                    <Mountain className="mr-2 h-4 w-4" />
-                    Create Location
-                  </>
-                )}
+
+            <div className="flex justify-between gap-2 pt-2">
+              <Button type="submit" className="fantasy-button flex-1">
+                {t.forms.create + " " + t.navigation.locations.slice(0, -1)}
               </Button>
-              <Button 
-                type="button" 
-                variant="outline"
+              <Button
+                type="button"
+                variant="secondary"
                 onClick={handleClose}
-                disabled={createLocationMutation.isPending}
+                className="flex-1"
               >
-                Cancel
+                {t.forms.cancel}
               </Button>
             </div>
           </form>
