@@ -1,4 +1,11 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  serial,
+  integer,
+  boolean,
+  timestamp,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -58,6 +65,72 @@ export const creatures = pgTable("creatures", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// World Races
+export const worldRaces = pgTable("world_races", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon"),
+  imageUrl: text("image_url"),
+  worldId: integer("world_id").notNull(),
+});
+
+// World Classes
+export const worldClasses = pgTable("world_classes", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon"),
+  imageUrl: text("image_url"),
+  worldId: integer("world_id").notNull(),
+});
+
+// World Magic Types
+export const worldMagicTypes = pgTable("world_magic_types", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon"),
+  imageUrl: text("image_url"),
+  worldId: integer("world_id").notNull(),
+});
+
+// World Base Locations (for template locations, not main locations table)
+export const worldLocationsBase = pgTable("world_locations_base", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  worldId: integer("world_id").notNull(),
+});
+
+// World Bestiary
+export const worldBestiary = pgTable("world_bestiary", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  worldId: integer("world_id").notNull(),
+});
+
+// World Artifacts
+export const worldArtifacts = pgTable("world_artifacts", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  worldId: integer("world_id").notNull(),
+});
+
+// World Lore
+export const worldLore = pgTable("world_lore", {
+  id: serial("id").primaryKey(),
+  worldId: integer("world_id").notNull(),
+  parentId: integer("parent_id"),
+  type: text("type").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  icon: text("icon"),
+  imageUrl: text("image_url"),
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -87,6 +160,31 @@ export const insertCreatureSchema = createInsertSchema(creatures).omit({
   updatedAt: true,
 });
 
+export const insertWorldRaceSchema = createInsertSchema(worldRaces).omit({
+  id: true,
+});
+export const insertWorldClassSchema = createInsertSchema(worldClasses).omit({
+  id: true,
+});
+export const insertWorldMagicTypeSchema = createInsertSchema(
+  worldMagicTypes
+).omit({ id: true });
+export const insertWorldLocationBaseSchema = createInsertSchema(
+  worldLocationsBase
+).omit({ id: true });
+export const insertWorldBestiarySchema = createInsertSchema(worldBestiary).omit(
+  { id: true }
+);
+export const insertWorldArtifactSchema = createInsertSchema(
+  worldArtifacts
+).omit({ id: true });
+
+export const insertWorldLoreSchema = createInsertSchema(worldLore).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -102,3 +200,46 @@ export type InsertCharacter = z.infer<typeof insertCharacterSchema>;
 
 export type Creature = typeof creatures.$inferSelect;
 export type InsertCreature = z.infer<typeof insertCreatureSchema>;
+
+export type WorldRace = typeof worldRaces.$inferSelect;
+export type InsertWorldRace = z.infer<typeof insertWorldRaceSchema>;
+export type WorldClass = typeof worldClasses.$inferSelect;
+export type InsertWorldClass = z.infer<typeof insertWorldClassSchema>;
+export type WorldMagicType = typeof worldMagicTypes.$inferSelect;
+export type InsertWorldMagicType = z.infer<typeof insertWorldMagicTypeSchema>;
+export type WorldLocationBase = typeof worldLocationsBase.$inferSelect;
+export type InsertWorldLocationBase = z.infer<
+  typeof insertWorldLocationBaseSchema
+>;
+export type WorldBestiary = typeof worldBestiary.$inferSelect;
+export type InsertWorldBestiary = z.infer<typeof insertWorldBestiarySchema>;
+export type WorldArtifact = typeof worldArtifacts.$inferSelect;
+export type InsertWorldArtifact = z.infer<typeof insertWorldArtifactSchema>;
+
+export type WorldLore = typeof worldLore.$inferSelect;
+export type InsertWorldLore = z.infer<typeof insertWorldLoreSchema>;
+
+export type Event = {
+  id: string | number;
+  name: { uk: string; en: string };
+  description: { uk: string; en: string };
+  date: string;
+  endDate?: string;
+  type: string;
+  icon?: string;
+  image?: string;
+  color?: string;
+  relatedLoreIds?: string[];
+  relatedLocationIds?: string[];
+  order?: number;
+  parentId?: string | null;
+};
+
+export type Scenario = {
+  id: string | number;
+  name: { uk: string; en: string };
+  description: { uk: string; en: string };
+  color?: string;
+  icon?: string;
+  worldId: string | number;
+};

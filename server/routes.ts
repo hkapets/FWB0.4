@@ -1,12 +1,28 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { 
-  insertWorldSchema, 
-  insertLocationSchema, 
-  insertCharacterSchema, 
-  insertCreatureSchema 
+import {
+  insertWorldSchema,
+  insertLocationSchema,
+  insertCharacterSchema,
+  insertCreatureSchema,
+  insertWorldRaceSchema,
+  insertWorldClassSchema,
+  insertWorldMagicTypeSchema,
+  insertWorldLoreSchema,
 } from "@shared/schema";
+import path from "path";
+import fs from "fs";
+import expressFileUpload from "express-fileupload";
+import { readFileSync } from "fs";
+import { join } from "path";
+import {
+  getScenarios,
+  createScenario,
+  getScenario,
+  updateScenario,
+  deleteScenario,
+} from "./storage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Temporary user ID for demo purposes (in real app, this would come from auth)
@@ -17,6 +33,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   if (!demoUser) {
     await storage.createUser({ username: "demo", password: "demo" });
   }
+
+  app.use(expressFileUpload());
 
   // World routes
   app.get("/api/worlds", async (req, res) => {
@@ -48,6 +66,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: DEMO_USER_ID,
       });
       const world = await storage.createWorld(worldData);
+      // Додаємо базові дані, якщо передані
+      const { races, classes, magic, locations, bestiary, artifacts } =
+        req.body;
+      if (Array.isArray(races) && races.length) {
+        await storage.addWorldRaces(world.id, races);
+      }
+      if (Array.isArray(classes) && classes.length) {
+        await storage.addWorldClasses(world.id, classes);
+      }
+      if (Array.isArray(magic) && magic.length) {
+        await storage.addWorldMagicTypes(world.id, magic);
+      }
+      if (Array.isArray(locations) && locations.length) {
+        await storage.addWorldLocationsBase(world.id, locations);
+      }
+      if (Array.isArray(bestiary) && bestiary.length) {
+        await storage.addWorldBestiary(world.id, bestiary);
+      }
+      if (Array.isArray(artifacts) && artifacts.length) {
+        await storage.addWorldArtifacts(world.id, artifacts);
+      }
       res.status(201).json(world);
     } catch (error) {
       res.status(400).json({ message: "Invalid world data" });
@@ -285,6 +324,252 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch world statistics" });
     }
+  });
+
+  // Races CRUD
+  app.get("/api/worlds/:worldId/races", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const races = await storage.getWorldRaces(worldId);
+      res.json(races);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch races" });
+    }
+  });
+
+  app.post("/api/worlds/:worldId/races", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const raceData = insertWorldRaceSchema.parse({ ...req.body, worldId });
+      const race = await storage.createWorldRace(raceData);
+      res.status(201).json(race);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid race data" });
+    }
+  });
+
+  app.put("/api/races/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updateData = insertWorldRaceSchema.partial().parse(req.body);
+      const race = await storage.updateWorldRace(id, updateData);
+      if (!race) {
+        return res.status(404).json({ message: "Race not found" });
+      }
+      res.json(race);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid race data" });
+    }
+  });
+
+  app.delete("/api/races/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteWorldRace(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Race not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete race" });
+    }
+  });
+
+  // Upload race image
+  app.post("/api/upload/race-image", async (req, res) => {
+    const files = req.files as expressFileUpload.FileArray | undefined;
+    if (!files || !files.image) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+    const file = files.image as expressFileUpload.UploadedFile;
+    const ext = path.extname(file.name).toLowerCase();
+    if (![".jpg", ".jpeg", ".png", ".webp"].includes(ext)) {
+      return res.status(400).json({ message: "Invalid file type" });
+    }
+    const fileName = `race_${Date.now()}${ext}`;
+    const savePath = path.join(__dirname, "../attached_assets", fileName);
+    await file.mv(savePath);
+    const url = `/attached_assets/${fileName}`;
+    res.json({ url });
+  });
+
+  // Classes CRUD
+  app.get("/api/worlds/:worldId/classes", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const classes = await storage.getWorldClasses(worldId);
+      res.json(classes);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch classes" });
+    }
+  });
+
+  app.post("/api/worlds/:worldId/classes", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const classData = insertWorldClassSchema.parse({ ...req.body, worldId });
+      const classItem = await storage.createWorldClass(classData);
+      res.status(201).json(classItem);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid class data" });
+    }
+  });
+
+  app.put("/api/classes/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updateData = insertWorldClassSchema.partial().parse(req.body);
+      const classItem = await storage.updateWorldClass(id, updateData);
+      if (!classItem) {
+        return res.status(404).json({ message: "Class not found" });
+      }
+      res.json(classItem);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid class data" });
+    }
+  });
+
+  app.delete("/api/classes/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteWorldClass(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Class not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete class" });
+    }
+  });
+
+  // Magic Types CRUD
+  app.get("/api/worlds/:worldId/magic", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const magic = await storage.getWorldMagicTypes(worldId);
+      res.json(magic);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch magic types" });
+    }
+  });
+
+  app.post("/api/worlds/:worldId/magic", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const magicData = insertWorldMagicTypeSchema.parse({
+        ...req.body,
+        worldId,
+      });
+      const magicItem = await storage.createWorldMagicType(magicData);
+      res.status(201).json(magicItem);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid magic data" });
+    }
+  });
+
+  app.put("/api/magic/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updateData = insertWorldMagicTypeSchema.partial().parse(req.body);
+      const magicItem = await storage.updateWorldMagicType(id, updateData);
+      if (!magicItem) {
+        return res.status(404).json({ message: "Magic type not found" });
+      }
+      res.json(magicItem);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid magic data" });
+    }
+  });
+
+  app.delete("/api/magic/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteWorldMagicType(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Magic type not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete magic type" });
+    }
+  });
+
+  // Lore CRUD
+  app.get("/api/worlds/:worldId/lore", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const lore = await storage.getWorldLore(worldId);
+      res.json(lore);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch lore" });
+    }
+  });
+
+  app.post("/api/worlds/:worldId/lore", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const loreData = insertWorldLoreSchema.parse({ ...req.body, worldId });
+      const loreItem = await storage.createWorldLore(loreData);
+      res.status(201).json(loreItem);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid lore data" });
+    }
+  });
+
+  app.put("/api/lore/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updateData = insertWorldLoreSchema.partial().parse(req.body);
+      const loreItem = await storage.updateWorldLore(id, updateData);
+      if (!loreItem) {
+        return res.status(404).json({ message: "Lore not found" });
+      }
+      res.json(loreItem);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid lore data" });
+    }
+  });
+
+  app.delete("/api/lore/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteWorldLore(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Lore not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete lore" });
+    }
+  });
+
+  // Сценарії
+  app.get("/api/worlds/:worldId/scenarios", (req, res) => {
+    res.json(getScenarios(req.params.worldId));
+  });
+  app.post("/api/worlds/:worldId/scenarios", (req, res) => {
+    res.json(createScenario(req.params.worldId, req.body));
+  });
+  app.get("/api/scenarios/:id", (req, res) => {
+    const scenario = getScenario(req.params.id);
+    if (!scenario) return res.status(404).json({ error: "Not found" });
+    res.json(scenario);
+  });
+  app.put("/api/scenarios/:id", (req, res) => {
+    const scenario = updateScenario(req.params.id, req.body);
+    if (!scenario) return res.status(404).json({ error: "Not found" });
+    res.json(scenario);
+  });
+  app.delete("/api/scenarios/:id", (req, res) => {
+    const ok = deleteScenario(req.params.id);
+    if (!ok) return res.status(404).json({ error: "Not found" });
+    res.json({ ok: true });
+  });
+
+  app.get("/api/docs/openapi.json", (req, res) => {
+    const openapi = readFileSync(join(__dirname, "../openapi.json"), "utf-8");
+    res.setHeader("Content-Type", "application/json");
+    res.send(openapi);
   });
 
   const httpServer = createServer(app);

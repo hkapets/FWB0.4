@@ -1,0 +1,165 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "FantasyWorldBuilder Lore API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/worlds/{id}/lore": {
+      "get": {
+        "summary": "Get all lore for a world",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of lore",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Lore" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create lore in world",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Lore" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Lore" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lore/{id}": {
+      "get": {
+        "summary": "Get lore by id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lore",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Lore" }
+              }
+            }
+          },
+          "404": { "description": "Not found" }
+        }
+      },
+      "put": {
+        "summary": "Update lore by id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Lore" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Lore" }
+              }
+            }
+          },
+          "404": { "description": "Not found" }
+        }
+      },
+      "delete": {
+        "summary": "Delete lore by id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Deleted" },
+          "404": { "description": "Not found" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Lore": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "worldId": { "type": "string" },
+          "name": {
+            "type": "object",
+            "properties": {
+              "uk": { "type": "string" },
+              "en": { "type": "string" }
+            }
+          },
+          "description": {
+            "type": "object",
+            "properties": {
+              "uk": { "type": "string" },
+              "en": { "type": "string" }
+            }
+          },
+          "type": { "type": "string" },
+          "icon": { "type": "string" },
+          "image": { "type": "string" },
+          "parentId": { "type": "string", "nullable": true },
+          "order": { "type": "integer" },
+          "date": { "type": "string", "format": "date-time" }
+        },
+        "required": ["name", "type"]
+      }
+    }
+  }
+}

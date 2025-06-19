@@ -11,7 +11,7 @@ import {
   Map,
   Settings,
   Globe,
-  Plus
+  Plus,
 } from "lucide-react";
 import CreateWorldModal from "@/components/modals/create-world-modal";
 import { useTranslation } from "@/lib/i18n";
@@ -22,7 +22,10 @@ interface SidebarProps {
   setCurrentWorldId: (id: number | null) => void;
 }
 
-export default function Sidebar({ currentWorldId, setCurrentWorldId }: SidebarProps) {
+export default function Sidebar({
+  currentWorldId,
+  setCurrentWorldId,
+}: SidebarProps) {
   const [location] = useLocation();
   const [isCreateWorldModalOpen, setIsCreateWorldModalOpen] = useState(false);
   const t = useTranslation();
@@ -41,15 +44,54 @@ export default function Sidebar({ currentWorldId, setCurrentWorldId }: SidebarPr
     enabled: !!currentWorldId,
   });
 
-  const currentWorld = worlds.find(w => w.id === currentWorldId);
+  const currentWorld = worlds.find((w) => w.id === currentWorldId);
 
   const navigationItems = [
-    { path: "/dashboard", icon: Home, label: t.navigation.dashboard, count: null },
-    { path: "/locations", icon: MapPin, label: t.navigation.locations, count: stats?.locations },
-    { path: "/characters", icon: Users, label: t.navigation.characters, count: stats?.characters },
-    { path: "/creatures", icon: Crown, label: t.navigation.creatures, count: stats?.creatures },
-    { path: "/world-map", icon: Map, label: t.navigation.worldMap, count: null },
-    { path: "/settings", icon: Settings, label: t.navigation.settings, count: null },
+    {
+      path: "/dashboard",
+      icon: Home,
+      label: t.navigation.dashboard,
+      count: null,
+    },
+    {
+      path: "/create-world",
+      icon: Plus,
+      label: t.navigation.createWorld,
+      count: null,
+    },
+    {
+      path: "/characters",
+      icon: Users,
+      label: t.navigation.characters,
+      count: null,
+    },
+    {
+      path: "/lore",
+      icon: Crown,
+      label: t.navigation.lore,
+      count: null,
+      children: [
+        { path: "/lore/geography", label: t.lore.geography },
+        { path: "/lore/bestiary", label: t.lore.bestiary },
+        { path: "/lore/magic", label: t.lore.magic },
+        { path: "/lore/artifacts", label: t.lore.artifacts },
+        { path: "/lore/events", label: t.lore.events },
+      ],
+    },
+    { path: "/maps", icon: Map, label: t.navigation.maps, count: null },
+    {
+      path: "/relations",
+      icon: Globe,
+      label: t.navigation.relations,
+      count: null,
+    },
+    {
+      path: "/timeline",
+      icon: MapPin,
+      label: t.navigation.timeline,
+      count: null,
+    },
+    { path: "/notes", icon: Settings, label: t.navigation.notes, count: null },
   ];
 
   return (
@@ -70,15 +112,21 @@ export default function Sidebar({ currentWorldId, setCurrentWorldId }: SidebarPr
                 <Plus size={16} />
               </Button>
             </div>
-            
+
             {currentWorld ? (
               <div className="fantasy-border p-3 bg-purple-900/20">
-                <h3 className="font-semibold text-yellow-200">{currentWorld.name}</h3>
-                <p className="text-sm text-gray-300 mt-1">{currentWorld.description}</p>
+                <h3 className="font-semibold text-yellow-200">
+                  {currentWorld.name}
+                </h3>
+                <p className="text-sm text-gray-300 mt-1">
+                  {currentWorld.description}
+                </p>
               </div>
             ) : (
               <div className="fantasy-border p-3 bg-purple-900/20">
-                <p className="text-sm text-gray-400">{t.dashboard.noWorldSelected}</p>
+                <p className="text-sm text-gray-400">
+                  {t.dashboard.noWorldSelected}
+                </p>
                 <Button
                   size="sm"
                   className="fantasy-button mt-2 w-full"
@@ -93,25 +141,41 @@ export default function Sidebar({ currentWorldId, setCurrentWorldId }: SidebarPr
           <div className="space-y-1">
             {navigationItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location === item.path || (location === "/" && item.path === "/dashboard");
-              
+              const isActive =
+                location === item.path ||
+                (location === "/" && item.path === "/dashboard");
               return (
-                <Link key={item.path} href={item.path}>
-                  <Button
-                    variant="ghost"
-                    className={`w-full justify-start nav-item hover:bg-purple-700/30 transition-colors duration-200 ${
-                      isActive ? "active" : ""
-                    }`}
-                  >
-                    <Icon className="mr-3 h-4 w-4 text-yellow-400" />
-                    <span className="font-medium">{item.label}</span>
-                    {item.count !== null && item.count !== undefined && (
-                      <Badge variant="secondary" className="ml-auto bg-purple-600">
-                        {item.count}
-                      </Badge>
-                    )}
-                  </Button>
-                </Link>
+                <div key={item.path}>
+                  <Link href={item.path}>
+                    <Button
+                      variant="ghost"
+                      className={`w-full justify-start nav-item hover:bg-purple-700/30 transition-colors duration-200 ${
+                        isActive ? "active" : ""
+                      }`}
+                    >
+                      {Icon && (
+                        <Icon className="mr-3 h-4 w-4 text-yellow-400" />
+                      )}
+                      <span className="font-medium">{item.label}</span>
+                    </Button>
+                  </Link>
+                  {item.children && isActive && (
+                    <div className="ml-8 mt-1 space-y-1">
+                      {item.children.map((child) => (
+                        <Link key={child.path} href={child.path}>
+                          <Button
+                            variant="ghost"
+                            className={`w-full justify-start text-left hover:bg-purple-700/20 transition-colors duration-200 ${
+                              location === child.path ? "active" : ""
+                            }`}
+                          >
+                            <span className="font-medium">{child.label}</span>
+                          </Button>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>

@@ -10,7 +10,7 @@ import {
   BarChart3,
   History,
   HelpCircle,
-  ArrowRight
+  ArrowRight,
 } from "lucide-react";
 import { useState } from "react";
 import CreateWorldModal from "@/components/modals/create-world-modal";
@@ -23,12 +23,15 @@ import { formatTimeAgo } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
 import type { World, Location, Character } from "@shared/schema";
 
-export default function Dashboard() {
+export default function DashboardPage() {
   const t = useTranslation();
   const [isCreateWorldModalOpen, setIsCreateWorldModalOpen] = useState(false);
-  const [isCreateLocationModalOpen, setIsCreateLocationModalOpen] = useState(false);
-  const [isCreateCharacterModalOpen, setIsCreateCharacterModalOpen] = useState(false);
-  const [isCreateCreatureModalOpen, setIsCreateCreatureModalOpen] = useState(false);
+  const [isCreateLocationModalOpen, setIsCreateLocationModalOpen] =
+    useState(false);
+  const [isCreateCharacterModalOpen, setIsCreateCharacterModalOpen] =
+    useState(false);
+  const [isCreateCreatureModalOpen, setIsCreateCreatureModalOpen] =
+    useState(false);
   const [currentWorldId, setCurrentWorldId] = useState<number | null>(null);
 
   const { data: worlds = [] } = useQuery<World[]>({
@@ -97,250 +100,9 @@ export default function Dashboard() {
   ];
 
   return (
-    <>
-      <div className="p-6">
-        <div className="max-w-7xl mx-auto">
-          {/* Header Section */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-fantasy font-bold text-yellow-200 mb-2">
-              {t.dashboard.welcome}
-            </h1>
-            <p className="text-lg text-gray-300">
-              {t.dashboard.subtitle}
-            </p>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {quickActions.map((action, index) => {
-              const Icon = action.icon;
-              return (
-                <Button
-                  key={index}
-                  className={`fantasy-border p-6 h-auto fantasy-card-hover transition-all duration-300 group ${
-                    action.disabled ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                  variant="ghost"
-                  onClick={action.onClick}
-                  disabled={action.disabled}
-                >
-                  <div className="text-center w-full">
-                    <div className={`w-12 h-12 ${action.color} rounded-full flex items-center justify-center mx-auto mb-4 transition-colors duration-300`}>
-                      <Icon className="text-white" size={24} />
-                    </div>
-                    <h3 className="font-fantasy font-semibold text-yellow-200 mb-2">
-                      {action.title}
-                    </h3>
-                    <p className="text-sm text-gray-400">{action.description}</p>
-                  </div>
-                </Button>
-              );
-            })}
-          </div>
-
-          {/* World Overview */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            {/* World Stats */}
-            <Card className="fantasy-border">
-              <CardHeader>
-                <CardTitle className="text-xl font-fantasy font-semibold text-yellow-200 flex items-center">
-                  <BarChart3 className="mr-2" />
-                  {t.dashboard.worldStats}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {stats ? (
-                  <>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-300">{t.dashboard.locations}</span>
-                      <span className="text-green-400 font-semibold">{stats.locations || 0}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-300">{t.dashboard.characters}</span>
-                      <span className="text-yellow-400 font-semibold">{stats.characters || 0}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-300">{t.dashboard.creatures}</span>
-                      <span className="text-purple-400 font-semibold">{stats.creatures || 0}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-300">{t.dashboard.totalElements}</span>
-                      <span className="text-yellow-200 font-bold">{stats.total || 0}</span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center text-gray-400">
-                    {worldId ? t.actions.loading : t.dashboard.noWorldSelected}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Recent Activity */}
-            <Card className="fantasy-border">
-              <CardHeader>
-                <CardTitle className="text-xl font-fantasy font-semibold text-yellow-200 flex items-center">
-                  <History className="mr-2" />
-                  {t.dashboard.recentActivity}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {locations.length === 0 && characters.length === 0 ? (
-                  <div className="text-center text-gray-400">
-                    {t.dashboard.noRecentActivity}
-                  </div>
-                ) : (
-                  <>
-                    {recentLocations.slice(0, 2).map((location) => (
-                      <div key={location.id} className="flex items-center space-x-3">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-sm text-gray-300">
-                          {t.dashboard.addedLocation} "{location.name}"
-                        </span>
-                      </div>
-                    ))}
-                    {recentCharacters.slice(0, 2).map((character) => (
-                      <div key={character.id} className="flex items-center space-x-3">
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                        <span className="text-sm text-gray-300">
-                          {t.dashboard.createdCharacter} "{character.name}"
-                        </span>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Quick Help */}
-            <Card className="fantasy-border">
-              <CardHeader>
-                <CardTitle className="text-xl font-fantasy font-semibold text-yellow-200 flex items-center">
-                  <HelpCircle className="mr-2" />
-                  {t.dashboard.quickHelp}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="p-3 bg-purple-900/30 rounded-lg">
-                  <h4 className="font-semibold text-yellow-300 text-sm">{t.dashboard.gettingStarted}</h4>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {t.dashboard.gettingStartedDesc}
-                  </p>
-                </div>
-                <div className="p-3 bg-green-900/30 rounded-lg">
-                  <h4 className="font-semibold text-yellow-300 text-sm">{t.dashboard.worldMapHelp}</h4>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {t.dashboard.worldMapHelpDesc}
-                  </p>
-                </div>
-                <div className="p-3 bg-yellow-900/30 rounded-lg">
-                  <h4 className="font-semibold text-yellow-300 text-sm">{t.dashboard.exportShare}</h4>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {t.dashboard.exportShareDesc}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Recent Locations */}
-          {recentLocations.length > 0 && (
-            <div className="mb-8">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
-                  <MapPin className="mr-2" />
-                  {t.dashboard.recentLocations}
-                </h2>
-                <Button className="fantasy-button px-4 py-2">
-                  {t.dashboard.viewAll} <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {recentLocations.map((location) => (
-                  <LocationCard key={location.id} location={location} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Recent Characters */}
-          {recentCharacters.length > 0 && (
-            <div>
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
-                  <UserPlus className="mr-2" />
-                  {t.dashboard.recentCharacters}
-                </h2>
-                <Button className="fantasy-button px-4 py-2">
-                  {t.dashboard.viewAll} <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {recentCharacters.map((character) => (
-                  <CharacterCard key={character.id} character={character} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Empty State */}
-          {!currentWorld && (
-            <div className="text-center py-12">
-              <div className="w-24 h-24 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Crown className="text-white" size={48} />
-              </div>
-              <h2 className="text-2xl font-fantasy font-bold text-yellow-200 mb-2">
-                Welcome to Fantasy World Builder
-              </h2>
-              <p className="text-gray-300 mb-6 max-w-md mx-auto">
-                Create your first fantasy world to begin your world-building journey. 
-                Add locations, characters, and creatures to bring your realm to life.
-              </p>
-              <Button 
-                className="fantasy-button px-6 py-3"
-                onClick={() => setIsCreateWorldModalOpen(true)}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Create Your First World
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Modals */}
-      <CreateWorldModal
-        isOpen={isCreateWorldModalOpen}
-        onClose={() => setIsCreateWorldModalOpen(false)}
-        onWorldCreated={(world) => {
-          setCurrentWorldId(world.id);
-          setIsCreateWorldModalOpen(false);
-        }}
-      />
-      
-      {worldId && (
-        <>
-          <CreateLocationModal
-            isOpen={isCreateLocationModalOpen}
-            onClose={() => setIsCreateLocationModalOpen(false)}
-            worldId={worldId}
-          />
-          
-          <CreateCharacterModal
-            isOpen={isCreateCharacterModalOpen}
-            onClose={() => setIsCreateCharacterModalOpen(false)}
-            worldId={worldId}
-          />
-          
-          <CreateCreatureModal
-            isOpen={isCreateCreatureModalOpen}
-            onClose={() => setIsCreateCreatureModalOpen(false)}
-            worldId={worldId}
-          />
-        </>
-      )}
-    </>
+    <div className="p-8">
+      <h1 className="text-3xl font-bold mb-4">{t.navigation.dashboard}</h1>
+      <p>Dashboard content coming soon...</p>
+    </div>
   );
 }
