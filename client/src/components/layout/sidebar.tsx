@@ -78,7 +78,6 @@ export default function Sidebar({
         { path: "/lore/events", label: t.lore.events },
       ],
     },
-    { path: "/maps", icon: Map, label: t.navigation.maps, count: null },
     {
       path: "/relations",
       icon: Globe,

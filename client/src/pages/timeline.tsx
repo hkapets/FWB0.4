@@ -373,7 +373,9 @@ export default function TimelinePage() {
   // Додаю функції масового додавання/видалення сценарію
   const handleMassAddScenario = (scenarioId: string) => {
     if (!scenarioId) return;
-    pushUndo(
+    setUndoStack((stack) => [...stack, events.map((e) => ({ ...e }))]);
+    setRedoStack([]);
+    setEvents(
       events.map((e) =>
         selectedIds.includes(e.id)
           ? {
@@ -390,7 +392,9 @@ export default function TimelinePage() {
   };
   const handleMassRemoveScenario = (scenarioId: string) => {
     if (!scenarioId) return;
-    pushUndo(
+    setUndoStack((stack) => [...stack, events.map((e) => ({ ...e }))]);
+    setRedoStack([]);
+    setEvents(
       events.map((e) =>
         selectedIds.includes(e.id)
           ? {
@@ -966,7 +970,7 @@ function TimelineEventCard({
                     className="mt-2"
                     onClick={(e) => {
                       e.stopPropagation();
-                      window.location.href = `/maps#${loc.id}`;
+                      window.location.href = `/world-map#${loc.id}`;
                     }}
                   >
                     Перейти до карти

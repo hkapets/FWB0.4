@@ -330,7 +330,7 @@ function ScenarioNode({
                 variant="outline"
                 className="mt-2"
                 onClick={() => {
-                  window.location.href = `/maps#${loc.id}`;
+                  window.location.href = `/world-map#${loc.id}`;
                 }}
               >
                 Перейти до локації
