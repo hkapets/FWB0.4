@@ -1,80 +1,59 @@
-import { useState, useRef } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import EntityForm from "@/components/entity-form";
+import { z } from "zod";
+import React from "react";
 
-const magicSchema = z.object({
+const noteSchema = z.object({
   name: z.object({ uk: z.string().min(1), en: z.string().min(1) }),
   description: z
-    .object({ uk: z.string().max(1000), en: z.string().max(1000) })
+    .object({ uk: z.string().max(3000), en: z.string().max(3000) })
     .optional(),
   icon: z.string().max(2).optional(),
   image: z.string().optional(),
   type: z.string().min(1).optional(),
+  tags: z.string().optional(),
+  date: z.string().optional(),
   parentId: z.number().nullable().optional(),
   order: z.number().optional(),
 });
 
-type MagicForm = z.infer<typeof magicSchema>;
+type NoteForm = z.infer<typeof noteSchema>;
 
-type CreateEditMagicModalProps = {
+type CreateNoteModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: MagicForm) => void;
-  initialData?: Partial<MagicForm>;
-  worldId: number;
-  allMagic?: { id: number | string; name?: { uk?: string } }[];
+  onSubmit: (data: NoteForm) => void;
+  initialData?: Partial<NoteForm>;
+  allNotes?: { id: number | string; name?: { uk?: string } }[];
 };
 
-export default function CreateEditMagicModal({
+export default function CreateNoteModal({
   isOpen,
   onClose,
   onSubmit,
   initialData,
-  worldId,
-  allMagic = [],
-}: CreateEditMagicModalProps) {
+  allNotes = [],
+}: CreateNoteModalProps) {
   const { toast } = useToast();
   const t = useTranslation();
 
   const parentOptions = (
-    allMagic as { id: number | string; name?: { uk?: string } }[]
+    allNotes as { id: number | string; name?: { uk?: string } }[]
   )
     .filter(
-      (m): m is { id: number | string; name?: { uk?: string } } =>
-        !!m &&
-        typeof m.id !== "undefined" &&
-        (!initialData || m.id !== (initialData as any)?.id)
+      (n): n is { id: number | string; name?: { uk?: string } } =>
+        !!n && typeof n.id !== "undefined"
     )
-    .map((m) => ({
-      value: String(m.id),
-      label: m.name && m.name.uk ? m.name.uk : String(m.id),
+    .map((n) => ({
+      value: String(n.id),
+      label: n.name && n.name.uk ? n.name.uk : String(n.id),
     }));
 
   return (
@@ -82,18 +61,20 @@ export default function CreateEditMagicModal({
       <DialogContent className="fantasy-border max-w-md w-full mx-4">
         <DialogHeader>
           <DialogTitle className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
-            {t.actions.add} Магія
+            {t.actions.add} Замітка
           </DialogTitle>
         </DialogHeader>
         <EntityForm
-          schema={magicSchema}
+          schema={noteSchema}
           defaultValues={
             initialData || {
               name: { uk: "", en: "" },
               description: { uk: "", en: "" },
               icon: "",
               image: undefined,
-              type: "custom",
+              type: "note",
+              tags: "",
+              date: "",
               parentId: null,
               order: 0,
             }
@@ -116,7 +97,7 @@ export default function CreateEditMagicModal({
               label: t.forms.description,
               type: "textarea",
               lang: true,
-              maxLength: 1000,
+              maxLength: 3000,
             },
             { name: "icon", label: "Іконка", type: "text", maxLength: 2 },
             { name: "image", label: "Зображення", type: "image" },
@@ -126,6 +107,14 @@ export default function CreateEditMagicModal({
               type: "text",
               required: false,
             },
+            {
+              name: "tags",
+              label: "Теги (через кому)",
+              type: "text",
+              required: false,
+              maxLength: 200,
+            },
+            { name: "date", label: "Дата", type: "text", required: false },
             {
               name: "parentId",
               label: "Батьківський елемент",

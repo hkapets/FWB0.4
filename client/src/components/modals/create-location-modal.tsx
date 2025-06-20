@@ -32,24 +32,29 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Location } from "@shared/schema";
 import { useTranslation } from "@/lib/i18n";
+import EntityForm from "@/components/entity-form";
 
-const createLocationSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Location name is required")
-    .max(100, "Name too long"),
-  type: z.string().min(1, "Location type is required"),
-  description: z.string().max(1000, "Description too long").optional(),
-  dangerLevel: z.string().min(1, "Danger level is required"),
+const locationSchema = z.object({
+  name: z.object({ uk: z.string().min(1), en: z.string().min(1) }),
+  type: z.string().min(1),
+  description: z
+    .object({ uk: z.string().max(1000), en: z.string().max(1000) })
+    .optional(),
+  dangerLevel: z.string().min(1),
+  icon: z.string().max(2).optional(),
+  image: z.string().optional(),
+  parentId: z.number().nullable().optional(),
+  order: z.number().optional(),
 });
 
-type CreateLocationForm = z.infer<typeof createLocationSchema>;
+type LocationForm = z.infer<typeof locationSchema>;
 
-interface CreateLocationModalProps {
+type CreateLocationModalProps = {
   isOpen: boolean;
   onClose: () => void;
   worldId: number;
-}
+  allLocations?: { id: number | string; name?: { uk?: string } }[];
+};
 
 const locationTypes = [
   { value: "City", label: "City" },
@@ -84,23 +89,26 @@ export default function CreateLocationModal({
   isOpen,
   onClose,
   worldId,
+  allLocations = [],
 }: CreateLocationModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const t = useTranslation();
 
-  const form = useForm<CreateLocationForm>({
-    resolver: zodResolver(createLocationSchema),
-    defaultValues: {
-      name: "",
-      type: "",
-      description: "",
-      dangerLevel: "",
-    },
-  });
+  const parentOptions = (
+    allLocations as { id: number | string; name?: { uk?: string } }[]
+  )
+    .filter(
+      (l): l is { id: number | string; name?: { uk?: string } } =>
+        !!l && typeof l.id !== "undefined"
+    )
+    .map((l) => ({
+      value: String(l.id),
+      label: l.name && l.name.uk ? l.name.uk : String(l.id),
+    }));
 
   const createLocationMutation = useMutation({
-    mutationFn: async (data: CreateLocationForm) => {
+    mutationFn: async (data: LocationForm) => {
       const response = await apiRequest(
         "POST",
         `/api/worlds/${worldId}/locations`,
@@ -117,9 +125,13 @@ export default function CreateLocationModal({
       });
       toast({
         title: "Location Created",
-        description: `${location.name} has been successfully added to your world!`,
+        description: `${
+          typeof location.name === "object"
+            ? (location.name as any).uk
+            : location.name
+        } has been successfully added to your world!`,
       });
-      handleClose();
+      onClose();
     },
     onError: () => {
       toast({
@@ -130,17 +142,12 @@ export default function CreateLocationModal({
     },
   });
 
-  const onSubmit = (data: CreateLocationForm) => {
+  const handleSubmit = (data: LocationForm) => {
     createLocationMutation.mutate(data);
   };
 
-  const handleClose = () => {
-    form.reset();
-    onClose();
-  };
-
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="fantasy-border max-w-md w-full mx-4">
         <DialogHeader>
           <DialogTitle className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
@@ -148,124 +155,69 @@ export default function CreateLocationModal({
             {t.dashboard.addLocation}
           </DialogTitle>
         </DialogHeader>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">
-                    {t.forms.name} *
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder={t.forms.name + "..."}
-                      className="fantasy-input text-white"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">
-                    {t.forms.type} *
-                  </FormLabel>
-                  <FormControl>
-                    <Select
-                      value={field.value}
-                      onValueChange={(val) => field.onChange(val)}
-                    >
-                      <SelectTrigger className="fantasy-input text-white">
-                        <SelectValue placeholder={t.forms.type} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(t.locationTypes).map(([key, label]) => (
-                          <SelectItem key={key} value={key}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="dangerLevel"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">
-                    {t.forms.dangerLevel} *
-                  </FormLabel>
-                  <FormControl>
-                    <Select
-                      value={field.value}
-                      onValueChange={(val) => field.onChange(val)}
-                    >
-                      <SelectTrigger className="fantasy-input text-white">
-                        <SelectValue placeholder={t.forms.dangerLevel} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(t.dangerLevels).map(([key, label]) => (
-                          <SelectItem key={key} value={key}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">
-                    {t.forms.description}
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder={t.forms.description + "..."}
-                      className="fantasy-input text-white h-24 resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-between gap-2 pt-2">
-              <Button type="submit" className="fantasy-button flex-1">
-                {t.forms.create + " " + t.navigation.locations.slice(0, -1)}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleClose}
-                className="flex-1"
-              >
-                {t.forms.cancel}
-              </Button>
-            </div>
-          </form>
-        </Form>
+        <EntityForm
+          schema={locationSchema}
+          defaultValues={{
+            name: { uk: "", en: "" },
+            description: { uk: "", en: "" },
+            icon: "",
+            image: undefined,
+            type: "City",
+            dangerLevel: "Safe",
+            parentId: null,
+            order: 0,
+          }}
+          onSubmit={handleSubmit}
+          onCancel={onClose}
+          submitLabel={t.forms.create}
+          cancelLabel={t.forms.cancel}
+          fields={[
+            {
+              name: "name",
+              label: t.forms.name,
+              type: "text",
+              lang: true,
+              required: true,
+              maxLength: 100,
+            },
+            {
+              name: "description",
+              label: t.forms.description,
+              type: "textarea",
+              lang: true,
+              maxLength: 1000,
+            },
+            { name: "icon", label: "Іконка", type: "text", maxLength: 2 },
+            { name: "image", label: "Зображення", type: "image" },
+            {
+              name: "type",
+              label: t.forms.type || "Тип",
+              type: "select",
+              options: locationTypes,
+              required: true,
+            },
+            {
+              name: "dangerLevel",
+              label: "Рівень небезпеки",
+              type: "select",
+              options: dangerLevels,
+              required: true,
+            },
+            {
+              name: "parentId",
+              label: "Батьківський елемент",
+              type: "select",
+              options: parentOptions,
+              required: false,
+            },
+            {
+              name: "order",
+              label: "Порядок",
+              type: "number",
+              required: false,
+            },
+          ]}
+        />
       </DialogContent>
     </Dialog>
   );

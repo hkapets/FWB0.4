@@ -33,30 +33,53 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Creature } from "@shared/schema";
 import { useTranslation } from "@/lib/i18n";
+import EntityForm from "@/components/entity-form";
 
-const createCreatureSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Creature name is required")
-    .max(100, "Name too long"),
-  type: z.string().min(1, "Creature type is required"),
-  dangerLevel: z.string().min(1, "Danger level is required"),
-  description: z.string().max(1000, "Description too long").optional(),
+const creatureSchema = z.object({
+  name: z.object({ uk: z.string().min(1), en: z.string().min(1) }),
+  type: z.string().min(1),
+  dangerLevel: z.string().min(1),
+  description: z
+    .object({ uk: z.string().max(1000), en: z.string().max(1000) })
+    .optional(),
   abilities: z.array(z.string()).optional(),
+  icon: z.string().max(2).optional(),
+  image: z.string().optional(),
+  parentId: z.number().nullable().optional(),
+  order: z.number().optional(),
 });
 
-type CreateCreatureForm = z.infer<typeof createCreatureSchema>;
+type CreatureForm = z.infer<typeof creatureSchema>;
 
-interface CreateCreatureModalProps {
+type CreateCreatureModalProps = {
   isOpen: boolean;
   onClose: () => void;
   worldId: number;
-}
+  allCreatures?: { id: number | string; name?: { uk?: string } }[];
+};
+
+const worldTypes = [
+  { value: "beast", label: "Beast" },
+  { value: "dragon", label: "Dragon" },
+  { value: "undead", label: "Undead" },
+  { value: "spirit", label: "Spirit" },
+  { value: "construct", label: "Construct" },
+  { value: "humanoid", label: "Humanoid" },
+  { value: "plant", label: "Plant" },
+  { value: "other", label: "Other" },
+];
+
+const dangerLevels = [
+  { value: "Safe", label: "Safe" },
+  { value: "Protected", label: "Protected" },
+  { value: "Dangerous", label: "Dangerous" },
+];
 
 export default function CreateCreatureModal({
   isOpen,
   onClose,
   worldId,
+  allCreatures = [],
 }: CreateCreatureModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -64,19 +87,20 @@ export default function CreateCreatureModal({
   const [newAbility, setNewAbility] = useState("");
   const t = useTranslation();
 
-  const form = useForm<CreateCreatureForm>({
-    resolver: zodResolver(createCreatureSchema),
-    defaultValues: {
-      name: "",
-      type: "",
-      dangerLevel: "",
-      description: "",
-      abilities: [],
-    },
-  });
+  const parentOptions = (
+    allCreatures as { id: number | string; name?: { uk?: string } }[]
+  )
+    .filter(
+      (c): c is { id: number | string; name?: { uk?: string } } =>
+        !!c && typeof c.id !== "undefined"
+    )
+    .map((c) => ({
+      value: String(c.id),
+      label: c.name && c.name.uk ? c.name.uk : String(c.id),
+    }));
 
   const createCreatureMutation = useMutation({
-    mutationFn: async (data: CreateCreatureForm) => {
+    mutationFn: async (data: CreatureForm) => {
       const response = await apiRequest(
         "POST",
         `/api/worlds/${worldId}/creatures`,
@@ -96,7 +120,11 @@ export default function CreateCreatureModal({
       });
       toast({
         title: "Creature Created",
-        description: `${creature.name} has been successfully added to your world!`,
+        description: `${
+          typeof creature.name === "object"
+            ? (creature.name as any).uk
+            : creature.name
+        } has been successfully added to your world!`,
       });
       handleClose();
     },
@@ -109,14 +137,11 @@ export default function CreateCreatureModal({
     },
   });
 
-  const onSubmit = (data: CreateCreatureForm) => {
+  const handleSubmit = (data: CreatureForm) => {
     createCreatureMutation.mutate(data);
   };
 
   const handleClose = () => {
-    form.reset();
-    setAbilities([]);
-    setNewAbility("");
     onClose();
   };
 
@@ -131,16 +156,6 @@ export default function CreateCreatureModal({
     setAbilities(abilities.filter((a) => a !== ability));
   };
 
-  const worldTypes = Object.entries(t.worldTypes).map(([value, label]) => ({
-    value,
-    label,
-  }));
-
-  const dangerLevels = Object.entries(t.dangerLevels).map(([value, label]) => ({
-    value,
-    label,
-  }));
-
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="fantasy-border max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -150,179 +165,69 @@ export default function CreateCreatureModal({
             {t.dashboard.addCreature}
           </DialogTitle>
         </DialogHeader>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">
-                    {t.forms.name} *
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder={t.forms.name + "..."}
-                      className="fantasy-input text-white"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">
-                    {t.forms.type} *
-                  </FormLabel>
-                  <FormControl>
-                    <Select
-                      value={field.value}
-                      onValueChange={(val) => field.onChange(val)}
-                    >
-                      <SelectTrigger className="fantasy-input text-white">
-                        <SelectValue placeholder={t.forms.type} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {worldTypes.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="dangerLevel"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">
-                    {t.forms.dangerLevel} *
-                  </FormLabel>
-                  <FormControl>
-                    <Select
-                      value={field.value}
-                      onValueChange={(val) => field.onChange(val)}
-                    >
-                      <SelectTrigger className="fantasy-input text-white">
-                        <SelectValue placeholder={t.forms.dangerLevel} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {dangerLevels.map((level) => (
-                          <SelectItem key={level.value} value={level.value}>
-                            {level.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">
-                    {t.forms.description}
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder={t.forms.description + "..."}
-                      className="fantasy-input text-white h-24 resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Abilities Section */}
-            <div className="space-y-3">
-              <FormLabel className="text-yellow-300">
-                {t.forms.abilities}
-              </FormLabel>
-
-              {/* Add ability input */}
-              <div className="flex space-x-2">
-                <Input
-                  placeholder={t.forms.addAbility + "..."}
-                  className="fantasy-input text-white flex-1"
-                  value={newAbility}
-                  onChange={(e) => setNewAbility(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addAbility();
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={addAbility}
-                  disabled={!newAbility.trim()}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {/* Display abilities */}
-              {abilities.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {abilities.map((ability, index) => (
-                    <Badge
-                      key={index}
-                      variant="secondary"
-                      className="bg-purple-900/50 text-white pr-1"
-                    >
-                      {ability}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-auto p-0 ml-1 hover:bg-transparent"
-                        onClick={() => removeAbility(ability)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-between gap-2 pt-2">
-              <Button type="submit" className="fantasy-button flex-1">
-                {t.forms.create + " " + t.navigation.creatures.slice(0, -1)}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleClose}
-                className="flex-1"
-              >
-                {t.forms.cancel}
-              </Button>
-            </div>
-          </form>
-        </Form>
+        <EntityForm
+          schema={creatureSchema}
+          defaultValues={{
+            name: { uk: "", en: "" },
+            description: { uk: "", en: "" },
+            icon: "",
+            image: undefined,
+            type: "beast",
+            dangerLevel: "Safe",
+            parentId: null,
+            order: 0,
+          }}
+          onSubmit={handleSubmit}
+          onCancel={handleClose}
+          submitLabel={t.forms.create}
+          cancelLabel={t.forms.cancel}
+          fields={[
+            {
+              name: "name",
+              label: t.forms.name,
+              type: "text",
+              lang: true,
+              required: true,
+              maxLength: 100,
+            },
+            {
+              name: "description",
+              label: t.forms.description,
+              type: "textarea",
+              lang: true,
+              maxLength: 1000,
+            },
+            { name: "icon", label: "Іконка", type: "text", maxLength: 2 },
+            { name: "image", label: "Зображення", type: "image" },
+            {
+              name: "type",
+              label: t.forms.type || "Тип",
+              type: "select",
+              options: worldTypes,
+              required: true,
+            },
+            {
+              name: "dangerLevel",
+              label: "Рівень небезпеки",
+              type: "select",
+              options: dangerLevels,
+              required: true,
+            },
+            {
+              name: "parentId",
+              label: "Батьківський елемент",
+              type: "select",
+              options: parentOptions,
+              required: false,
+            },
+            {
+              name: "order",
+              label: "Порядок",
+              type: "number",
+              required: false,
+            },
+          ]}
+        />
       </DialogContent>
     </Dialog>
   );

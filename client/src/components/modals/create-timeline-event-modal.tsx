@@ -1,80 +1,66 @@
-import { useState, useRef } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import EntityForm from "@/components/entity-form";
+import { z } from "zod";
+import React from "react";
 
-const magicSchema = z.object({
+const timelineEventSchema = z.object({
   name: z.object({ uk: z.string().min(1), en: z.string().min(1) }),
   description: z
-    .object({ uk: z.string().max(1000), en: z.string().max(1000) })
+    .object({ uk: z.string().max(3000), en: z.string().max(3000) })
     .optional(),
   icon: z.string().max(2).optional(),
   image: z.string().optional(),
   type: z.string().min(1).optional(),
+  date: z.string().optional(),
+  importance: z.string().optional(),
+  tags: z.string().optional(),
   parentId: z.number().nullable().optional(),
   order: z.number().optional(),
 });
 
-type MagicForm = z.infer<typeof magicSchema>;
+type TimelineEventForm = z.infer<typeof timelineEventSchema>;
 
-type CreateEditMagicModalProps = {
+type CreateTimelineEventModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: MagicForm) => void;
-  initialData?: Partial<MagicForm>;
-  worldId: number;
-  allMagic?: { id: number | string; name?: { uk?: string } }[];
+  onSubmit: (data: TimelineEventForm) => void;
+  initialData?: Partial<TimelineEventForm>;
+  allEvents?: { id: number | string; name?: { uk?: string } }[];
 };
 
-export default function CreateEditMagicModal({
+const importanceOptions = [
+  { value: "low", label: "Низька" },
+  { value: "medium", label: "Середня" },
+  { value: "high", label: "Висока" },
+];
+
+export default function CreateTimelineEventModal({
   isOpen,
   onClose,
   onSubmit,
   initialData,
-  worldId,
-  allMagic = [],
-}: CreateEditMagicModalProps) {
+  allEvents = [],
+}: CreateTimelineEventModalProps) {
   const { toast } = useToast();
   const t = useTranslation();
 
   const parentOptions = (
-    allMagic as { id: number | string; name?: { uk?: string } }[]
+    allEvents as { id: number | string; name?: { uk?: string } }[]
   )
     .filter(
-      (m): m is { id: number | string; name?: { uk?: string } } =>
-        !!m &&
-        typeof m.id !== "undefined" &&
-        (!initialData || m.id !== (initialData as any)?.id)
+      (e): e is { id: number | string; name?: { uk?: string } } =>
+        !!e && typeof e.id !== "undefined"
     )
-    .map((m) => ({
-      value: String(m.id),
-      label: m.name && m.name.uk ? m.name.uk : String(m.id),
+    .map((e) => ({
+      value: String(e.id),
+      label: e.name && e.name.uk ? e.name.uk : String(e.id),
     }));
 
   return (
@@ -82,18 +68,21 @@ export default function CreateEditMagicModal({
       <DialogContent className="fantasy-border max-w-md w-full mx-4">
         <DialogHeader>
           <DialogTitle className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
-            {t.actions.add} Магія
+            {t.actions.add} Подія таймлайну
           </DialogTitle>
         </DialogHeader>
         <EntityForm
-          schema={magicSchema}
+          schema={timelineEventSchema}
           defaultValues={
             initialData || {
               name: { uk: "", en: "" },
               description: { uk: "", en: "" },
               icon: "",
               image: undefined,
-              type: "custom",
+              type: "timeline-event",
+              date: "",
+              importance: "medium",
+              tags: "",
               parentId: null,
               order: 0,
             }
@@ -116,7 +105,7 @@ export default function CreateEditMagicModal({
               label: t.forms.description,
               type: "textarea",
               lang: true,
-              maxLength: 1000,
+              maxLength: 3000,
             },
             { name: "icon", label: "Іконка", type: "text", maxLength: 2 },
             { name: "image", label: "Зображення", type: "image" },
@@ -125,6 +114,21 @@ export default function CreateEditMagicModal({
               label: t.forms.type || "Тип",
               type: "text",
               required: false,
+            },
+            { name: "date", label: "Дата/Час", type: "text", required: false },
+            {
+              name: "importance",
+              label: "Важливість",
+              type: "select",
+              options: importanceOptions,
+              required: false,
+            },
+            {
+              name: "tags",
+              label: "Теги (через кому)",
+              type: "text",
+              required: false,
+              maxLength: 200,
             },
             {
               name: "parentId",

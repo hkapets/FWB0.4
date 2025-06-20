@@ -41,6 +41,7 @@ export const locations = pgTable("locations", {
   loreId: integer("lore_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  imageUrl: text("image_url"),
 });
 
 // Characters table

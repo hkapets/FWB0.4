@@ -32,20 +32,17 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Character } from "@shared/schema";
 import { useTranslation } from "@/lib/i18n";
+import EntityForm from "@/components/entity-form";
 
 const createCharacterSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Character name is required")
-    .max(100, "Name too long"),
-  race: z.string().min(1, "Race is required"),
-  class: z.string().min(1, "Class is required"),
-  level: z
-    .number()
-    .min(1, "Level must be at least 1")
-    .max(100, "Max level is 100")
-    .default(1),
-  description: z.string().max(1000, "Description too long").optional(),
+  name: z.object({ uk: z.string().min(1), en: z.string().min(1) }),
+  race: z.string().min(1),
+  class: z.string().min(1),
+  level: z.number().min(1).max(100).default(1),
+  description: z
+    .object({ uk: z.string().max(1000), en: z.string().max(1000) })
+    .optional(),
+  image: z.string().optional(),
 });
 
 type CreateCharacterForm = z.infer<typeof createCharacterSchema>;
@@ -65,16 +62,18 @@ export default function CreateCharacterModal({
   const queryClient = useQueryClient();
   const t = useTranslation();
 
-  const form = useForm<CreateCharacterForm>({
-    resolver: zodResolver(createCharacterSchema),
-    defaultValues: {
-      name: "",
-      race: "",
-      class: "",
-      level: 1,
-      description: "",
-    },
-  });
+  const races = Object.entries(t.races).map(([value, label]) => ({
+    value,
+    label,
+  }));
+  const classes = Object.entries(t.classes).map(([value, label]) => ({
+    value,
+    label,
+  }));
+
+  const handleSubmit = (data: CreateCharacterForm) => {
+    createCharacterMutation.mutate(data);
+  };
 
   const createCharacterMutation = useMutation({
     mutationFn: async (data: CreateCharacterForm) => {
@@ -94,7 +93,7 @@ export default function CreateCharacterModal({
       });
       toast({
         title: "Character Created",
-        description: `${character.name} has been successfully added to your world!`,
+        description: `${character.name.uk || character.name} додано!`,
       });
       handleClose();
     },
@@ -107,23 +106,9 @@ export default function CreateCharacterModal({
     },
   });
 
-  const onSubmit = (data: CreateCharacterForm) => {
-    createCharacterMutation.mutate(data);
-  };
-
   const handleClose = () => {
-    form.reset();
     onClose();
   };
-
-  const races = Object.entries(t.races).map(([value, label]) => ({
-    value,
-    label,
-  }));
-  const classes = Object.entries(t.classes).map(([value, label]) => ({
-    value,
-    label,
-  }));
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -134,153 +119,63 @@ export default function CreateCharacterModal({
             {t.dashboard.createCharacter}
           </DialogTitle>
         </DialogHeader>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">
-                    {t.forms.name} *
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder={t.forms.name + "..."}
-                      className="fantasy-input text-white"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="race"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">
-                    {t.forms.race} *
-                  </FormLabel>
-                  <FormControl>
-                    <Select
-                      value={field.value}
-                      onValueChange={(val) => field.onChange(val)}
-                    >
-                      <SelectTrigger className="fantasy-input text-white">
-                        <SelectValue placeholder={t.forms.race} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {races.map((race) => (
-                          <SelectItem key={race.value} value={race.value}>
-                            {race.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="class"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">
-                    {t.forms.class} *
-                  </FormLabel>
-                  <FormControl>
-                    <Select
-                      value={field.value}
-                      onValueChange={(val) => field.onChange(val)}
-                    >
-                      <SelectTrigger className="fantasy-input text-white">
-                        <SelectValue placeholder={t.forms.class} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {classes.map((characterClass) => (
-                          <SelectItem
-                            key={characterClass.value}
-                            value={characterClass.value}
-                          >
-                            {characterClass.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="level"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">
-                    {t.forms.level}
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="100"
-                      placeholder="1"
-                      className="fantasy-input text-white"
-                      {...field}
-                      onChange={(e) =>
-                        field.onChange(parseInt(e.target.value) || 1)
-                      }
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">
-                    {t.forms.description}
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder={t.forms.description + "..."}
-                      className="fantasy-input text-white h-24 resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-between gap-2 pt-2">
-              <Button type="submit" className="fantasy-button flex-1">
-                {t.forms.create + " " + t.navigation.characters.slice(0, -1)}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleClose}
-                className="flex-1"
-              >
-                {t.forms.cancel}
-              </Button>
-            </div>
-          </form>
-        </Form>
+        <EntityForm
+          schema={createCharacterSchema}
+          defaultValues={{
+            name: { uk: "", en: "" },
+            race: "",
+            class: "",
+            level: 1,
+            description: { uk: "", en: "" },
+            image: undefined,
+          }}
+          onSubmit={handleSubmit}
+          onCancel={handleClose}
+          submitLabel={t.forms.create}
+          cancelLabel={t.forms.cancel}
+          fields={[
+            {
+              name: "name",
+              label: t.forms.name,
+              type: "text",
+              lang: true,
+              required: true,
+              maxLength: 100,
+            },
+            {
+              name: "race",
+              label: t.forms.race,
+              type: "select",
+              options: races,
+              required: true,
+            },
+            {
+              name: "class",
+              label: t.forms.class,
+              type: "select",
+              options: classes,
+              required: true,
+            },
+            {
+              name: "level",
+              label: t.forms.level,
+              type: "number",
+              required: true,
+            },
+            {
+              name: "description",
+              label: t.forms.description,
+              type: "textarea",
+              lang: true,
+              maxLength: 1000,
+            },
+            {
+              name: "image",
+              label: t.forms.image || "Зображення",
+              type: "image",
+            },
+          ]}
+        />
       </DialogContent>
     </Dialog>
   );

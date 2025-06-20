@@ -1,80 +1,67 @@
-import { useState, useRef } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import EntityForm from "@/components/entity-form";
+import { z } from "zod";
+import React from "react";
 
-const magicSchema = z.object({
+const artifactSchema = z.object({
   name: z.object({ uk: z.string().min(1), en: z.string().min(1) }),
   description: z
-    .object({ uk: z.string().max(1000), en: z.string().max(1000) })
+    .object({ uk: z.string().max(2000), en: z.string().max(2000) })
     .optional(),
   icon: z.string().max(2).optional(),
   image: z.string().optional(),
   type: z.string().min(1).optional(),
+  rarity: z.string().min(1).optional(),
+  power: z.string().optional(),
   parentId: z.number().nullable().optional(),
   order: z.number().optional(),
 });
 
-type MagicForm = z.infer<typeof magicSchema>;
+type ArtifactForm = z.infer<typeof artifactSchema>;
 
-type CreateEditMagicModalProps = {
+type CreateArtifactModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: MagicForm) => void;
-  initialData?: Partial<MagicForm>;
-  worldId: number;
-  allMagic?: { id: number | string; name?: { uk?: string } }[];
+  onSubmit: (data: ArtifactForm) => void;
+  initialData?: Partial<ArtifactForm>;
+  allArtifacts?: { id: number | string; name?: { uk?: string } }[];
 };
 
-export default function CreateEditMagicModal({
+const rarityOptions = [
+  { value: "common", label: "Звичайний" },
+  { value: "uncommon", label: "Незвичайний" },
+  { value: "rare", label: "Рідкісний" },
+  { value: "epic", label: "Епічний" },
+  { value: "legendary", label: "Легендарний" },
+];
+
+export default function CreateArtifactModal({
   isOpen,
   onClose,
   onSubmit,
   initialData,
-  worldId,
-  allMagic = [],
-}: CreateEditMagicModalProps) {
+  allArtifacts = [],
+}: CreateArtifactModalProps) {
   const { toast } = useToast();
   const t = useTranslation();
 
   const parentOptions = (
-    allMagic as { id: number | string; name?: { uk?: string } }[]
+    allArtifacts as { id: number | string; name?: { uk?: string } }[]
   )
     .filter(
-      (m): m is { id: number | string; name?: { uk?: string } } =>
-        !!m &&
-        typeof m.id !== "undefined" &&
-        (!initialData || m.id !== (initialData as any)?.id)
+      (a): a is { id: number | string; name?: { uk?: string } } =>
+        !!a && typeof a.id !== "undefined"
     )
-    .map((m) => ({
-      value: String(m.id),
-      label: m.name && m.name.uk ? m.name.uk : String(m.id),
+    .map((a) => ({
+      value: String(a.id),
+      label: a.name && a.name.uk ? a.name.uk : String(a.id),
     }));
 
   return (
@@ -82,18 +69,20 @@ export default function CreateEditMagicModal({
       <DialogContent className="fantasy-border max-w-md w-full mx-4">
         <DialogHeader>
           <DialogTitle className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
-            {t.actions.add} Магія
+            {t.actions.add} Артефакт
           </DialogTitle>
         </DialogHeader>
         <EntityForm
-          schema={magicSchema}
+          schema={artifactSchema}
           defaultValues={
             initialData || {
               name: { uk: "", en: "" },
               description: { uk: "", en: "" },
               icon: "",
               image: undefined,
-              type: "custom",
+              type: "artifact",
+              rarity: "common",
+              power: "",
               parentId: null,
               order: 0,
             }
@@ -116,7 +105,7 @@ export default function CreateEditMagicModal({
               label: t.forms.description,
               type: "textarea",
               lang: true,
-              maxLength: 1000,
+              maxLength: 2000,
             },
             { name: "icon", label: "Іконка", type: "text", maxLength: 2 },
             { name: "image", label: "Зображення", type: "image" },
@@ -125,6 +114,20 @@ export default function CreateEditMagicModal({
               label: t.forms.type || "Тип",
               type: "text",
               required: false,
+            },
+            {
+              name: "rarity",
+              label: "Рідкість",
+              type: "select",
+              options: rarityOptions,
+              required: false,
+            },
+            {
+              name: "power",
+              label: "Сила/Ефект",
+              type: "text",
+              required: false,
+              maxLength: 200,
             },
             {
               name: "parentId",

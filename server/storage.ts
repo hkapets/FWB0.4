@@ -254,7 +254,9 @@ export class MemStorage implements IStorage {
       description: insertLocation.description ?? null,
       x: insertLocation.x ?? null,
       y: insertLocation.y ?? null,
-      loreId: insertLocation.loreId ?? null,
+      loreId:
+        insertLocation.loreId !== undefined ? insertLocation.loreId : null,
+      imageUrl: insertLocation.imageUrl ?? null,
     };
     this.locations.set(id, location);
     return location;
@@ -273,7 +275,12 @@ export class MemStorage implements IStorage {
       updatedAt: new Date(),
       x: updateData.x ?? location.x,
       y: updateData.y ?? location.y,
-      loreId: updateData.loreId ?? location.loreId ?? null,
+      loreId:
+        updateData.loreId !== undefined
+          ? updateData.loreId
+          : location.loreId !== undefined
+          ? location.loreId
+          : null,
     };
     this.locations.set(id, updatedLocation);
     return updatedLocation;
@@ -585,6 +592,7 @@ export class MemStorage implements IStorage {
       icon: loreData.icon ?? null,
       imageUrl: loreData.imageUrl ?? null,
       order: loreData.order ?? 0,
+      parentId: loreData.parentId !== undefined ? loreData.parentId : null,
     };
     const loreItems = this.worldLoreData.get(loreData.worldId) || [];
     this.worldLoreData.set(loreData.worldId, [...loreItems, newLore]);
@@ -604,6 +612,12 @@ export class MemStorage implements IStorage {
           ...loreItems[idx],
           ...update,
           updatedAt: new Date(),
+          parentId:
+            update.parentId !== undefined
+              ? update.parentId
+              : loreItems[idx].parentId !== undefined
+              ? loreItems[idx].parentId
+              : null,
         };
         loreItems[idx] = updated;
         this.worldLoreData.set(worldId, [...loreItems]);
@@ -646,6 +660,7 @@ export class MemStorage implements IStorage {
       id,
       createdAt: now,
       updatedAt: now,
+      loreId: insertRegion.loreId !== undefined ? insertRegion.loreId : null,
     };
     this.regions.set(id, region);
     return region;

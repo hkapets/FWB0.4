@@ -14,14 +14,15 @@ import {
   Moon,
   Sun,
   Volume2,
-  Bell
+  Bell,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAudioContext } from "@/components/audio-provider";
 
 export default function Settings() {
   const { toast } = useToast();
+  const { muted, setMuted, volume, setVolume } = useAudioContext();
   const [isDarkMode, setIsDarkMode] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [autoSave, setAutoSave] = useState(true);
   const [autoSaveMinutes, setAutoSaveMinutes] = useState(5);
@@ -73,21 +74,26 @@ export default function Settings() {
           {/* Appearance Settings */}
           <Card className="fantasy-border">
             <CardHeader>
-              <CardTitle className="text-yellow-200 font-fantasy">Appearance</CardTitle>
+              <CardTitle className="text-yellow-200 font-fantasy">
+                Appearance
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  {isDarkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                  {isDarkMode ? (
+                    <Moon className="h-4 w-4" />
+                  ) : (
+                    <Sun className="h-4 w-4" />
+                  )}
                   <div>
                     <Label>Dark Mode</Label>
-                    <p className="text-sm text-gray-400">Use dark theme for the interface</p>
+                    <p className="text-sm text-gray-400">
+                      Use dark theme for the interface
+                    </p>
                   </div>
                 </div>
-                <Switch
-                  checked={isDarkMode}
-                  onCheckedChange={setIsDarkMode}
-                />
+                <Switch checked={isDarkMode} onCheckedChange={setIsDarkMode} />
               </div>
 
               <Separator />
@@ -115,29 +121,54 @@ export default function Settings() {
           {/* Audio & Notifications */}
           <Card className="fantasy-border">
             <CardHeader>
-              <CardTitle className="text-yellow-200 font-fantasy">Audio & Notifications</CardTitle>
+              <CardTitle className="text-yellow-200 font-fantasy">
+                Audio & Notifications
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Volume2 className="h-4 w-4" />
                   <div>
-                    <Label>Sound Effects</Label>
-                    <p className="text-sm text-gray-400">Enable UI sound effects</p>
+                    <Label>Mute All Audio</Label>
+                    <p className="text-sm text-gray-400">
+                      Disable all music and sound effects
+                    </p>
                   </div>
                 </div>
-                <Switch
-                  checked={soundEnabled}
-                  onCheckedChange={setSoundEnabled}
+                <Switch checked={muted} onCheckedChange={setMuted} />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Volume2 className="h-4 w-4" />
+                  <div>
+                    <Label>Volume</Label>
+                    <p className="text-sm text-gray-400">
+                      Adjust global audio volume
+                    </p>
+                  </div>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={volume}
+                  onChange={(e) => setVolume(Number(e.target.value))}
+                  className="ml-2 w-32 accent-yellow-400 bg-purple-900 rounded-lg h-2 cursor-pointer"
+                  style={{ accentColor: "#facc15" }}
+                  aria-label="Гучність"
+                  disabled={muted}
                 />
               </div>
-
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Bell className="h-4 w-4" />
                   <div>
                     <Label>Notifications</Label>
-                    <p className="text-sm text-gray-400">Show system notifications</p>
+                    <p className="text-sm text-gray-400">
+                      Show system notifications
+                    </p>
                   </div>
                 </div>
                 <Switch
@@ -151,30 +182,35 @@ export default function Settings() {
           {/* Auto-Save Settings */}
           <Card className="fantasy-border">
             <CardHeader>
-              <CardTitle className="text-yellow-200 font-fantasy">Auto-Save</CardTitle>
+              <CardTitle className="text-yellow-200 font-fantasy">
+                Auto-Save
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Enable Auto-Save</Label>
-                  <p className="text-sm text-gray-400">Automatically save your work</p>
+                  <p className="text-sm text-gray-400">
+                    Automatically save your work
+                  </p>
                 </div>
-                <Switch
-                  checked={autoSave}
-                  onCheckedChange={setAutoSave}
-                />
+                <Switch checked={autoSave} onCheckedChange={setAutoSave} />
               </div>
 
               {autoSave && (
                 <div className="space-y-2">
-                  <Label htmlFor="autosave-interval">Save Interval (minutes)</Label>
+                  <Label htmlFor="autosave-interval">
+                    Save Interval (minutes)
+                  </Label>
                   <Input
                     id="autosave-interval"
                     type="number"
                     min="1"
                     max="60"
                     value={autoSaveMinutes}
-                    onChange={(e) => setAutoSaveMinutes(parseInt(e.target.value) || 5)}
+                    onChange={(e) =>
+                      setAutoSaveMinutes(parseInt(e.target.value) || 5)
+                    }
                     className="fantasy-input"
                   />
                 </div>
@@ -185,10 +221,12 @@ export default function Settings() {
           {/* Data Management */}
           <Card className="fantasy-border">
             <CardHeader>
-              <CardTitle className="text-yellow-200 font-fantasy">Data Management</CardTitle>
+              <CardTitle className="text-yellow-200 font-fantasy">
+                Data Management
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button 
+              <Button
                 className="w-full fantasy-button"
                 onClick={handleExportData}
               >
@@ -196,8 +234,8 @@ export default function Settings() {
                 Export All Worlds
               </Button>
 
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full"
                 onClick={handleImportData}
               >
@@ -207,8 +245,8 @@ export default function Settings() {
 
               <Separator />
 
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 className="w-full"
                 onClick={handleResetData}
               >
@@ -216,7 +254,8 @@ export default function Settings() {
                 Reset All Data
               </Button>
               <p className="text-xs text-gray-500">
-                This will permanently delete all your worlds, characters, and locations.
+                This will permanently delete all your worlds, characters, and
+                locations.
               </p>
             </CardContent>
           </Card>
@@ -224,7 +263,7 @@ export default function Settings() {
 
         {/* Save Settings */}
         <div className="mt-8 flex justify-end">
-          <Button 
+          <Button
             className="fantasy-button px-8 py-3"
             onClick={handleSaveSettings}
           >
@@ -236,15 +275,23 @@ export default function Settings() {
         {/* About Section */}
         <Card className="fantasy-border mt-6">
           <CardHeader>
-            <CardTitle className="text-yellow-200 font-fantasy">About Fantasy World Builder</CardTitle>
+            <CardTitle className="text-yellow-200 font-fantasy">
+              About Fantasy World Builder
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h3 className="font-semibold text-yellow-300 mb-2">Version Information</h3>
+                <h3 className="font-semibold text-yellow-300 mb-2">
+                  Version Information
+                </h3>
                 <p className="text-sm text-gray-400">Version 1.0.0</p>
-                <p className="text-sm text-gray-400">Built with React & Express</p>
-                <p className="text-sm text-gray-400">Last Updated: December 2024</p>
+                <p className="text-sm text-gray-400">
+                  Built with React & Express
+                </p>
+                <p className="text-sm text-gray-400">
+                  Last Updated: December 2024
+                </p>
               </div>
               <div>
                 <h3 className="font-semibold text-yellow-300 mb-2">Features</h3>

@@ -1,80 +1,67 @@
-import { useState, useRef } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import EntityForm from "@/components/entity-form";
+import { z } from "zod";
+import React from "react";
 
-const magicSchema = z.object({
+const relationSchema = z.object({
   name: z.object({ uk: z.string().min(1), en: z.string().min(1) }),
   description: z
-    .object({ uk: z.string().max(1000), en: z.string().max(1000) })
+    .object({ uk: z.string().max(2000), en: z.string().max(2000) })
     .optional(),
   icon: z.string().max(2).optional(),
   image: z.string().optional(),
   type: z.string().min(1).optional(),
+  participants: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  status: z.string().optional(),
   parentId: z.number().nullable().optional(),
   order: z.number().optional(),
 });
 
-type MagicForm = z.infer<typeof magicSchema>;
+type RelationForm = z.infer<typeof relationSchema>;
 
-type CreateEditMagicModalProps = {
+type CreateRelationModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: MagicForm) => void;
-  initialData?: Partial<MagicForm>;
-  worldId: number;
-  allMagic?: { id: number | string; name?: { uk?: string } }[];
+  onSubmit: (data: RelationForm) => void;
+  initialData?: Partial<RelationForm>;
+  allRelations?: { id: number | string; name?: { uk?: string } }[];
 };
 
-export default function CreateEditMagicModal({
+const statusOptions = [
+  { value: "active", label: "Активний" },
+  { value: "inactive", label: "Неактивний" },
+  { value: "ended", label: "Завершений" },
+];
+
+export default function CreateRelationModal({
   isOpen,
   onClose,
   onSubmit,
   initialData,
-  worldId,
-  allMagic = [],
-}: CreateEditMagicModalProps) {
+  allRelations = [],
+}: CreateRelationModalProps) {
   const { toast } = useToast();
   const t = useTranslation();
 
   const parentOptions = (
-    allMagic as { id: number | string; name?: { uk?: string } }[]
+    allRelations as { id: number | string; name?: { uk?: string } }[]
   )
     .filter(
-      (m): m is { id: number | string; name?: { uk?: string } } =>
-        !!m &&
-        typeof m.id !== "undefined" &&
-        (!initialData || m.id !== (initialData as any)?.id)
+      (r): r is { id: number | string; name?: { uk?: string } } =>
+        !!r && typeof r.id !== "undefined"
     )
-    .map((m) => ({
-      value: String(m.id),
-      label: m.name && m.name.uk ? m.name.uk : String(m.id),
+    .map((r) => ({
+      value: String(r.id),
+      label: r.name && r.name.uk ? r.name.uk : String(r.id),
     }));
 
   return (
@@ -82,18 +69,22 @@ export default function CreateEditMagicModal({
       <DialogContent className="fantasy-border max-w-md w-full mx-4">
         <DialogHeader>
           <DialogTitle className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
-            {t.actions.add} Магія
+            {t.actions.add} Зв'язок
           </DialogTitle>
         </DialogHeader>
         <EntityForm
-          schema={magicSchema}
+          schema={relationSchema}
           defaultValues={
             initialData || {
               name: { uk: "", en: "" },
               description: { uk: "", en: "" },
               icon: "",
               image: undefined,
-              type: "custom",
+              type: "relation",
+              participants: "",
+              startDate: "",
+              endDate: "",
+              status: "active",
               parentId: null,
               order: 0,
             }
@@ -116,7 +107,7 @@ export default function CreateEditMagicModal({
               label: t.forms.description,
               type: "textarea",
               lang: true,
-              maxLength: 1000,
+              maxLength: 2000,
             },
             { name: "icon", label: "Іконка", type: "text", maxLength: 2 },
             { name: "image", label: "Зображення", type: "image" },
@@ -124,6 +115,32 @@ export default function CreateEditMagicModal({
               name: "type",
               label: t.forms.type || "Тип",
               type: "text",
+              required: false,
+            },
+            {
+              name: "participants",
+              label: "Учасники (ID або імена через кому)",
+              type: "text",
+              required: false,
+              maxLength: 200,
+            },
+            {
+              name: "startDate",
+              label: "Дата початку",
+              type: "text",
+              required: false,
+            },
+            {
+              name: "endDate",
+              label: "Дата завершення",
+              type: "text",
+              required: false,
+            },
+            {
+              name: "status",
+              label: "Статус",
+              type: "select",
+              options: statusOptions,
               required: false,
             },
             {

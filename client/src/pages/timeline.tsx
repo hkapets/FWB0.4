@@ -16,6 +16,8 @@ import {
   TooltipContent,
 } from "../components/ui/tooltip";
 import { Lock } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
+import CreateTimelineEventModal from "@/components/modals/create-timeline-event-modal";
 
 const EVENT_TYPES = [
   { value: "war", label: "Війна" },
@@ -27,6 +29,7 @@ const EVENT_TYPES = [
 ];
 
 export default function TimelinePage() {
+  const t = useTranslation();
   const { toast } = useToast();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +54,7 @@ export default function TimelinePage() {
   const [hoveredScenarioId, setHoveredScenarioId] = useState<string | null>(
     null
   );
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -412,10 +416,12 @@ export default function TimelinePage() {
 
   return (
     <div className="p-8">
+      <h1 className="text-3xl font-bold mb-4 flex items-center justify-between">
+        {t.navigation.timeline}
+        <Button onClick={() => setIsOpen(true)}>{t.actions.add}</Button>
+      </h1>
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Таймлайн світу</h1>
         <div className="flex gap-2">
-          <Button onClick={openCreate}>+ Додати подію</Button>
           <Button
             onClick={handleUndo}
             disabled={undoStack.length === 0}
@@ -666,21 +672,17 @@ export default function TimelinePage() {
           </Button>
         </DndProvider>
       )}
-      {/* Модалка створення/редагування події */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent>
-          <EventForm
-            initialData={editEvent}
-            onSave={handleSave}
-            loading={saving}
-            onCancel={() => setModalOpen(false)}
-            onDelete={editEvent ? () => handleDelete(editEvent) : undefined}
-            allLore={lore}
-            allLocations={locations}
-            allScenarios={scenarios}
-          />
-        </DialogContent>
-      </Dialog>
+      <CreateTimelineEventModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        onSubmit={(data) => {
+          toast({
+            title: "Подію додано до таймлайну!",
+            description: data.name.uk,
+          });
+          setIsOpen(false);
+        }}
+      />
     </div>
   );
 }

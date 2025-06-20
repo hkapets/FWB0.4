@@ -27,12 +27,18 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import EntityForm from "@/components/entity-form";
 
 const classSchema = z.object({
-  name: z.string().min(1, "Name is required").max(100),
-  description: z.string().max(1000).optional(),
+  name: z.object({ uk: z.string().min(1), en: z.string().min(1) }),
+  description: z
+    .object({ uk: z.string().max(1000), en: z.string().max(1000) })
+    .optional(),
   icon: z.string().max(2).optional(),
-  image: z.any().optional(), // File or string (url)
+  image: z.string().optional(),
+  type: z.string().min(1).optional(),
+  parentId: z.number().nullable().optional(),
+  order: z.number().optional(),
 });
 
 type ClassForm = z.infer<typeof classSchema>;
@@ -43,6 +49,7 @@ type CreateEditClassModalProps = {
   onSubmit: (data: ClassForm) => void;
   initialData?: Partial<ClassForm>;
   worldId: number;
+  allClasses?: { id: number | string; name?: { uk?: string } }[];
 };
 
 export default function CreateEditClassModal({
@@ -51,237 +58,89 @@ export default function CreateEditClassModal({
   onSubmit,
   initialData,
   worldId,
+  allClasses = [],
 }: CreateEditClassModalProps) {
   const { toast } = useToast();
   const t = useTranslation();
-  const [imagePreview, setImagePreview] = useState<string | null>(
-    initialData?.image ?? null
-  );
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const form = useForm<ClassForm>({
-    resolver: zodResolver(classSchema),
-    defaultValues: {
-      name: initialData?.name || "",
-      description: initialData?.description || "",
-      icon: initialData?.icon || "",
-      image: initialData?.image || undefined,
-    },
-  });
-
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast({
-          title: "Error",
-          description: "Max file size is 2MB",
-          variant: "destructive",
-        });
-        return;
-      }
-      setUploading(true);
-      try {
-        const formData = new FormData();
-        formData.append("image", file);
-        const res = await fetch("/api/upload/race-image", {
-          method: "POST",
-          body: formData,
-        });
-        const data = await res.json();
-        if (data.url) {
-          form.setValue("image", data.url);
-          setImagePreview(data.url);
-          toast({ title: "Success", description: "Image uploaded!" });
-        } else {
-          toast({
-            title: "Error",
-            description: data.message || "Upload failed",
-            variant: "destructive",
-          });
-        }
-      } catch (e) {
-        toast({
-          title: "Error",
-          description: "Upload failed",
-          variant: "destructive",
-        });
-      } finally {
-        setUploading(false);
-      }
-    }
-  };
-
-  // Drag & drop
-  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (fileInputRef.current) {
-        fileInputRef.current.files = e.dataTransfer.files;
-      }
-      await handleImageChange({ target: { files: [file] } } as any);
-    }
-  };
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  };
-  const handleRemoveImage = () => {
-    form.setValue("image", undefined);
-    setImagePreview(null);
-  };
-
-  const handleSubmit = (data: ClassForm) => {
-    onSubmit(data);
-    form.reset();
-    setImagePreview(null);
-    onClose();
-  };
-
-  const handleClose = () => {
-    form.reset();
-    setImagePreview(initialData?.image ?? null);
-    onClose();
-  };
+  const parentOptions = (
+    allClasses as { id: number | string; name?: { uk?: string } }[]
+  )
+    .filter(
+      (c): c is { id: number | string; name?: { uk?: string } } =>
+        !!c &&
+        typeof c.id !== "undefined" &&
+        (!initialData || c.id !== (initialData as any)?.id)
+    )
+    .map((c) => ({
+      value: String(c.id),
+      label: c.name && c.name.uk ? c.name.uk : String(c.id),
+    }));
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md fantasy-border bg-black/90">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="fantasy-border max-w-md w-full mx-4">
         <DialogHeader>
-          <DialogTitle>
-            {initialData
-              ? t.actions.edit + " " + t.forms.class
-              : t.actions.add + " " + t.forms.class}
+          <DialogTitle className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
+            {t.actions.add} Клас
           </DialogTitle>
         </DialogHeader>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-4"
-          >
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">
-                    {t.forms.name} *
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      className="fantasy-input text-white"
-                      maxLength={100}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">
-                    {t.forms.description}
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      className="fantasy-input text-white"
-                      maxLength={1000}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="icon"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">
-                    Emoji {t.forms.optional}
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      className="fantasy-input text-white"
-                      maxLength={2}
-                      placeholder="🗡️"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormItem>
-              <FormLabel className="text-yellow-300">
-                Image (.jpg/.png/.webp, max 2MB)
-              </FormLabel>
-              <div
-                className={`border-2 border-dashed rounded p-2 text-center cursor-pointer ${
-                  uploading ? "opacity-50 pointer-events-none" : ""
-                }`}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <FormControl>
-                  <Input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                </FormControl>
-                {uploading ? (
-                  <div className="text-yellow-400">Uploading...</div>
-                ) : imagePreview ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <img
-                      src={imagePreview}
-                      alt="Class image preview"
-                      className="w-24 h-24 object-cover rounded border border-yellow-400 transition-opacity duration-500 opacity-0 animate-fadein max-w-full"
-                    />
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="destructive"
-                            onClick={handleRemoveImage}
-                            aria-label="Remove image"
-                          >
-                            Remove
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Remove image</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                ) : (
-                  <span className="text-gray-400">
-                    Drag & drop or click to upload
-                  </span>
-                )}
-              </div>
-            </FormItem>
-            <div className="flex justify-end space-x-2 pt-2">
-              <Button type="button" variant="outline" onClick={handleClose}>
-                {t.forms.cancel}
-              </Button>
-              <Button type="submit" variant="default">
-                {initialData ? t.forms.save : t.forms.create}
-              </Button>
-            </div>
-          </form>
-        </Form>
+        <EntityForm
+          schema={classSchema}
+          defaultValues={
+            initialData || {
+              name: { uk: "", en: "" },
+              description: { uk: "", en: "" },
+              icon: "",
+              image: undefined,
+              type: "custom",
+              parentId: null,
+              order: 0,
+            }
+          }
+          onSubmit={onSubmit}
+          onCancel={onClose}
+          submitLabel={t.forms.create}
+          cancelLabel={t.forms.cancel}
+          fields={[
+            {
+              name: "name",
+              label: t.forms.name,
+              type: "text",
+              lang: true,
+              required: true,
+              maxLength: 100,
+            },
+            {
+              name: "description",
+              label: t.forms.description,
+              type: "textarea",
+              lang: true,
+              maxLength: 1000,
+            },
+            { name: "icon", label: "Іконка", type: "text", maxLength: 2 },
+            { name: "image", label: "Зображення", type: "image" },
+            {
+              name: "type",
+              label: t.forms.type || "Тип",
+              type: "text",
+              required: false,
+            },
+            {
+              name: "parentId",
+              label: "Батьківський елемент",
+              type: "select",
+              options: parentOptions,
+              required: false,
+            },
+            {
+              name: "order",
+              label: "Порядок",
+              type: "number",
+              required: false,
+            },
+          ]}
+        />
       </DialogContent>
     </Dialog>
   );

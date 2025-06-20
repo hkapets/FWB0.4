@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/tooltip";
 import React from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import EntityForm from "@/components/entity-form";
 
 const loreTypes = [
   { value: "artifact", label: "Artifact" },
@@ -46,15 +47,12 @@ const LANGS = [
 ];
 
 const loreSchema = z.object({
-  name: z.object({
-    uk: z.string().min(1).max(100),
-    en: z.string().min(1).max(100),
-  }),
+  name: z.object({ uk: z.string().min(1), en: z.string().min(1) }),
   description: z
     .object({ uk: z.string().max(5000), en: z.string().max(5000) })
     .optional(),
   icon: z.string().max(2).optional(),
-  image: z.any().optional(),
+  image: z.string().optional(),
   type: z.string().min(1),
   parentId: z.number().nullable().optional(),
   order: z.number().optional(),
@@ -62,13 +60,15 @@ const loreSchema = z.object({
 
 type LoreForm = z.infer<typeof loreSchema>;
 
+type LoreListItem = { id: number | string; name?: { uk?: string } };
+
 type CreateEditLoreModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: LoreForm) => void;
   initialData?: Partial<LoreForm>;
   worldId: number;
-  allLore: any[];
+  allLore?: LoreListItem[];
 };
 
 const DRAFT_KEY = "draft-lore";
@@ -79,7 +79,7 @@ export default function CreateEditLoreModal({
   onSubmit,
   initialData,
   worldId,
-  allLore,
+  allLore = [],
 }: CreateEditLoreModalProps) {
   const { toast } = useToast();
   const t = useTranslation();
@@ -213,14 +213,17 @@ export default function CreateEditLoreModal({
   };
 
   // Parent select options (exclude self and descendants)
-  const parentOptions = (allLore as any[])
+  const parentOptions = (allLore as LoreListItem[])
     .filter(
-      (l: any) =>
-        l &&
+      (l): l is LoreListItem =>
+        !!l &&
         typeof l.id !== "undefined" &&
-        (!initialData || l.id !== (initialData as any)?.id)
+        (!initialData || l.id !== (initialData as LoreListItem)?.id)
     )
-    .map((l: any) => ({ value: String(l.id), label: l.name }));
+    .map((l) => ({
+      value: String(l.id),
+      label: l.name && l.name.uk ? l.name.uk : String(l.id),
+    }));
 
   // Drag&drop у textarea (markdown)
   const handleMarkdownDrop = async (
@@ -313,242 +316,90 @@ export default function CreateEditLoreModal({
     }
   };
 
+  const loreTypes = [
+    { value: "artifact", label: t.lore.artifacts },
+    { value: "event", label: t.lore.events },
+    { value: "geography", label: t.lore.geography },
+    { value: "magic", label: t.lore.magic },
+    { value: "mythology", label: "Міфологія" },
+    { value: "religion", label: "Релігія" },
+    { value: "custom", label: "Custom" },
+  ];
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md fantasy-border bg-black/90">
+      <DialogContent className="fantasy-border max-w-md w-full mx-4">
         <DialogHeader>
-          <DialogTitle>
-            {initialData ? t.actions.edit + " Lore" : t.actions.add + " Lore"}
+          <DialogTitle className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
+            {t.actions.add} {t.navigation.lore}
           </DialogTitle>
         </DialogHeader>
-        <Tabs
-          value={lang}
-          onValueChange={(v) => setLang(v as "uk" | "en")}
-          className="mb-2"
-        >
-          <TabsList>
-            {LANGS.map((l) => (
-              <TabsTrigger key={l.code} value={l.code}>
-                {l.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-4"
-          >
-            <FormField
-              control={form.control}
-              name={`name.${lang}` as any}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">
-                    Name ({LANGS.find((l) => l.code === lang)?.label}) *
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      value={field.value ?? ""}
-                      onChange={(e) => field.onChange(e.target.value)}
-                      className="fantasy-input text-white"
-                      maxLength={100}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">Type *</FormLabel>
-                  <FormControl>
-                    <select
-                      {...field}
-                      className="fantasy-input text-white bg-black/80"
-                    >
-                      {loreTypes.map((t) => (
-                        <option key={t.value} value={t.value}>
-                          {t.label}
-                        </option>
-                      ))}
-                    </select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="parentId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">Parent</FormLabel>
-                  <FormControl>
-                    <select
-                      {...field}
-                      value={field.value == null ? "" : String(field.value)}
-                      className="fantasy-input text-white bg-black/80"
-                    >
-                      <option value="">None</option>
-                      {parentOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="icon"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">Emoji</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      className="fantasy-input text-white"
-                      maxLength={2}
-                      placeholder="📜"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormItem>
-              <FormLabel className="text-yellow-300">
-                Image (.jpg/.png/.webp, max 2MB)
-              </FormLabel>
-              <div
-                className={`border-2 border-dashed rounded p-2 text-center cursor-pointer ${
-                  uploading ? "opacity-50 pointer-events-none" : ""
-                }`}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <FormControl>
-                  <Input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                </FormControl>
-                {uploading ? (
-                  <div className="text-yellow-400">Uploading...</div>
-                ) : imagePreview ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <img
-                      src={imagePreview}
-                      alt="Lore image preview"
-                      className="w-24 h-24 object-cover rounded border border-yellow-400 transition-opacity duration-500 opacity-0 animate-fadein max-w-full"
-                    />
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="destructive"
-                            onClick={handleRemoveImage}
-                            aria-label="Remove image"
-                          >
-                            Remove
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Remove image</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                ) : (
-                  <span className="text-gray-400">
-                    Drag & drop or click to upload
-                  </span>
-                )}
-              </div>
-            </FormItem>
-            <FormField
-              control={form.control}
-              name={`description.${lang}` as any}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">
-                    Description ({LANGS.find((l) => l.code === lang)?.label})
-                  </FormLabel>
-                  <FormControl>
-                    <div className={"relative"}>
-                      <Textarea
-                        {...field}
-                        value={field.value ?? ""}
-                        onChange={(e) => field.onChange(e.target.value)}
-                        ref={textareaRef}
-                        className={`fantasy-input text-white ${
-                          mdDropActive ? "ring-2 ring-yellow-400" : ""
-                        }`}
-                        rows={6}
-                        maxLength={5000}
-                        placeholder="You can use **markdown** here! Drag images here."
-                        onDrop={handleMarkdownDrop}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          setMdDropActive(true);
-                        }}
-                        onDragLeave={(e) => {
-                          e.preventDefault();
-                          setMdDropActive(false);
-                        }}
-                        disabled={mdUploading}
-                      />
-                      {mdUploading && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-yellow-300 z-10">
-                          Uploading image...
-                        </div>
-                      )}
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="order"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-yellow-300">Order</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      {...field}
-                      className="fantasy-input text-white"
-                      min={0}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex justify-end space-x-2 pt-2">
-              <Button type="button" variant="outline" onClick={handleClose}>
-                {t.forms.cancel}
-              </Button>
-              <Button type="submit" variant="default">
-                {initialData ? t.forms.save : t.forms.create}
-              </Button>
-            </div>
-          </form>
-        </Form>
+        <EntityForm
+          schema={loreSchema}
+          defaultValues={
+            initialData || {
+              name: { uk: "", en: "" },
+              description: { uk: "", en: "" },
+              icon: "",
+              image: undefined,
+              type: "custom",
+              parentId: null,
+              order: 0,
+            }
+          }
+          onSubmit={onSubmit}
+          onCancel={onClose}
+          submitLabel={t.forms.create}
+          cancelLabel={t.forms.cancel}
+          fields={[
+            {
+              name: "name",
+              label: t.forms.name,
+              type: "text",
+              lang: true,
+              required: true,
+              maxLength: 100,
+            },
+            {
+              name: "description",
+              label: t.forms.description,
+              type: "textarea",
+              lang: true,
+              maxLength: 5000,
+            },
+            {
+              name: "icon",
+              label: "Іконка",
+              type: "text",
+              maxLength: 2,
+            },
+            {
+              name: "image",
+              label: "Зображення",
+              type: "image",
+            },
+            {
+              name: "type",
+              label: t.forms.type,
+              type: "select",
+              options: loreTypes,
+              required: true,
+            },
+            {
+              name: "parentId",
+              label: "Батьківський елемент",
+              type: "select",
+              options: parentOptions,
+              required: false,
+            },
+            {
+              name: "order",
+              label: "Порядок",
+              type: "number",
+              required: false,
+            },
+          ]}
+        />
       </DialogContent>
     </Dialog>
   );
