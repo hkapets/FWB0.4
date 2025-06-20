@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, List, Grid, Zap } from "lucide-react";
+import { Plus, Trash2, List, Grid, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
@@ -17,7 +17,39 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SortableList } from "@/components/ui/sortable-list";
+import { FilterBar } from "@/components/ui/filter-bar";
+import { filterData } from "@/lib/filter-utils";
 import type { WorldLore } from "@shared/schema";
+
+// Фільтри для міфології
+const createMythologyFilters = () => [
+  {
+    key: "type",
+    label: "Тип",
+    type: "select" as const,
+    options: [
+      { value: "creation", label: "Створення світу" },
+      { value: "hero", label: "Героїчний міф" },
+      { value: "trickster", label: "Міф про обманщика" },
+      { value: "flood", label: "Потоп" },
+      { value: "apocalypse", label: "Апокаліпсис" },
+      { value: "love", label: "Любовний міф" },
+    ],
+  },
+  {
+    key: "culture",
+    label: "Культура",
+    type: "select" as const,
+    options: [
+      { value: "northern", label: "Північна" },
+      { value: "southern", label: "Південна" },
+      { value: "eastern", label: "Східна" },
+      { value: "western", label: "Західна" },
+      { value: "ancient", label: "Антична" },
+      { value: "modern", label: "Сучасна" },
+    ],
+  },
+];
 
 export default function MythologyPage() {
   const t = useTranslation();
@@ -28,17 +60,22 @@ export default function MythologyPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [editMythology, setEditMythology] = useState<WorldLore | null>(null);
+  const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
   const worldId = 1; // TODO: get from context/props
 
-  const { data: allLore = [], isLoading } = useQuery({
+  const { data: lore = [], isLoading } = useQuery({
     queryKey: ["/api/worlds", worldId, "lore"],
     enabled: !!worldId,
   });
 
-  // Фільтруємо тільки міфологію
-  const mythology = (allLore as WorldLore[]).filter(
+  const mythologies = (lore as WorldLore[]).filter(
     (lore) => lore.type === "mythology"
   );
+
+  // Фільтрація даних
+  const filteredMythologies = useMemo(() => {
+    return filterData(mythologies, activeFilters, ["name", "description"]);
+  }, [mythologies, activeFilters]);
 
   const deleteMutation = useMutation({
     mutationFn: async (ids: number[]) => {
@@ -66,12 +103,12 @@ export default function MythologyPage() {
   });
 
   const reorderMutation = useMutation({
-    mutationFn: async (reorderedMythology: WorldLore[]) => {
+    mutationFn: async (reorderedMythologies: WorldLore[]) => {
       // Оновлюємо порядок у базі даних
       await Promise.all(
-        reorderedMythology.map((myth, index) =>
-          apiRequest("PUT", `/api/lore/${myth.id}`, {
-            ...myth,
+        reorderedMythologies.map((mythology, index) =>
+          apiRequest("PUT", `/api/lore/${mythology.id}`, {
+            ...mythology,
             order: index,
           })
         )
@@ -106,22 +143,24 @@ export default function MythologyPage() {
     if (selected.length) deleteMutation.mutate(selected);
   };
 
-  const handleEdit = (myth: WorldLore) => {
-    setEditMythology(myth);
+  const handleEdit = (mythology: WorldLore) => {
+    setEditMythology(mythology);
     setIsCreateOpen(true);
   };
 
-  const handleReorder = (reorderedMythology: WorldLore[]) => {
-    reorderMutation.mutate(reorderedMythology);
+  const handleReorder = (reorderedMythologies: WorldLore[]) => {
+    reorderMutation.mutate(reorderedMythologies);
+  };
+
+  const handleFiltersChange = (filters: Record<string, any>) => {
+    setActiveFilters(filters);
+    setSelected([]); // Скидаємо вибір при зміні фільтрів
   };
 
   const handleSubmit = async (data: any) => {
     if (editMythology) {
       // Update
-      await apiRequest("PUT", `/api/lore/${editMythology.id}`, {
-        ...data,
-        type: "mythology",
-      });
+      await apiRequest("PUT", `/api/lore/${editMythology.id}`, data);
       toast({ title: t.actions.edit, description: t.messages.creatureCreated });
     } else {
       // Create
@@ -142,7 +181,7 @@ export default function MythologyPage() {
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Zap className="text-yellow-300" /> Міфологія
+          <BookOpen className="text-yellow-300" /> Міфологія
         </h1>
         <div className="flex gap-2 items-center">
           <Button
@@ -182,18 +221,25 @@ export default function MythologyPage() {
         </div>
       </div>
 
+      {/* Фільтри та пошук */}
+      <FilterBar
+        filters={createMythologyFilters()}
+        onFiltersChange={handleFiltersChange}
+        className="mb-6"
+      />
+
       {isLoading ? (
         <div className="text-center text-gray-400 py-16">
           {t.actions.loading}...
         </div>
-      ) : mythology.length === 0 ? (
+      ) : mythologies.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
-          <Zap className="w-16 h-16 text-yellow-400 mb-4 animate-bounce" />
+          <BookOpen className="w-16 h-16 text-yellow-400 mb-4 animate-bounce" />
           <h2 className="text-2xl font-bold mb-2">
-            У вас ще немає жодної міфології
+            У вас ще немає жодного міфу
           </h2>
           <p className="mb-6 text-gray-400">
-            Додайте першу міфологію, щоб створити легенди світу!
+            Створіть перший міф, щоб оживити легенди світу!
           </p>
           <Button
             size="lg"
@@ -205,10 +251,21 @@ export default function MythologyPage() {
             <Plus className="mr-2" /> {t.messages.addFirstCreature}
           </Button>
         </div>
+      ) : filteredMythologies.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
+          <BookOpen className="w-16 h-16 text-gray-400 mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Немає результатів</h2>
+          <p className="mb-6 text-gray-400">
+            Спробуйте змінити фільтри або пошуковий запит
+          </p>
+          <Button variant="outline" onClick={() => handleFiltersChange({})}>
+            Очистити фільтри
+          </Button>
+        </div>
       ) : (
         <ScrollArea className="max-h-[70vh]">
           <SortableList
-            items={mythology}
+            items={filteredMythologies}
             onReorder={handleReorder}
             strategy={viewMode === "grid" ? "grid" : "vertical"}
             className={
@@ -217,34 +274,44 @@ export default function MythologyPage() {
                 : "flex flex-col gap-2"
             }
           >
-            {(myth) => (
-              <div key={myth.id} className="relative group transition-all">
+            {(mythology) => (
+              <div key={mythology.id} className="relative group transition-all">
                 <div className="absolute top-2 left-2 z-10">
                   <input
                     type="checkbox"
-                    checked={selected.includes(myth.id)}
-                    onChange={() => handleSelect(myth.id)}
+                    checked={selected.includes(mythology.id)}
+                    onChange={() => handleSelect(mythology.id)}
                     className="accent-yellow-400 w-5 h-5 rounded shadow"
                     title="Select"
                   />
                 </div>
                 <div
                   className="fantasy-border fantasy-card-hover transition-all duration-300 cursor-pointer group bg-black/40 rounded-lg p-4 flex flex-col gap-2"
-                  onClick={() => handleEdit(myth)}
+                  onClick={() => handleEdit(mythology)}
                 >
                   <div className="flex items-center gap-2">
-                    {myth.icon && (
-                      <span className="text-2xl" title={myth.icon}>
-                        {myth.icon}
+                    {mythology.icon && (
+                      <span className="text-2xl" title={mythology.icon}>
+                        {mythology.icon}
                       </span>
                     )}
                     <span className="font-semibold text-white truncate max-w-[120px] md:max-w-xs">
-                      {myth.name}
+                      {mythology.name}
                     </span>
+                    {mythology.type && (
+                      <span className="ml-2 text-xs px-2 py-1 rounded bg-green-900 text-green-200">
+                        {mythology.type}
+                      </span>
+                    )}
                   </div>
-                  {myth.description && (
+                  {mythology.description && (
                     <span className="text-gray-400 text-sm max-w-xs truncate">
-                      {myth.description}
+                      {mythology.description}
+                    </span>
+                  )}
+                  {mythology.culture && (
+                    <span className="text-gray-500 text-xs">
+                      Культура: {mythology.culture}
                     </span>
                   )}
                 </div>
@@ -262,7 +329,7 @@ export default function MythologyPage() {
         }}
         onSubmit={handleSubmit}
         initialData={editMythology as any}
-        allMythology={mythology.map((m) => ({
+        allMythologies={mythologies.map((m) => ({
           id: m.id,
           name: typeof m.name === "object" ? m.name : { uk: m.name },
         }))}
@@ -289,4 +356,4 @@ export default function MythologyPage() {
     </div>
   );
 }
-// TODO: фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу/категорії)
+// TODO: тултіп, polish анімацій, адаптивність, масові дії (зміна типу/культури)

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, List, Grid, Cross } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,37 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SortableList } from "@/components/ui/sortable-list";
+import { FilterBar } from "@/components/ui/filter-bar";
+import { filterData } from "@/lib/filter-utils";
 import type { WorldLore } from "@shared/schema";
+
+// Фільтри для релігії
+const createReligionFilters = () => [
+  {
+    key: "type",
+    label: "Тип",
+    type: "select" as const,
+    options: [
+      { value: "monotheistic", label: "Монотеїстична" },
+      { value: "polytheistic", label: "Політеїстична" },
+      { value: "pantheistic", label: "Пантеїстична" },
+      { value: "animistic", label: "Анімістична" },
+      { value: "shamanistic", label: "Шаманська" },
+    ],
+  },
+  {
+    key: "alignment",
+    label: "Напрямок",
+    type: "select" as const,
+    options: [
+      { value: "good", label: "Добрий" },
+      { value: "neutral", label: "Нейтральний" },
+      { value: "evil", label: "Злий" },
+      { value: "chaotic", label: "Хаотичний" },
+      { value: "lawful", label: "Законний" },
+    ],
+  },
+];
 
 export default function ReligionPage() {
   const t = useTranslation();
@@ -28,6 +58,7 @@ export default function ReligionPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [editReligion, setEditReligion] = useState<WorldLore | null>(null);
+  const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
   const worldId = 1; // TODO: get from context/props
 
   const { data: allLore = [], isLoading } = useQuery({
@@ -39,6 +70,14 @@ export default function ReligionPage() {
   const religions = (allLore as WorldLore[]).filter(
     (lore) => lore.type === "religion"
   );
+
+  // Фільтрація даних
+  const filteredReligions = useMemo(() => {
+    return filterData(religions as WorldLore[], activeFilters, [
+      "name",
+      "description",
+    ]);
+  }, [religions, activeFilters]);
 
   const deleteMutation = useMutation({
     mutationFn: async (ids: number[]) => {
@@ -115,6 +154,11 @@ export default function ReligionPage() {
     reorderMutation.mutate(reorderedReligions);
   };
 
+  const handleFiltersChange = (filters: Record<string, any>) => {
+    setActiveFilters(filters);
+    setSelected([]); // Скидаємо вибір при зміні фільтрів
+  };
+
   const handleSubmit = async (data: any) => {
     if (editReligion) {
       // Update
@@ -182,6 +226,13 @@ export default function ReligionPage() {
         </div>
       </div>
 
+      {/* Фільтри та пошук */}
+      <FilterBar
+        filters={createReligionFilters()}
+        onFiltersChange={handleFiltersChange}
+        className="mb-6"
+      />
+
       {isLoading ? (
         <div className="text-center text-gray-400 py-16">
           {t.actions.loading}...
@@ -205,10 +256,21 @@ export default function ReligionPage() {
             <Plus className="mr-2" /> {t.messages.addFirstCreature}
           </Button>
         </div>
+      ) : filteredReligions.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
+          <Cross className="w-16 h-16 text-gray-400 mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Немає результатів</h2>
+          <p className="mb-6 text-gray-400">
+            Спробуйте змінити фільтри або пошуковий запит
+          </p>
+          <Button variant="outline" onClick={() => handleFiltersChange({})}>
+            Очистити фільтри
+          </Button>
+        </div>
       ) : (
         <ScrollArea className="max-h-[70vh]">
           <SortableList
-            items={religions as WorldLore[]}
+            items={filteredReligions}
             onReorder={handleReorder}
             strategy={viewMode === "grid" ? "grid" : "vertical"}
             className={
@@ -241,10 +303,20 @@ export default function ReligionPage() {
                     <span className="font-semibold text-white truncate max-w-[120px] md:max-w-xs">
                       {religion.name}
                     </span>
+                    {religion.type && (
+                      <span className="ml-2 text-xs px-2 py-1 rounded bg-blue-900 text-blue-200">
+                        {religion.type}
+                      </span>
+                    )}
                   </div>
                   {religion.description && (
                     <span className="text-gray-400 text-sm max-w-xs truncate">
                       {religion.description}
+                    </span>
+                  )}
+                  {religion.alignment && (
+                    <span className="text-gray-500 text-xs">
+                      Напрямок: {religion.alignment}
                     </span>
                   )}
                 </div>
@@ -289,4 +361,4 @@ export default function ReligionPage() {
     </div>
   );
 }
-// TODO: фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу/напрямку)
+// TODO: тултіп, polish анімацій, адаптивність, масові дії (зміна типу/напрямку)

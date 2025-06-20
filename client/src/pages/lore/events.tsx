@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, List, Grid, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SortableList } from "@/components/ui/sortable-list";
+import { FilterBar } from "@/components/ui/filter-bar";
+import { filterData, createEventFilters } from "@/lib/filter-utils";
 import type { Event } from "@shared/schema";
 
 export default function EventsPage() {
@@ -28,12 +30,21 @@ export default function EventsPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [editEvent, setEditEvent] = useState<Event | null>(null);
+  const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
   const worldId = 1; // TODO: get from context/props
 
   const { data: events = [], isLoading } = useQuery({
     queryKey: ["/api/worlds", worldId, "events"],
     enabled: !!worldId,
   });
+
+  // Фільтрація даних
+  const filteredEvents = useMemo(() => {
+    return filterData(events as Event[], activeFilters, [
+      "name",
+      "description",
+    ]);
+  }, [events, activeFilters]);
 
   const deleteMutation = useMutation({
     mutationFn: async (ids: number[]) => {
@@ -110,6 +121,11 @@ export default function EventsPage() {
     reorderMutation.mutate(reorderedEvents);
   };
 
+  const handleFiltersChange = (filters: Record<string, any>) => {
+    setActiveFilters(filters);
+    setSelected([]); // Скидаємо вибір при зміні фільтрів
+  };
+
   const handleSubmit = async (data: any) => {
     if (editEvent) {
       // Update
@@ -171,6 +187,13 @@ export default function EventsPage() {
         </div>
       </div>
 
+      {/* Фільтри та пошук */}
+      <FilterBar
+        filters={createEventFilters()}
+        onFiltersChange={handleFiltersChange}
+        className="mb-6"
+      />
+
       {isLoading ? (
         <div className="text-center text-gray-400 py-16">
           {t.actions.loading}...
@@ -194,10 +217,21 @@ export default function EventsPage() {
             <Plus className="mr-2" /> {t.messages.addFirstCreature}
           </Button>
         </div>
+      ) : filteredEvents.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
+          <Calendar className="w-16 h-16 text-gray-400 mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Немає результатів</h2>
+          <p className="mb-6 text-gray-400">
+            Спробуйте змінити фільтри або пошуковий запит
+          </p>
+          <Button variant="outline" onClick={() => handleFiltersChange({})}>
+            Очистити фільтри
+          </Button>
+        </div>
       ) : (
         <ScrollArea className="max-h-[70vh]">
           <SortableList
-            items={events as Event[]}
+            items={filteredEvents}
             onReorder={handleReorder}
             strategy={viewMode === "grid" ? "grid" : "vertical"}
             className={
@@ -283,4 +317,4 @@ export default function EventsPage() {
     </div>
   );
 }
-// TODO: фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу/дати)
+// TODO: тултіп, polish анімацій, адаптивність, масові дії (зміна типу/дати)

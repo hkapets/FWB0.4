@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, List, Grid, Gem } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SortableList } from "@/components/ui/sortable-list";
+import { FilterBar } from "@/components/ui/filter-bar";
+import { filterData, createArtifactFilters } from "@/lib/filter-utils";
 import type { WorldArtifact } from "@shared/schema";
 
 export default function ArtifactsPage() {
@@ -28,12 +30,18 @@ export default function ArtifactsPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [editArtifact, setEditArtifact] = useState<WorldArtifact | null>(null);
+  const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
   const worldId = 1; // TODO: get from context/props
 
   const { data: artifacts = [], isLoading } = useQuery({
     queryKey: ["/api/worlds", worldId, "artifacts"],
     enabled: !!worldId,
   });
+
+  // Фільтрація даних
+  const filteredArtifacts = useMemo(() => {
+    return filterData(artifacts as WorldArtifact[], activeFilters, ["name"]);
+  }, [artifacts, activeFilters]);
 
   const deleteMutation = useMutation({
     mutationFn: async (ids: number[]) => {
@@ -110,6 +118,11 @@ export default function ArtifactsPage() {
     reorderMutation.mutate(reorderedArtifacts);
   };
 
+  const handleFiltersChange = (filters: Record<string, any>) => {
+    setActiveFilters(filters);
+    setSelected([]); // Скидаємо вибір при зміні фільтрів
+  };
+
   const handleSubmit = async (data: any) => {
     if (editArtifact) {
       // Update
@@ -171,6 +184,13 @@ export default function ArtifactsPage() {
         </div>
       </div>
 
+      {/* Фільтри та пошук */}
+      <FilterBar
+        filters={createArtifactFilters()}
+        onFiltersChange={handleFiltersChange}
+        className="mb-6"
+      />
+
       {isLoading ? (
         <div className="text-center text-gray-400 py-16">
           {t.actions.loading}...
@@ -192,10 +212,21 @@ export default function ArtifactsPage() {
             <Plus className="mr-2" /> {t.messages.addFirstCreature}
           </Button>
         </div>
+      ) : filteredArtifacts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
+          <Gem className="w-16 h-16 text-gray-400 mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Немає результатів</h2>
+          <p className="mb-6 text-gray-400">
+            Спробуйте змінити фільтри або пошуковий запит
+          </p>
+          <Button variant="outline" onClick={() => handleFiltersChange({})}>
+            Очистити фільтри
+          </Button>
+        </div>
       ) : (
         <ScrollArea className="max-h-[70vh]">
           <SortableList
-            items={artifacts as WorldArtifact[]}
+            items={filteredArtifacts}
             onReorder={handleReorder}
             strategy={viewMode === "grid" ? "grid" : "vertical"}
             className={
@@ -281,4 +312,4 @@ export default function ArtifactsPage() {
     </div>
   );
 }
-// TODO: фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу/рідкісті)
+// TODO: тултіп, polish анімацій, адаптивність, масові дії (зміна типу/рідкісті)

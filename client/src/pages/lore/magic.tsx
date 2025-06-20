@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, List, Grid, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,39 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SortableList } from "@/components/ui/sortable-list";
+import { FilterBar } from "@/components/ui/filter-bar";
+import { filterData } from "@/lib/filter-utils";
+
+// Фільтри для магії
+const createMagicFilters = () => [
+  {
+    key: "type",
+    label: "Тип",
+    type: "select" as const,
+    options: [
+      { value: "spell", label: "Закляття" },
+      { value: "ritual", label: "Ритуал" },
+      { value: "enchantment", label: "Зачарування" },
+      { value: "curse", label: "Прокляття" },
+      { value: "blessing", label: "Благословення" },
+    ],
+  },
+  {
+    key: "school",
+    label: "Школа",
+    type: "select" as const,
+    options: [
+      { value: "fire", label: "Вогонь" },
+      { value: "water", label: "Вода" },
+      { value: "earth", label: "Земля" },
+      { value: "air", label: "Повітря" },
+      { value: "light", label: "Світло" },
+      { value: "dark", label: "Темрява" },
+      { value: "nature", label: "Природа" },
+      { value: "arcane", label: "Аркана" },
+    ],
+  },
+];
 
 export default function MagicPage() {
   const t = useTranslation();
@@ -27,12 +60,18 @@ export default function MagicPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [editMagic, setEditMagic] = useState<any | null>(null);
+  const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
   const worldId = 1; // TODO: get from context/props
 
   const { data: magic = [], isLoading } = useQuery({
     queryKey: ["/api/worlds", worldId, "magic"],
     enabled: !!worldId,
   });
+
+  // Фільтрація даних
+  const filteredMagic = useMemo(() => {
+    return filterData(magic as any[], activeFilters, ["name", "description"]);
+  }, [magic, activeFilters]);
 
   const deleteMutation = useMutation({
     mutationFn: async (ids: number[]) => {
@@ -100,13 +139,18 @@ export default function MagicPage() {
     if (selected.length) deleteMutation.mutate(selected);
   };
 
-  const handleEdit = (magic: any) => {
-    setEditMagic(magic);
+  const handleEdit = (magicItem: any) => {
+    setEditMagic(magicItem);
     setIsCreateOpen(true);
   };
 
   const handleReorder = (reorderedMagic: any[]) => {
     reorderMutation.mutate(reorderedMagic);
+  };
+
+  const handleFiltersChange = (filters: Record<string, any>) => {
+    setActiveFilters(filters);
+    setSelected([]); // Скидаємо вибір при зміні фільтрів
   };
 
   const handleSubmit = async (data: any) => {
@@ -170,6 +214,13 @@ export default function MagicPage() {
         </div>
       </div>
 
+      {/* Фільтри та пошук */}
+      <FilterBar
+        filters={createMagicFilters()}
+        onFiltersChange={handleFiltersChange}
+        className="mb-6"
+      />
+
       {isLoading ? (
         <div className="text-center text-gray-400 py-16">
           {t.actions.loading}...
@@ -193,10 +244,21 @@ export default function MagicPage() {
             <Plus className="mr-2" /> {t.messages.addFirstCreature}
           </Button>
         </div>
+      ) : filteredMagic.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
+          <Sparkles className="w-16 h-16 text-gray-400 mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Немає результатів</h2>
+          <p className="mb-6 text-gray-400">
+            Спробуйте змінити фільтри або пошуковий запит
+          </p>
+          <Button variant="outline" onClick={() => handleFiltersChange({})}>
+            Очистити фільтри
+          </Button>
+        </div>
       ) : (
         <ScrollArea className="max-h-[70vh]">
           <SortableList
-            items={magic as any[]}
+            items={filteredMagic}
             onReorder={handleReorder}
             strategy={viewMode === "grid" ? "grid" : "vertical"}
             className={
@@ -230,7 +292,7 @@ export default function MagicPage() {
                       {magicItem.name}
                     </span>
                     {magicItem.type && (
-                      <span className="ml-2 text-xs px-2 py-1 rounded bg-yellow-900 text-yellow-200">
+                      <span className="ml-2 text-xs px-2 py-1 rounded bg-purple-900 text-purple-200">
                         {magicItem.type}
                       </span>
                     )}
@@ -238,6 +300,11 @@ export default function MagicPage() {
                   {magicItem.description && (
                     <span className="text-gray-400 text-sm max-w-xs truncate">
                       {magicItem.description}
+                    </span>
+                  )}
+                  {magicItem.school && (
+                    <span className="text-gray-500 text-xs">
+                      Школа: {magicItem.school}
                     </span>
                   )}
                 </div>
@@ -254,6 +321,11 @@ export default function MagicPage() {
           setEditMagic(null);
         }}
         onSubmit={handleSubmit}
+        initialData={editMagic as any}
+        allMagic={(magic as any[]).map((m) => ({
+          id: m.id,
+          name: typeof m.name === "object" ? m.name : { uk: m.name },
+        }))}
         worldId={worldId}
       />
 
@@ -278,4 +350,4 @@ export default function MagicPage() {
     </div>
   );
 }
-// TODO: фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу/школи)
+// TODO: тултіп, polish анімацій, адаптивність, масові дії (зміна типу/школи)
