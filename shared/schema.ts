@@ -153,6 +153,37 @@ export const regions = pgTable("regions", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Timeline table
+export const timelines = pgTable("timelines", {
+  id: serial("id").primaryKey(),
+  worldId: integer("world_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Events table (додаю timelineId)
+export const events = pgTable("events", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  date: text("date").notNull(),
+  endDate: text("end_date"),
+  type: text("type").notNull(),
+  icon: text("icon"),
+  image: text("image"),
+  color: text("color"),
+  order: integer("order"),
+  worldId: integer("world_id").notNull(),
+  timelineId: integer("timeline_id").notNull(),
+  characterId: integer("character_id"),
+  locationId: integer("location_id"),
+  artifactId: integer("artifact_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -213,6 +244,18 @@ export const insertRegionSchema = createInsertSchema(regions).omit({
   updatedAt: true,
 });
 
+export const insertTimelineSchema = createInsertSchema(timelines).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEventSchema = createInsertSchema(events).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -250,21 +293,11 @@ export type InsertWorldLore = z.infer<typeof insertWorldLoreSchema>;
 export type Region = typeof regions.$inferSelect;
 export type InsertRegion = z.infer<typeof insertRegionSchema>;
 
-export type Event = {
-  id: string | number;
-  name: { uk: string; en: string };
-  description: { uk: string; en: string };
-  date: string;
-  endDate?: string;
-  type: string;
-  icon?: string;
-  image?: string;
-  color?: string;
-  relatedLoreIds?: string[];
-  relatedLocationIds?: string[];
-  order?: number;
-  parentId?: string | null;
-};
+export type Timeline = typeof timelines.$inferSelect;
+export type InsertTimeline = z.infer<typeof insertTimelineSchema>;
+
+export type Event = typeof events.$inferSelect;
+export type InsertEvent = z.infer<typeof insertEventSchema>;
 
 export type Scenario = {
   id: string | number;

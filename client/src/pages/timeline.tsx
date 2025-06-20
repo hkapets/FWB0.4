@@ -1,7 +1,31 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -18,6 +42,16 @@ import {
 import { Lock } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import CreateTimelineEventModal from "@/components/modals/create-timeline-event-modal";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "wouter";
+import {
+  HoverCard,
+  HoverCardTrigger,
+  HoverCardContent,
+} from "@/components/ui/hover-card";
+import { Checkbox } from "@/components/ui/checkbox";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const EVENT_TYPES = [
   { value: "war", label: "Війна" },
@@ -31,658 +65,787 @@ const EVENT_TYPES = [
 export default function TimelinePage() {
   const t = useTranslation();
   const { toast } = useToast();
-  const [events, setEvents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editEvent, setEditEvent] = useState<any | null>(null);
-  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
   const worldId = 1; // TODO: отримувати з контексту
-  const [lore, setLore] = useState<any[]>([]);
-  const [locations, setLocations] = useState<any[]>([]);
-  const [filterLore, setFilterLore] = useState<string>("all");
-  const [filterLocation, setFilterLocation] = useState<string>("all");
-  const [filterImage, setFilterImage] = useState<string>("all");
-  const [filterDate, setFilterDate] = useState<string>("");
-  const [search, setSearch] = useState<string>("");
-  const [filterType, setFilterType] = useState<string>("all");
-  const [undoStack, setUndoStack] = useState<any[]>([]);
-  const [redoStack, setRedoStack] = useState<any[]>([]);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [massEditSaving, setMassEditSaving] = useState(false);
-  const [scenarios, setScenarios] = useState<any[]>([]);
-  const [filterScenario, setFilterScenario] = useState<string>("all");
-  const [hoveredScenarioId, setHoveredScenarioId] = useState<string | null>(
+
+  // --- Timelines ---
+  const { data: timelines = [], refetch: refetchTimelines } = useQuery<any[]>({
+    queryKey: ["/api/worlds", worldId, "timelines"],
+    queryFn: async () => {
+      const res = await fetch(`/api/worlds/${worldId}/timelines`);
+      return res.json();
+    },
+    enabled: !!worldId,
+  });
+  const [selectedTimelineId, setSelectedTimelineId] = useState<number | null>(
     null
   );
-  const [isOpen, setIsOpen] = useState(false);
-
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/worlds/${worldId}/events`)
-      .then((r) => r.json())
-      .then((data) => setEvents(data))
-      .finally(() => setLoading(false));
-    fetch(`/api/worlds/${worldId}/lore`)
-      .then((r) => r.json())
-      .then(setLore);
-    fetch(`/api/worlds/${worldId}/markers`)
-      .then((r) => r.json())
-      .then((data) => {
-        // markers + polygons
-        fetch(`/api/worlds/${worldId}/polygons`)
-          .then((r2) => r2.json())
-          .then((polys) => {
-            setLocations([...(data || []), ...(polys || [])]);
-          });
-      });
-    fetch(`/api/worlds/${worldId}/scenarios`)
-      .then((r) => r.json())
-      .then(setScenarios);
-  }, [worldId]);
+    if (timelines.length > 0 && !selectedTimelineId) {
+      setSelectedTimelineId(timelines[0].id);
+    }
+  }, [timelines, selectedTimelineId]);
 
-  const openCreate = () => {
-    setEditEvent(null);
-    setModalOpen(true);
-  };
-  const openEdit = (event: any) => {
-    setEditEvent(event);
-    setModalOpen(true);
-  };
-  const handleSave = async (data: any) => {
-    setSaving(true);
-    try {
-      let res: Response, saved: any;
-      if (editEvent) {
-        res = await fetch(`/api/events/${editEvent.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
-        saved = await res.json();
-        setEvents(events.map((e) => (e.id === saved.id ? saved : e)));
-        toast({ title: "Подію оновлено" });
-      } else {
-        res = await fetch(`/api/worlds/${worldId}/events`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
-        saved = await res.json();
-        setEvents([...events, saved]);
-        toast({ title: "Подію створено" });
-      }
-      setModalOpen(false);
-    } catch (e) {
-      toast({ title: "Помилка збереження", variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
-  };
-  const handleDelete = async (event: any) => {
-    if (!window.confirm("Видалити цю подію?")) return;
-    try {
-      await fetch(`/api/events/${event.id}`, { method: "DELETE" });
-      setEvents(events.filter((e) => e.id !== event.id));
-      toast({ title: "Подію видалено" });
-      setModalOpen(false);
-    } catch (e) {
-      toast({ title: "Помилка видалення", variant: "destructive" });
-    }
-  };
-
-  // Drag&drop reorder
-  const moveEvent = (dragIdx: number, hoverIdx: number) => {
-    const updated = [...events];
-    const [removed] = updated.splice(dragIdx, 1);
-    updated.splice(hoverIdx, 0, removed);
-    // Оновлюємо order
-    const withOrder = updated.map((e, i) => ({ ...e, order: i }));
-    setEvents(withOrder);
-  };
-  const saveOrder = async () => {
-    for (const e of events) {
-      await fetch(`/api/events/${e.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ order: e.order }),
-      });
-    }
-    toast({ title: "Порядок подій збережено" });
-  };
-
-  const handleUndo = async () => {
-    if (undoStack.length === 0) return;
-    setRedoStack((stack) => [events.map((e) => ({ ...e })), ...stack]);
-    const prev = undoStack[undoStack.length - 1];
-    setEvents(prev);
-    setUndoStack((stack) => stack.slice(0, -1));
-    for (const e of prev) {
-      await fetch(`/api/events/${e.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(e),
-      });
-    }
-    toast({ title: "Undo", description: "Останню дію скасовано." });
-  };
-
-  const handleRedo = async () => {
-    if (redoStack.length === 0) return;
-    setUndoStack((stack) => [...stack, events.map((e) => ({ ...e }))]);
-    const next = redoStack[0];
-    setEvents(next);
-    setRedoStack((stack) => stack.slice(1));
-    for (const e of next) {
-      await fetch(`/api/events/${e.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(e),
-      });
-    }
-    toast({ title: "Redo", description: "Дію повернуто." });
-  };
-
-  // Масове виділення
-  const handleSelect = (id: string, checked: boolean) => {
-    setSelectedIds((ids) =>
-      checked ? [...ids, id] : ids.filter((i) => i !== id)
-    );
-  };
-  const handleSelectAll = (checked: boolean, visibleEvents: any[]) => {
-    if (checked)
-      setSelectedIds(
-        Array.from(new Set([...selectedIds, ...visibleEvents.map((e) => e.id)]))
-      );
-    else
-      setSelectedIds(
-        selectedIds.filter((id) => !visibleEvents.some((e) => e.id === id))
-      );
-  };
-  // Масове видалення
-  const handleMassDelete = async () => {
-    if (!window.confirm(`Видалити ${selectedIds.length} подій?`)) return;
-    for (const id of selectedIds) {
-      await fetch(`/api/events/${id}`, { method: "DELETE" });
-    }
-    setEvents(events.filter((e) => !selectedIds.includes(e.id)));
-    setSelectedIds([]);
-    toast({ title: "Видалено", description: "Вибрані події видалено." });
-  };
-
-  // Масова зміна типу
-  const handleMassType = async (type: string) => {
-    for (const id of selectedIds) {
-      await fetch(`/api/events/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type }),
-      });
-    }
-    setEvents(
-      events.map((e) => (selectedIds.includes(e.id) ? { ...e, type } : e))
-    );
-    toast({
-      title: "Тип змінено",
-      description: "Вибраним подіям змінено тип.",
+  // CRUD timelines
+  const [timelineName, setTimelineName] = useState("");
+  const [editingTimeline, setEditingTimeline] = useState<any | null>(null);
+  const createTimeline = async () => {
+    if (!timelineName.trim()) return;
+    await fetch(`/api/worlds/${worldId}/timelines`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: timelineName }),
     });
+    setTimelineName("");
+    refetchTimelines();
   };
-  // Масове прив'язування до лору
-  const handleMassLore = async (loreId: string) => {
-    for (const id of selectedIds) {
-      const e = events.find((ev) => ev.id === id);
-      const relatedLoreIds = Array.from(
-        new Set([...(e.relatedLoreIds || []), loreId])
-      );
-      await fetch(`/api/events/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ relatedLoreIds }),
-      });
-    }
-    setEvents(
-      events.map((e) =>
-        selectedIds.includes(e.id)
-          ? {
-              ...e,
-              relatedLoreIds: Array.from(
-                new Set([...(e.relatedLoreIds || []), loreId])
-              ),
-            }
-          : e
-      )
-    );
-    toast({ title: "Лор додано", description: "Вибраним подіям додано лор." });
-  };
-  // Масове прив'язування до локації
-  const handleMassLocation = async (locId: string) => {
-    for (const id of selectedIds) {
-      const e = events.find((ev) => ev.id === id);
-      const relatedLocationIds = Array.from(
-        new Set([...(e.relatedLocationIds || []), locId])
-      );
-      await fetch(`/api/events/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ relatedLocationIds }),
-      });
-    }
-    setEvents(
-      events.map((e) =>
-        selectedIds.includes(e.id)
-          ? {
-              ...e,
-              relatedLocationIds: Array.from(
-                new Set([...(e.relatedLocationIds || []), locId])
-              ),
-            }
-          : e
-      )
-    );
-    toast({
-      title: "Локацію додано",
-      description: "Вибраним подіям додано локацію.",
-    });
-  };
-
-  // Відфільтровані події для масових дій
-  const filteredEvents = events.filter(
-    (e) =>
-      (filterType === "all" || e.type === filterType) &&
-      (search.trim() === "" ||
-        (typeof e.name === "object"
-          ? (e.name.uk + e.name.en).toLowerCase().includes(search.toLowerCase())
-          : (e.name || "").toLowerCase().includes(search.toLowerCase())) ||
-        (typeof e.description === "object"
-          ? (e.description.uk + e.description.en)
-              .toLowerCase()
-              .includes(search.toLowerCase())
-          : (e.description || "")
-              .toLowerCase()
-              .includes(search.toLowerCase()))) &&
-      (filterLore === "all" || (e.relatedLoreIds || []).includes(filterLore)) &&
-      (filterLocation === "all" ||
-        (e.relatedLocationIds || []).includes(filterLocation)) &&
-      (filterScenario === "all" ||
-        (e.relatedScenarioIds || []).includes(filterScenario)) &&
-      (filterImage === "all" ||
-        (filterImage === "with" ? !!e.image : !e.image)) &&
-      (filterDate.trim() === "" ||
-        (e.date || "").includes(filterDate) ||
-        (e.endDate || "").includes(filterDate))
-  );
-
-  // Додаю функцію для оновлення події з undo
-  const updateEventWithUndo = async (id: string, patch: any) => {
-    const prev = events.find((e) => e.id === id);
-    setUndoStack((stack) => [...stack, events.map((e) => ({ ...e }))]);
-    setRedoStack([]);
-    const updated = events.map((e) => (e.id === id ? { ...e, ...patch } : e));
-    setEvents(updated);
-    await fetch(`/api/events/${id}`, {
+  const updateTimeline = async (id: number, name: string) => {
+    await fetch(`/api/timelines/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
+      body: JSON.stringify({ name }),
     });
+    setEditingTimeline(null);
+    refetchTimelines();
+  };
+  const deleteTimeline = async (id: number) => {
+    await fetch(`/api/timelines/${id}`, { method: "DELETE" });
+    if (selectedTimelineId === id) setSelectedTimelineId(null);
+    refetchTimelines();
   };
 
-  const handleMassEdit = async (patch: any) => {
-    setMassEditSaving(true);
-    for (const id of selectedIds) {
-      await fetch(`/api/events/${id}`, {
+  // --- Events ---
+  const { data: events = [], refetch: refetchEvents } = useQuery<any[]>({
+    queryKey: ["/api/worlds", worldId, "events", selectedTimelineId],
+    queryFn: async () => {
+      if (!selectedTimelineId) return [];
+      const res = await fetch(
+        `/api/worlds/${worldId}/events?timelineId=${selectedTimelineId}`
+      );
+      return res.json();
+    },
+    enabled: !!worldId && !!selectedTimelineId,
+  });
+
+  const { data: characters = [] } = useQuery<any[]>({
+    queryKey: ["/api/characters"],
+  });
+  const { data: locations = [] } = useQuery<any[]>({
+    queryKey: ["/api/locations"],
+  });
+  const { data: artifacts = [] } = useQuery<any[]>({
+    queryKey: ["/api/artifacts"],
+  });
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<any | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
+
+  // Draft state
+  const [draftDate, setDraftDate] = useState("");
+  const [draftName, setDraftName] = useState("");
+  const [draftDescription, setDraftDescription] = useState("");
+  const [draftType, setDraftType] = useState("");
+  const [draftCharacterId, setDraftCharacterId] = useState<number | undefined>(
+    undefined
+  );
+  const [draftLocationId, setDraftLocationId] = useState<number | undefined>(
+    undefined
+  );
+  const [draftArtifactId, setDraftArtifactId] = useState<number | undefined>(
+    undefined
+  );
+
+  // Filter state
+  const [filterType, setFilterType] = useState("");
+  const [filterCharacter, setFilterCharacter] = useState("");
+  const [filterLocation, setFilterLocation] = useState("");
+  const [filterArtifact, setFilterArtifact] = useState("");
+  const [search, setSearch] = useState("");
+
+  // Кольори типів подій
+  const typeColors: Record<string, string> = {
+    war: "bg-red-700 text-white",
+    discovery: "bg-blue-700 text-white",
+    birth: "bg-green-700 text-white",
+    death: "bg-gray-700 text-white",
+    other: "bg-yellow-700 text-white",
+  };
+
+  const createEvent = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await fetch(`/api/worlds/${worldId}/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to create event");
+      return res.json();
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "events", selectedTimelineId],
+      }),
+  });
+  const updateEvent = useMutation({
+    mutationFn: async ({ id, ...data }: any) => {
+      const res = await fetch(`/api/events/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
+        body: JSON.stringify(data),
       });
-    }
-    setEvents(
-      events.map((e) => (selectedIds.includes(e.id) ? { ...e, ...patch } : e))
-    );
-    setMassEditSaving(false);
-    toast({
-      title: "Масове редагування",
-      description: "Зміни застосовано до вибраних подій.",
-    });
-  };
+      if (!res.ok) throw new Error("Failed to update event");
+      return res.json();
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "events", selectedTimelineId],
+      }),
+  });
+  const deleteEvent = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/events/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete event");
+      return true;
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "events", selectedTimelineId],
+      }),
+  });
 
-  // У тулбарі додаю масові дії для сценарію
-  {
-    selectedIds.length > 0 && (
-      <div className="flex gap-2 items-center">
-        <select
-          onChange={(e) => handleMassAddScenario(e.target.value)}
-          className="fantasy-input"
-        >
-          <option value="">Додати сценарій до вибраних...</option>
-          {scenarios.map((s) => (
-            <option key={s.id} value={s.id}>
-              {typeof s.name === "object" ? s.name.uk : s.name}
-            </option>
-          ))}
-        </select>
-        <select
-          onChange={(e) => handleMassRemoveScenario(e.target.value)}
-          className="fantasy-input"
-        >
-          <option value="">Видалити сценарій з вибраних...</option>
-          {scenarios.map((s) => (
-            <option key={s.id} value={s.id}>
-              {typeof s.name === "object" ? s.name.uk : s.name}
-            </option>
-          ))}
-        </select>
-      </div>
-    );
+  function openCreate() {
+    setEditingEvent(null);
+    setDraftDate("");
+    setDraftName("");
+    setDraftDescription("");
+    setDraftType("");
+    setDraftCharacterId(undefined);
+    setDraftLocationId(undefined);
+    setDraftArtifactId(undefined);
+    setModalOpen(true);
+  }
+  function openEdit(event: any) {
+    setEditingEvent(event);
+    setDraftDate(event.date || "");
+    setDraftName(event.name || "");
+    setDraftDescription(event.description || "");
+    setDraftType(event.type || "");
+    setDraftCharacterId(event.characterId ?? undefined);
+    setDraftLocationId(event.locationId ?? undefined);
+    setDraftArtifactId(event.artifactId ?? undefined);
+    setModalOpen(true);
+  }
+  function handleSave() {
+    const data = {
+      name: draftName,
+      date: draftDate,
+      description: draftDescription,
+      type: draftType,
+      characterId: draftCharacterId,
+      locationId: draftLocationId,
+      artifactId: draftArtifactId,
+      timelineId: selectedTimelineId,
+    };
+    if (editingEvent) {
+      updateEvent.mutate({ id: editingEvent.id, ...data });
+    } else {
+      createEvent.mutate(data);
+    }
+    setModalOpen(false);
+  }
+  function handleDelete() {
+    if (editingEvent) {
+      deleteEvent.mutate(editingEvent.id);
+    }
+    setDeleteDialogOpen(false);
+    setModalOpen(false);
   }
 
-  // Додаю функції масового додавання/видалення сценарію
-  const handleMassAddScenario = (scenarioId: string) => {
-    if (!scenarioId) return;
-    setUndoStack((stack) => [...stack, events.map((e) => ({ ...e }))]);
-    setRedoStack([]);
-    setEvents(
-      events.map((e) =>
-        selectedIds.includes(e.id)
-          ? {
-              ...e,
-              relatedScenarioIds: Array.from(
-                new Set([...(e.relatedScenarioIds || []), scenarioId])
-              ),
-            }
-          : e
-      )
+  // Сортуємо події за датою
+  const sortedEvents = [...events].sort((a, b) => (a.date > b.date ? 1 : -1));
+
+  // Фільтрація подій
+  const filteredEvents = sortedEvents.filter(
+    (e) =>
+      (!filterType || e.type === filterType) &&
+      (!filterCharacter || String(e.characterId) === filterCharacter) &&
+      (!filterLocation || String(e.locationId) === filterLocation) &&
+      (!filterArtifact || String(e.artifactId) === filterArtifact) &&
+      (!search ||
+        e.name?.toLowerCase?.().includes(search.toLowerCase()) ||
+        e.description?.toLowerCase?.().includes(search.toLowerCase()))
+  );
+
+  // --- Undo/Redo reorder ---
+  const [history, setHistory] = useState<any[][]>([]);
+  const [future, setFuture] = useState<any[][]>([]);
+  // Стейт для reorder
+  const [localEvents, setLocalEvents] = useState<any[]>([]);
+  useEffect(() => {
+    setLocalEvents(filteredEvents.map((e) => ({ ...e })));
+    setHistory([]);
+    setFuture([]);
+  }, [filteredEvents]);
+  function moveEvent(dragIndex: number, hoverIndex: number) {
+    setLocalEvents((prev) => {
+      const updated = [...prev];
+      const [removed] = updated.splice(dragIndex, 1);
+      updated.splice(hoverIndex, 0, removed);
+      setHistory((h) => [...h, prev]);
+      setFuture([]);
+      return updated;
+    });
+  }
+  function undoReorder() {
+    setHistory((h) => {
+      if (h.length === 0) return h;
+      setFuture((f) => [localEvents, ...f]);
+      setLocalEvents(h[h.length - 1]);
+      return h.slice(0, -1);
+    });
+  }
+  function redoReorder() {
+    setFuture((f) => {
+      if (f.length === 0) return f;
+      setHistory((h) => [...h, localEvents]);
+      setLocalEvents(f[0]);
+      return f.slice(1);
+    });
+  }
+
+  function toggleSelectEvent(id: string) {
+    setSelectedEventIds((prev) =>
+      prev.includes(id) ? prev.filter((eid) => eid !== id) : [...prev, id]
     );
-    setSelectedIds([]);
-    toast({ title: "Сценарій додано до вибраних подій" });
-  };
-  const handleMassRemoveScenario = (scenarioId: string) => {
-    if (!scenarioId) return;
-    setUndoStack((stack) => [...stack, events.map((e) => ({ ...e }))]);
-    setRedoStack([]);
-    setEvents(
-      events.map((e) =>
-        selectedIds.includes(e.id)
-          ? {
-              ...e,
-              relatedScenarioIds: (e.relatedScenarioIds || []).filter(
-                (id: string) => id !== scenarioId
-              ),
-            }
-          : e
-      )
-    );
-    setSelectedIds([]);
-    toast({ title: "Сценарій видалено з вибраних подій" });
-  };
+  }
+  function selectAll() {
+    setSelectedEventIds(localEvents.map((e) => String(e.id)));
+  }
+  function deselectAll() {
+    setSelectedEventIds([]);
+  }
+
+  async function handleMassDelete() {
+    for (const id of selectedEventIds) {
+      await deleteEvent.mutateAsync(id);
+    }
+    setSelectedEventIds([]);
+    queryClient.invalidateQueries({
+      queryKey: ["/api/worlds", worldId, "events", selectedTimelineId],
+    });
+  }
+
+  const [massType, setMassType] = useState("");
+  const [massDate, setMassDate] = useState("");
+  async function handleMassUpdate() {
+    for (const id of selectedEventIds) {
+      const update: any = {};
+      if (massType) update.type = massType;
+      if (massDate) update.date = massDate;
+      if (Object.keys(update).length > 0) {
+        await updateEvent.mutateAsync({ id, ...update });
+      }
+    }
+    setMassType("");
+    setMassDate("");
+    setSelectedEventIds([]);
+    queryClient.invalidateQueries({
+      queryKey: ["/api/worlds", worldId, "events", selectedTimelineId],
+    });
+  }
+
+  async function saveOrder() {
+    for (let i = 0; i < localEvents.length; i++) {
+      if (localEvents[i].order !== i) {
+        await updateEvent.mutateAsync({ id: localEvents[i].id, order: i });
+      }
+    }
+    queryClient.invalidateQueries({
+      queryKey: ["/api/worlds", worldId, "events", selectedTimelineId],
+    });
+  }
+
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExport(type: "png" | "pdf") {
+    if (!timelineRef.current) return;
+    setExporting(true);
+    try {
+      const canvas = await html2canvas(timelineRef.current, {
+        backgroundColor: "#18181b",
+        scale: 2,
+        useCORS: true,
+      });
+      if (type === "png") {
+        const url = canvas.toDataURL("image/png");
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `timeline-${Date.now()}.png`;
+        link.click();
+        toast({ title: "Експортовано у PNG!" });
+      } else {
+        const imgData = canvas.toDataURL("image/png");
+        const pdf = new jsPDF({
+          orientation: "portrait",
+          unit: "px",
+          format: [canvas.width, canvas.height],
+        });
+        pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
+        pdf.save(`timeline-${Date.now()}.pdf`);
+        toast({ title: "Експортовано у PDF!" });
+      }
+    } catch (e) {
+      toast({
+        title: "Помилка експорту",
+        description: String(e),
+        variant: "destructive",
+      });
+    }
+    setExporting(false);
+  }
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-4 flex items-center justify-between">
-        {t.navigation.timeline}
-        <Button onClick={() => setIsOpen(true)}>{t.actions.add}</Button>
-      </h1>
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex gap-2">
-          <Button
-            onClick={handleUndo}
-            disabled={undoStack.length === 0}
-            variant="outline"
+    <div className="max-w-2xl mx-auto py-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-6">
+        <div className="flex items-center gap-2 flex-wrap">
+          {timelines.map((tl) => (
+            <button
+              key={tl.id}
+              className={`px-3 py-1 rounded-full text-sm font-semibold transition-colors duration-150 ${
+                selectedTimelineId === tl.id
+                  ? "bg-yellow-500 text-black"
+                  : "bg-black/40 text-yellow-200 hover:bg-yellow-900/40"
+              }`}
+              onClick={() => setSelectedTimelineId(tl.id)}
+            >
+              {editingTimeline?.id === tl.id ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    updateTimeline(tl.id, editingTimeline.name);
+                  }}
+                  className="inline-flex gap-1"
+                >
+                  <input
+                    className="px-1 rounded text-black"
+                    value={editingTimeline.name}
+                    onChange={(e) =>
+                      setEditingTimeline({
+                        ...editingTimeline,
+                        name: e.target.value,
+                      })
+                    }
+                    autoFocus
+                  />
+                  <Button size="sm" type="submit">
+                    OK
+                  </Button>
+                  <Button
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setEditingTimeline(null)}
+                  >
+                    ✕
+                  </Button>
+                </form>
+              ) : (
+                <span
+                  onDoubleClick={() =>
+                    setEditingTimeline({ id: tl.id, name: tl.name })
+                  }
+                >
+                  {tl.name}
+                </span>
+              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => deleteTimeline(tl.id)}
+                title="Видалити"
+              >
+                🗑
+              </Button>
+            </button>
+          ))}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              createTimeline();
+            }}
+            className="inline-flex gap-1"
           >
-            Undo
-          </Button>
-          <Button
-            onClick={handleRedo}
-            disabled={redoStack.length === 0}
-            variant="outline"
-          >
-            Redo
-          </Button>
+            <input
+              className="px-2 py-1 rounded text-black"
+              value={timelineName}
+              onChange={(e) => setTimelineName(e.target.value)}
+              placeholder="Нова лінія часу"
+            />
+            <Button size="sm" type="submit">
+              +
+            </Button>
+          </form>
         </div>
       </div>
-      <div className="flex gap-2 mb-4 flex-wrap">
-        <input
-          type="text"
-          className="px-2 py-1 rounded border bg-black/40 text-white placeholder:text-gray-400"
-          placeholder="Пошук по назві чи опису..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ minWidth: 200 }}
-        />
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-          className="px-2 py-1 rounded border bg-black/40 text-white"
-        >
-          <option value="all">Всі типи</option>
-          {EVENT_TYPES.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filterLore}
-          onChange={(e) => setFilterLore(e.target.value)}
-          className="px-2 py-1 rounded border bg-black/40 text-white"
-        >
-          <option value="all">Весь лор</option>
-          {lore.map((l) => (
-            <option key={l.id} value={l.id}>
-              {typeof l.name === "object" ? l.name.uk : l.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filterLocation}
-          onChange={(e) => setFilterLocation(e.target.value)}
-          className="px-2 py-1 rounded border bg-black/40 text-white"
-        >
-          <option value="all">Всі локації</option>
-          {locations.map((loc) => (
-            <option key={loc.id} value={loc.id}>
-              {loc.name || loc.type || loc.id}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filterImage}
-          onChange={(e) => setFilterImage(e.target.value)}
-          className="px-2 py-1 rounded border bg-black/40 text-white"
-        >
-          <option value="all">Всі</option>
-          <option value="with">Зі зображенням</option>
-          <option value="without">Без зображення</option>
-        </select>
-        <input
-          type="text"
-          className="px-2 py-1 rounded border bg-black/40 text-white placeholder:text-gray-400"
-          placeholder="Дата (фільтр)"
-          value={filterDate}
-          onChange={(e) => setFilterDate(e.target.value)}
-          style={{ minWidth: 120 }}
-        />
-        <select
-          value={filterScenario}
-          onChange={(e) => setFilterScenario(e.target.value)}
-          className="px-2 py-1 rounded border bg-black/40 text-white"
-        >
-          <option value="all">Всі сценарії</option>
-          {scenarios.map((s) => (
-            <option
-              key={s.id}
-              value={s.id}
-              onMouseEnter={() => setHoveredScenarioId(s.id)}
-              onMouseLeave={() => setHoveredScenarioId(null)}
-            >
-              {typeof s.name === "object" ? s.name.uk : s.name}
-            </option>
-          ))}
-        </select>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Хронологія світу</h1>
+        <Button onClick={openCreate}>Додати подію</Button>
       </div>
-      {selectedIds.length > 0 && (
-        <div className="mb-2 flex gap-2 items-center bg-yellow-900/30 p-2 rounded flex-wrap">
-          <span className="text-yellow-200">
-            Виділено: {selectedIds.length}
-          </span>
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={handleMassDelete}
-            disabled={massEditSaving}
-          >
-            Видалити
+      {/* Масова панель дій */}
+      {selectedEventIds.length > 0 && (
+        <div className="mb-4 p-2 bg-yellow-900/30 rounded flex flex-wrap items-center gap-4">
+          <span className="text-sm">Обрано: {selectedEventIds.length}</span>
+          <Button size="sm" variant="destructive" onClick={handleMassDelete}>
+            Видалити обрані
           </Button>
+          <div className="flex items-center gap-2">
+            <select
+              className="px-2 py-1 rounded bg-black/40 text-white"
+              value={massType}
+              onChange={(e) => setMassType(e.target.value)}
+            >
+              <option value="">Тип події...</option>
+              <option value="war">Війна</option>
+              <option value="discovery">Відкриття</option>
+              <option value="birth">Народження</option>
+              <option value="death">Смерть</option>
+              <option value="other">Інше</option>
+            </select>
+            <input
+              type="text"
+              className="px-2 py-1 rounded bg-black/40 text-white"
+              value={massDate}
+              onChange={(e) => setMassDate(e.target.value)}
+              placeholder="Дата..."
+              style={{ width: 100 }}
+            />
+            <Button size="sm" variant="outline" onClick={handleMassUpdate}>
+              Застосувати до обраних
+            </Button>
+          </div>
+          <Button size="sm" variant="outline" onClick={deselectAll}>
+            Скасувати вибір
+          </Button>
+        </div>
+      )}
+      <div className="flex flex-wrap gap-2 mb-6 items-end">
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">Тип події</label>
           <select
-            className="px-2 py-1 rounded border bg-black/40 text-white"
-            defaultValue=""
-            onChange={(e) => {
-              if (e.target.value) handleMassType(e.target.value);
-            }}
-            disabled={massEditSaving}
+            className="px-2 py-1 rounded bg-black/40 text-white"
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
           >
-            <option value="">Змінити тип...</option>
-            {EVENT_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
+            <option value="">Всі</option>
+            <option value="war">Війна</option>
+            <option value="discovery">Відкриття</option>
+            <option value="birth">Народження</option>
+            <option value="death">Смерть</option>
+            <option value="other">Інше</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">Персонаж</label>
+          <select
+            className="px-2 py-1 rounded bg-black/40 text-white"
+            value={filterCharacter}
+            onChange={(e) => setFilterCharacter(e.target.value)}
+          >
+            <option value="">Всі</option>
+            {characters.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
               </option>
             ))}
           </select>
+        </div>
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">Локація</label>
           <select
-            className="px-2 py-1 rounded border bg-black/40 text-white"
-            defaultValue=""
-            onChange={(e) => {
-              if (e.target.value) handleMassLore(e.target.value);
-            }}
-            disabled={massEditSaving}
+            className="px-2 py-1 rounded bg-black/40 text-white"
+            value={filterLocation}
+            onChange={(e) => setFilterLocation(e.target.value)}
           >
-            <option value="">Додати лор...</option>
-            {lore.map((l) => (
+            <option value="">Всі</option>
+            {locations.map((l) => (
               <option key={l.id} value={l.id}>
-                {typeof l.name === "object" ? l.name.uk : l.name}
+                {l.name}
               </option>
             ))}
           </select>
+        </div>
+        <div>
+          <label className="block text-xs text-gray-400 mb-1">Артефакт</label>
           <select
-            className="px-2 py-1 rounded border bg-black/40 text-white"
-            defaultValue=""
-            onChange={(e) => {
-              if (e.target.value) handleMassLocation(e.target.value);
-            }}
-            disabled={massEditSaving}
+            className="px-2 py-1 rounded bg-black/40 text-white"
+            value={filterArtifact}
+            onChange={(e) => setFilterArtifact(e.target.value)}
           >
-            <option value="">Додати локацію...</option>
-            {locations.map((loc) => (
-              <option key={loc.id} value={loc.id}>
-                {loc.name || loc.type || loc.id}
+            <option value="">Всі</option>
+            {artifacts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
               </option>
             ))}
           </select>
+        </div>
+        <div className="flex-1 min-w-[160px]">
+          <label className="block text-xs text-gray-400 mb-1">Пошук</label>
           <input
-            type="text"
-            className="px-2 py-1 rounded border bg-black/40 text-white"
-            placeholder="Дата для всіх"
-            style={{ width: 110 }}
-            disabled={massEditSaving}
-            onBlur={(e) =>
-              e.target.value && handleMassEdit({ date: e.target.value })
-            }
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.target as HTMLInputElement).value)
-                handleMassEdit({ date: (e.target as HTMLInputElement).value });
-            }}
+            className="px-2 py-1 rounded bg-black/40 text-white w-full"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Пошук..."
           />
-          <select
-            className="px-2 py-1 rounded border bg-black/40 text-white"
-            defaultValue=""
-            disabled={massEditSaving}
-            onChange={(e) => {
-              if (e.target.value) handleMassEdit({ type: e.target.value });
-            }}
-          >
-            <option value="">Тип для всіх...</option>
-            {EVENT_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-          <input
-            type="color"
-            className="w-8 h-8 rounded border"
-            disabled={massEditSaving}
-            onChange={(e) => handleMassEdit({ color: e.target.value })}
-            title="Колір для всіх"
-          />
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setSelectedIds([])}
-            disabled={massEditSaving}
-          >
-            Зняти виділення
-          </Button>
-          {massEditSaving && (
-            <span className="text-xs text-yellow-300 animate-pulse">
-              Збереження...
-            </span>
+        </div>
+      </div>
+      <div className="text-xs text-gray-400 mb-2 flex items-center gap-2">
+        <Checkbox
+          checked={
+            selectedEventIds.length === localEvents.length &&
+            localEvents.length > 0
+          }
+          onCheckedChange={(checked) => (checked ? selectAll() : deselectAll())}
+        />
+        <span>Вибрати всі</span>
+        <span className="ml-2">
+          Перетягуйте події мишкою для зміни порядку. Після цього натисніть
+          "Зберегти порядок".
+        </span>
+      </div>
+      <div className="mb-4 flex gap-2 items-center">
+        <Button
+          onClick={() => handleExport("png")}
+          disabled={exporting}
+          variant="outline"
+        >
+          Експортувати PNG
+        </Button>
+        <Button
+          onClick={() => handleExport("pdf")}
+          disabled={exporting}
+          variant="outline"
+        >
+          Експортувати PDF
+        </Button>
+        {exporting && (
+          <span className="text-xs text-yellow-300 ml-2">Експортуємо...</span>
+        )}
+      </div>
+      <DndProvider backend={HTML5Backend}>
+        <div
+          ref={timelineRef}
+          className="border-l-2 border-yellow-400 pl-6 relative overflow-x-auto max-w-full min-w-[320px] md:min-w-[480px] pb-8"
+        >
+          {localEvents.length > 1 && (
+            <div className="flex items-center gap-2 mb-4 text-xs text-yellow-300 bg-yellow-900/20 px-3 py-2 rounded">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                <circle cx="5" cy="6" r="1.5" fill="#eab308" />
+                <circle cx="5" cy="10" r="1.5" fill="#eab308" />
+                <circle cx="5" cy="14" r="1.5" fill="#eab308" />
+                <circle cx="15" cy="6" r="1.5" fill="#eab308" />
+                <circle cx="15" cy="10" r="1.5" fill="#eab308" />
+                <circle cx="15" cy="14" r="1.5" fill="#eab308" />
+              </svg>
+              Перетягуйте події за drag handle для зміни порядку
+              <Button
+                size="sm"
+                variant="outline"
+                className="ml-4"
+                onClick={undoReorder}
+                disabled={history.length === 0}
+              >
+                Undo
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={redoReorder}
+                disabled={future.length === 0}
+              >
+                Redo
+              </Button>
+            </div>
+          )}
+          {localEvents.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400">
+              <img
+                src="/empty-timeline.svg"
+                alt="Порожньо"
+                className="w-32 h-32 mb-4 opacity-70"
+              />
+              <div className="text-lg mb-2">
+                У цій лінії часу ще немає жодної події
+              </div>
+              <div className="mb-4 text-sm text-gray-500">
+                Створіть першу подію, щоб розпочати хронологію світу!
+              </div>
+              <Button onClick={openCreate} size="lg" className="mt-2">
+                Додати першу подію
+              </Button>
+            </div>
+          ) : (
+            localEvents.map((event, idx) => (
+              <TimelineEventCard
+                key={event.id}
+                event={event}
+                index={idx}
+                moveEvent={moveEvent}
+                onEdit={openEdit}
+                characters={characters}
+                locations={locations}
+                artifacts={artifacts}
+                typeColors={typeColors}
+                selected={selectedEventIds.includes(String(event.id))}
+                onSelect={() => toggleSelectEvent(String(event.id))}
+                alwaysShowDragHandle
+              />
+            ))
+          )}
+          {localEvents.length > 1 && (
+            <Button className="mt-2" onClick={saveOrder} variant="outline">
+              Зберегти порядок
+            </Button>
           )}
         </div>
-      )}
-      {loading ? (
-        <div>Завантаження...</div>
-      ) : events.length === 0 ? (
-        <div className="text-gray-400">Подій ще немає.</div>
-      ) : (
-        <DndProvider backend={HTML5Backend}>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2 mb-2">
-              <input
-                type="checkbox"
-                checked={
-                  filteredEvents.length > 0 &&
-                  filteredEvents.every((e) => selectedIds.includes(e.id))
-                }
-                onChange={(e) =>
-                  handleSelectAll(e.target.checked, filteredEvents)
-                }
-              />
-              <span className="text-xs text-gray-300">Виділити всі</span>
-            </div>
-            {filteredEvents
-              .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-              .map((event, idx) => (
-                <TimelineEventCard
-                  key={event.id}
-                  event={event}
-                  index={idx}
-                  moveEvent={moveEvent}
-                  onEdit={() => openEdit(event)}
-                  lore={lore}
-                  locations={locations}
-                  scenarios={scenarios}
-                  selected={selectedIds.includes(event.id)}
-                  onSelect={handleSelect}
-                  onDelete={handleDelete}
-                  updateEventWithUndo={updateEventWithUndo}
-                  hoveredScenarioId={hoveredScenarioId}
-                />
-              ))}
+      </DndProvider>
+      {/* Модалка створення/редагування події */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingEvent ? "Редагувати подію" : "Додати подію"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
+              placeholder="Назва події"
+            />
+            <Input
+              value={draftDate}
+              onChange={(e) => setDraftDate(e.target.value)}
+              placeholder="Дата (наприклад, 1234 р.)"
+            />
+            <Textarea
+              value={draftDescription}
+              onChange={(e) => setDraftDescription(e.target.value)}
+              placeholder="Опис події"
+            />
+            <Select value={draftType} onValueChange={setDraftType}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Тип події" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="war">Війна</SelectItem>
+                <SelectItem value="discovery">Відкриття</SelectItem>
+                <SelectItem value="birth">Народження</SelectItem>
+                <SelectItem value="death">Смерть</SelectItem>
+                <SelectItem value="other">Інше</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={draftCharacterId ? String(draftCharacterId) : ""}
+              onValueChange={(val) =>
+                setDraftCharacterId(val ? Number(val) : undefined)
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Пов'язаний персонаж (опціонально)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">—</SelectItem>
+                {characters.map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={draftLocationId ? String(draftLocationId) : ""}
+              onValueChange={(val) =>
+                setDraftLocationId(val ? Number(val) : undefined)
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Пов'язана локація (опціонально)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">—</SelectItem>
+                {locations.map((l) => (
+                  <SelectItem key={l.id} value={String(l.id)}>
+                    {l.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={draftArtifactId ? String(draftArtifactId) : ""}
+              onValueChange={(val) =>
+                setDraftArtifactId(val ? Number(val) : undefined)
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Пов'язаний артефакт (опціонально)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">—</SelectItem>
+                {artifacts.map((a) => (
+                  <SelectItem key={a.id} value={String(a.id)}>
+                    {a.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <Button className="mt-4" onClick={saveOrder} variant="outline">
-            Зберегти порядок
-          </Button>
-        </DndProvider>
-      )}
-      <CreateTimelineEventModal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        onSubmit={(data) => {
-          toast({
-            title: "Подію додано до таймлайну!",
-            description: data.name.uk,
-          });
-          setIsOpen(false);
-        }}
-      />
+          <DialogFooter>
+            {editingEvent && (
+              <>
+                <AlertDialog
+                  open={deleteDialogOpen}
+                  onOpenChange={setDeleteDialogOpen}
+                >
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Видалити подію?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Ви впевнені, що хочете видалити цю подію? Дію не можна
+                        скасувати.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Скасувати</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-red-600 hover:bg-red-700"
+                        onClick={handleDelete}
+                      >
+                        Видалити
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <Button
+                  variant="destructive"
+                  onClick={() => setDeleteDialogOpen(true)}
+                  type="button"
+                >
+                  Видалити
+                </Button>
+              </>
+            )}
+            <Button variant="outline" onClick={() => setModalOpen(false)}>
+              Скасувати
+            </Button>
+            <Button onClick={handleSave}>
+              {editingEvent ? "Зберегти" : "Додати"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -692,404 +855,225 @@ function TimelineEventCard({
   index,
   moveEvent,
   onEdit,
-  lore,
+  characters,
   locations,
-  scenarios,
+  artifacts,
+  typeColors,
   selected,
   onSelect,
-  onDelete,
-  updateEventWithUndo,
-  hoveredScenarioId,
+  alwaysShowDragHandle,
 }: any) {
   const ref = useRef<HTMLDivElement>(null);
-  const [editing, setEditing] = useState(false);
-  const [name, setName] = useState(
-    typeof event.name === "object" ? event.name.uk : event.name
-  );
-  const [type, setType] = useState(event.type);
-  const [date, setDate] = useState(event.date);
-  const [saving, setSaving] = useState(false);
-  const [previewLore, setPreviewLore] = useState<any | null>(null);
-  const [previewLoc, setPreviewLoc] = useState<any | null>(null);
-  const [previewScenario, setPreviewScenario] = useState<any | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
   const [, drop] = useDrop({
     accept: "event",
     hover(item: any) {
-      if (!ref.current || item.index === index) return;
+      if (item.index === index) return;
       moveEvent(item.index, index);
       item.index = index;
     },
   });
-  const [{ isDragging }, drag] = useDrag({
+  const [{ isDragging }, drag, preview] = useDrag({
     type: "event",
-    item: { index },
+    item: { id: event.id, index },
     collect: (monitor) => ({ isDragging: monitor.isDragging() }),
   });
   drag(drop(ref));
-
-  // Анімація reorder
-  useEffect(() => {
-    if (ref.current) {
-      ref.current.style.transition =
-        "box-shadow 0.2s, background 0.2s, transform 0.2s";
-    }
-  }, []);
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (!ref.current || document.activeElement !== ref.current) return;
-      if (e.key === "Enter") setEditing(true);
-      if (e.key === "Delete" && onDelete) onDelete(event);
-      if (e.key === "ArrowUp") {
-        const prev = ref.current.previousElementSibling as HTMLElement;
-        if (prev) prev.focus();
-      }
-      if (e.key === "ArrowDown") {
-        const next = ref.current.nextElementSibling as HTMLElement;
-        if (next) next.focus();
-      }
-    };
-    ref.current?.addEventListener("keydown", handleKey);
-    return () => ref.current?.removeEventListener("keydown", handleKey);
-  }, [onDelete, event]);
-
-  // Inline save
-  const saveInline = async () => {
-    setSaving(true);
-    await updateEventWithUndo(event.id, {
-      name: { ...event.name, uk: name },
-      type,
-      date,
-    });
-    setSaving(false);
-  };
-
-  // Знаходимо сценарій події
-  const scenario = scenarios.find((s: any) =>
-    (event.relatedScenarioIds || []).includes(s.id)
-  );
-  const scenarioType = scenario?.type || "main";
-  const scenarioStatus = scenario?.status || "active";
-  const scenarioColor =
-    scenarioType === "main"
-      ? "bg-blue-900/40"
-      : scenarioType === "alt"
-      ? "bg-green-900/40"
-      : "bg-yellow-900/40";
-  const isHighlighted =
-    hoveredScenarioId && scenario && scenario.id === hoveredScenarioId;
-
   return (
     <div
-      className={`flex items-center gap-4 bg-black/40 rounded p-4 shadow cursor-move hover:bg-yellow-900/20 transition-all ${
-        isDragging ? "opacity-50" : ""
-      } ${selected ? "ring-2 ring-yellow-400" : ""} ${scenarioColor} ${
-        selected ? "ring-2 ring-blue-400" : ""
-      } ${isHighlighted ? "ring-4 ring-yellow-400" : ""}`}
-      style={{
-        borderLeft: `6px solid ${event.color || "#fbbf24"}`,
-        opacity: scenarioStatus === "archived" ? 0.6 : 1,
-      }}
-      onClick={onEdit}
-      tabIndex={0}
-      aria-selected={selected}
-      onDoubleClick={() => {
-        setEditing(true);
-        setTimeout(() => inputRef.current?.focus(), 0);
-      }}
+      ref={ref}
+      className={`mb-8 relative group transition-all duration-200 ease-in-out ${
+        isDragging
+          ? "scale-95 shadow-2xl bg-yellow-900/30 z-20"
+          : "hover:shadow-lg"
+      } animate-[reorder_0.3s]`}
+      style={{ opacity: isDragging ? 0.7 : 1, cursor: "move" }}
     >
-      <input
-        type="checkbox"
-        checked={selected}
-        onChange={(e) => {
-          e.stopPropagation();
-          onSelect(event.id, e.target.checked);
-        }}
-        onClick={(e) => e.stopPropagation()}
-      />
-      {event.icon && <span className="text-2xl">{event.icon}</span>}
-      <div className="flex-1 flex flex-col gap-1">
-        {editing ? (
-          <input
-            ref={inputRef}
-            className="font-bold text-lg text-yellow-200 bg-black/30 rounded px-1"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={() => {
-              setEditing(false);
-              saveInline();
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                setEditing(false);
-                saveInline();
-              }
-            }}
-            disabled={saving}
-          />
-        ) : (
-          <div
-            className="font-bold text-lg text-yellow-200 cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
-              setEditing(true);
-              setTimeout(() => inputRef.current?.focus(), 0);
-            }}
-          >
-            {name}
-          </div>
-        )}
-        <div className="flex gap-2 items-center">
-          {editing ? (
-            <>
-              <input
-                className="text-xs text-gray-400 bg-black/30 rounded px-1"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                onBlur={saveInline}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") saveInline();
-                }}
-                disabled={saving}
-                style={{ width: 90 }}
-              />
-              <select
-                className="text-xs text-gray-400 bg-black/30 rounded px-1"
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-                onBlur={saveInline}
-                disabled={saving}
+      <div className="absolute -left-7 top-0 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white"></div>
+      <div className="bg-black/70 rounded p-4 shadow-md transition-all duration-200 flex items-start gap-2">
+        <Checkbox
+          checked={selected}
+          onCheckedChange={onSelect}
+          className="mt-1"
+        />
+        <div className="flex-1">
+          <div className="flex justify-between items-center">
+            <span className="font-semibold text-lg truncate max-w-[60vw]">
+              {event.name}
+            </span>
+            <div className="flex items-center gap-2">
+              <span
+                className={`text-xl select-none ${
+                  alwaysShowDragHandle
+                    ? ""
+                    : "group-hover:opacity-100 opacity-60"
+                } cursor-move`}
+                title="Перетягніть для зміни порядку"
+                style={{ fontFamily: "monospace" }}
               >
-                {EVENT_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </>
-          ) : (
-            <>
-              <span className="text-xs text-gray-400">{date}</span>
-              <span className="text-xs text-gray-400">
-                {type ? `• ${type}` : ""}
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <circle cx="5" cy="6" r="1.5" fill="#eab308" />
+                  <circle cx="5" cy="10" r="1.5" fill="#eab308" />
+                  <circle cx="5" cy="14" r="1.5" fill="#eab308" />
+                  <circle cx="15" cy="6" r="1.5" fill="#eab308" />
+                  <circle cx="15" cy="10" r="1.5" fill="#eab308" />
+                  <circle cx="15" cy="14" r="1.5" fill="#eab308" />
+                </svg>
               </span>
-            </>
-          )}
-        </div>
-        <div className="text-sm text-white/80 mt-1">
-          {typeof event.description === "object"
-            ? event.description.uk
-            : event.description}
-        </div>
-        <div className="flex gap-2 mt-1 flex-wrap">
-          {(event.relatedLoreIds || []).map((lid: string) => {
-            const l = lore.find((x: any) => x.id === lid);
-            return l ? (
-              <Popover
-                key={lid}
-                open={previewLore?.id === lid}
-                onOpenChange={(v) => setPreviewLore(v ? l : null)}
+              <Button size="sm" variant="outline" onClick={() => onEdit(event)}>
+                Редагувати
+              </Button>
+            </div>
+          </div>
+          <div className="text-xs text-gray-400 mb-1">{event.date}</div>
+          <div className="text-sm mb-2 break-words whitespace-pre-line">
+            {event.description}
+          </div>
+          <div className="flex gap-2 text-xs text-gray-300 items-center flex-wrap">
+            {event.type && (
+              <span
+                className={`px-2 py-0.5 rounded font-bold ${
+                  typeColors[event.type] || "bg-yellow-900/40"
+                }`}
               >
-                <PopoverTrigger asChild>
-                  <span
-                    className="px-2 py-0.5 bg-yellow-900/40 rounded text-xs text-yellow-200 cursor-pointer hover:bg-yellow-700/60"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPreviewLore(l);
-                    }}
-                  >
-                    {typeof l.name === "object" ? l.name.uk : l.name}
-                  </span>
-                </PopoverTrigger>
-                <PopoverContent className="max-w-xs bg-black/90 text-white p-4 rounded shadow-lg">
-                  <div className="font-bold mb-1">
-                    {typeof l.name === "object" ? l.name.uk : l.name}
-                  </div>
-                  {l.image && (
-                    <img
-                      src={l.image}
-                      alt=""
-                      className="w-24 h-24 object-cover rounded mb-2"
-                    />
-                  )}
-                  <div className="text-xs whitespace-pre-line">
-                    {typeof l.description === "object"
-                      ? l.description.uk
-                      : l.description}
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="mt-2"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.location.href = `/lore#${l.id}`;
-                    }}
-                  >
-                    Перейти до лору
-                  </Button>
-                </PopoverContent>
-              </Popover>
-            ) : null;
-          })}
-          {(event.relatedLocationIds || []).map((locid: string) => {
-            const loc = locations.find((x: any) => x.id === locid);
-            return loc ? (
-              <Popover
-                key={locid}
-                open={previewLoc?.id === locid}
-                onOpenChange={(v) => setPreviewLoc(v ? loc : null)}
-              >
-                <PopoverTrigger asChild>
-                  <span
-                    className="px-2 py-0.5 bg-blue-900/40 rounded text-xs text-blue-200 cursor-pointer hover:bg-blue-700/60"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPreviewLoc(loc);
-                    }}
-                  >
-                    {loc.name || loc.type || loc.id}
-                  </span>
-                </PopoverTrigger>
-                <PopoverContent className="max-w-xs bg-black/90 text-white p-4 rounded shadow-lg">
-                  <div className="font-bold mb-1">
-                    {loc.name || loc.type || loc.id}
-                  </div>
-                  {loc.image && (
-                    <img
-                      src={loc.image}
-                      alt=""
-                      className="w-24 h-24 object-cover rounded mb-2"
-                    />
-                  )}
-                  <div className="text-xs whitespace-pre-line">{loc.type}</div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="mt-2"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.location.href = `/world-map#${loc.id}`;
-                    }}
-                  >
-                    Перейти до карти
-                  </Button>
-                </PopoverContent>
-              </Popover>
-            ) : null;
-          })}
-          {(event.relatedScenarioIds || []).map((sid: string) => {
-            const s = scenarios.find((x: any) => x.id === sid);
-            return s ? (
-              <Popover
-                key={sid}
-                open={previewScenario?.id === sid}
-                onOpenChange={(v) => setPreviewScenario(v ? s : null)}
-              >
-                <PopoverTrigger asChild>
-                  <span
-                    className="px-2 py-0.5 bg-green-900/40 rounded text-xs text-green-200 cursor-pointer hover:bg-green-700/60"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPreviewScenario(s);
-                    }}
-                  >
-                    {typeof s.name === "object" ? s.name.uk : s.name}
-                  </span>
-                </PopoverTrigger>
-                <PopoverContent className="max-w-xs bg-black/90 text-white p-4 rounded shadow-lg">
-                  <div className="font-bold mb-1">
-                    {typeof s.name === "object" ? s.name.uk : s.name}
-                  </div>
-                  {s.icon && <span className="text-2xl">{s.icon}</span>}
-                  <div className="text-xs whitespace-pre-line">
-                    {typeof s.description === "object"
-                      ? s.description.uk
-                      : s.description}
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="mt-2"
-                    onClick={() => {
-                      window.location.href = `/scenarios#${s.id}`;
-                    }}
-                  >
-                    Перейти до сценарію
-                  </Button>
-                </PopoverContent>
-              </Popover>
-            ) : null;
-          })}
-        </div>
-        <div className="flex items-center gap-2">
-          {scenario && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span
-                  className={`px-2 py-0.5 rounded text-xs flex items-center gap-1 ${
-                    scenarioType === "main"
-                      ? "bg-blue-700/60 text-blue-100"
-                      : scenarioType === "alt"
-                      ? "bg-green-700/60 text-green-100"
-                      : "bg-yellow-700/60 text-yellow-100"
-                  }`}
-                >
-                  {typeof scenario.name === "object"
-                    ? scenario.name.uk
-                    : scenario.name}
-                  {scenarioStatus === "archived" && (
-                    <Lock className="w-3 h-3 inline ml-1" />
-                  )}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="font-bold mb-1">
-                  {typeof scenario.name === "object"
-                    ? scenario.name.uk
-                    : scenario.name}
-                </div>
-                <div className="text-xs whitespace-pre-line">
-                  {typeof scenario.description === "object"
-                    ? scenario.description.uk
-                    : scenario.description}
-                </div>
-                {scenarioStatus === "archived" && (
-                  <div className="text-xs text-yellow-400 mt-1 flex items-center gap-1">
-                    <Lock className="w-3 h-3 inline" /> Архів (read-only)
-                  </div>
-                )}
-              </TooltipContent>
-            </Tooltip>
-          )}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onEdit(event)}
-            disabled={scenarioStatus === "archived"}
-          >
-            ✏️
-          </Button>
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={() => onDelete(event.id)}
-            disabled={scenarioStatus === "archived"}
-          >
-            🗑️
-          </Button>
+                {event.type === "war"
+                  ? "Війна"
+                  : event.type === "discovery"
+                  ? "Відкриття"
+                  : event.type === "birth"
+                  ? "Народження"
+                  : event.type === "death"
+                  ? "Смерть"
+                  : "Інше"}
+              </span>
+            )}
+            {event.characterId && (
+              <span>
+                Персонаж:{" "}
+                <HoverCard>
+                  <HoverCardTrigger asChild>
+                    <Link
+                      href={`/characters/${event.characterId}`}
+                      className="underline cursor-pointer hover:text-yellow-300"
+                    >
+                      {
+                        characters.find((c: any) => c.id === event.characterId)
+                          ?.name
+                      }
+                    </Link>
+                  </HoverCardTrigger>
+                  <HoverCardContent>
+                    {(() => {
+                      const c = characters.find(
+                        (c: any) => c.id === event.characterId
+                      );
+                      if (!c) return null;
+                      return (
+                        <div>
+                          <div className="font-bold text-yellow-200 mb-1">
+                            {c.name}
+                          </div>
+                          <div className="text-xs text-gray-400 mb-1">
+                            {c.race} / {c.class}
+                          </div>
+                          {c.description && (
+                            <div className="text-sm text-gray-300 line-clamp-3">
+                              {c.description}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </HoverCardContent>
+                </HoverCard>
+              </span>
+            )}
+            {event.locationId && (
+              <span>
+                Локація:{" "}
+                <HoverCard>
+                  <HoverCardTrigger asChild>
+                    <Link
+                      href={`/world-map?location=${event.locationId}`}
+                      className="underline cursor-pointer hover:text-yellow-300"
+                    >
+                      {
+                        locations.find((l: any) => l.id === event.locationId)
+                          ?.name
+                      }
+                    </Link>
+                  </HoverCardTrigger>
+                  <HoverCardContent>
+                    {(() => {
+                      const l = locations.find(
+                        (l: any) => l.id === event.locationId
+                      );
+                      if (!l) return null;
+                      return (
+                        <div>
+                          <div className="font-bold text-yellow-200 mb-1">
+                            {l.name}
+                          </div>
+                          <div className="text-xs text-gray-400 mb-1">
+                            {l.type} / Небезпека: {l.dangerLevel}
+                          </div>
+                          {l.description && (
+                            <div className="text-sm text-gray-300 line-clamp-3">
+                              {l.description}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </HoverCardContent>
+                </HoverCard>
+              </span>
+            )}
+            {event.artifactId && (
+              <span>
+                Артефакт:{" "}
+                <HoverCard>
+                  <HoverCardTrigger asChild>
+                    <Link
+                      href={`/lore/artifacts/${event.artifactId}`}
+                      className="underline cursor-pointer hover:text-yellow-300"
+                    >
+                      {
+                        artifacts.find((a: any) => a.id === event.artifactId)
+                          ?.name
+                      }
+                    </Link>
+                  </HoverCardTrigger>
+                  <HoverCardContent>
+                    {(() => {
+                      const a = artifacts.find(
+                        (a: any) => a.id === event.artifactId
+                      );
+                      if (!a) return null;
+                      return (
+                        <div>
+                          <div className="font-bold text-yellow-200 mb-1">
+                            {a.name}
+                          </div>
+                          {a.rarity && (
+                            <div className="text-xs text-yellow-300 mb-1">
+                              Рідкість: {a.rarity}
+                            </div>
+                          )}
+                          {a.description && (
+                            <div className="text-sm text-gray-300 line-clamp-3">
+                              {a.description}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </HoverCardContent>
+                </HoverCard>
+              </span>
+            )}
+          </div>
         </div>
       </div>
-      {event.image && (
-        <img
-          src={event.image}
-          alt=""
-          className="w-20 h-20 object-cover rounded border border-yellow-400"
-        />
-      )}
     </div>
   );
 }

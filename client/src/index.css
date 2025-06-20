@@ -239,3 +239,17 @@
     color: hsl(0, 84%, 70%);
   }
 }
+
+@keyframes reorder {
+  0% {
+    transform: scale(1.03);
+    box-shadow: 0 0 0 0 #eab30833;
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+.animate-\[reorder_0\.3s\] {
+  animation: reorder 0.3s;
+}

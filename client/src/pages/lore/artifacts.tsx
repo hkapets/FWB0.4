@@ -13,6 +13,8 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 
 export default function ArtifactsPage() {
   const t = useTranslation();
@@ -24,6 +26,7 @@ export default function ArtifactsPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const { toast } = useToast();
   const worldId = 1; // TODO: get from context or props
+  const { data: events = [] } = useQuery<any[]>({ queryKey: ["/api/events"] });
 
   useEffect(() => {
     fetch(`/api/worlds/${worldId}/artifacts`)
@@ -105,55 +108,87 @@ export default function ArtifactsPage() {
           <p>Немає артефактів.</p>
         ) : (
           <ul className="space-y-2">
-            {artifacts.map((artifact) => (
-              <li
-                key={artifact.id}
-                className="flex items-center justify-between bg-black/40 rounded px-3 py-2 transition-all duration-300 animate-fadein"
-              >
-                <div className="flex items-center gap-2">
-                  {artifact.image && (
-                    <img
-                      src={artifact.image}
-                      alt={artifact.name?.uk + " image"}
-                      className="w-8 h-8 object-cover rounded border border-yellow-400 cursor-pointer"
-                      onClick={() => setImagePreview(artifact.image)}
-                    />
+            {artifacts.map((artifact) => {
+              const relatedEvents = events.filter(
+                (e) => e.artifactId === artifact.id
+              );
+              return (
+                <li
+                  key={artifact.id}
+                  className="flex flex-col bg-black/40 rounded px-3 py-2 transition-all duration-300 animate-fadein"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {artifact.image && (
+                        <img
+                          src={artifact.image}
+                          alt={artifact.name?.uk + " image"}
+                          className="w-8 h-8 object-cover rounded border border-yellow-400 cursor-pointer"
+                          onClick={() => setImagePreview(artifact.image)}
+                        />
+                      )}
+                      <span className="text-2xl" title={artifact.icon}>
+                        {artifact.icon}
+                      </span>
+                      <span className="font-semibold text-white">
+                        {artifact.name?.uk}
+                      </span>
+                      {artifact.rarity && (
+                        <span className="ml-2 text-xs px-2 py-1 rounded bg-yellow-900 text-yellow-200">
+                          {artifact.rarity}
+                        </span>
+                      )}
+                      {artifact.description && (
+                        <span className="text-gray-400 text-sm max-w-xs truncate">
+                          {artifact.description.uk}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEdit(artifact)}
+                      >
+                        {t.actions.edit}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDelete(artifact)}
+                      >
+                        {t.actions.delete}
+                      </Button>
+                    </div>
+                  </div>
+                  {relatedEvents.length > 0 && (
+                    <div className="mt-2 ml-10">
+                      <div className="text-xs text-gray-400 mb-1 font-semibold">
+                        Події, пов'язані з артефактом:
+                      </div>
+                      <ul className="space-y-1">
+                        {relatedEvents.map((event) => (
+                          <li key={event.id}>
+                            <Link
+                              href={`/timeline?event=${event.id}`}
+                              className="underline text-yellow-300 hover:text-yellow-200 cursor-pointer"
+                            >
+                              {event.name}{" "}
+                              <span className="text-gray-400">
+                                ({event.date})
+                              </span>{" "}
+                              <span className="ml-1 text-xs bg-yellow-900/40 rounded px-1">
+                                {event.type}
+                              </span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
-                  <span className="text-2xl" title={artifact.icon}>
-                    {artifact.icon}
-                  </span>
-                  <span className="font-semibold text-white">
-                    {artifact.name?.uk}
-                  </span>
-                  {artifact.rarity && (
-                    <span className="ml-2 text-xs px-2 py-1 rounded bg-yellow-900 text-yellow-200">
-                      {artifact.rarity}
-                    </span>
-                  )}
-                  {artifact.description && (
-                    <span className="text-gray-400 text-sm max-w-xs truncate">
-                      {artifact.description.uk}
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEdit(artifact)}
-                  >
-                    {t.actions.edit}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleDelete(artifact)}
-                  >
-                    {t.actions.delete}
-                  </Button>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Calendar, Edit, Trash2, Eye } from "lucide-react";
 import { formatTimeAgo, getDangerLevelColor } from "@/lib/utils";
 import type { Location } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 
 interface LocationCardProps {
   location: Location;
@@ -13,14 +15,17 @@ interface LocationCardProps {
   onView?: (location: Location) => void;
 }
 
-export default function LocationCard({ 
-  location, 
+export default function LocationCard({
+  location,
   viewMode = "grid",
   onEdit,
   onDelete,
-  onView 
+  onView,
 }: LocationCardProps) {
   const dangerColorClass = getDangerLevelColor(location.dangerLevel);
+
+  const { data: events = [] } = useQuery<any[]>({ queryKey: ["/api/events"] });
+  const relatedEvents = events.filter((e) => e.locationId === location.id);
 
   if (viewMode === "list") {
     return (
@@ -31,25 +36,32 @@ export default function LocationCard({
               <div className="w-16 h-16 bg-gradient-to-br from-green-600 to-green-800 rounded-lg flex items-center justify-center">
                 <MapPin className="text-white" size={24} />
               </div>
-              
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2 mb-1">
                   <h3 className="text-lg font-fantasy font-semibold text-yellow-200 truncate">
                     {location.name}
                   </h3>
-                  <Badge variant="outline" className="bg-purple-900/30 text-purple-300">
+                  <Badge
+                    variant="outline"
+                    className="bg-purple-900/30 text-purple-300"
+                  >
                     {location.type}
                   </Badge>
                 </div>
-                
+
                 <p className="text-sm text-gray-400 mb-2 line-clamp-2">
                   {location.description || "No description provided"}
                 </p>
-                
+
                 <div className="flex items-center space-x-4 text-xs text-gray-500">
                   <div className="flex items-center space-x-1">
                     <Calendar size={12} />
-                    <span>{location.updatedAt ? formatTimeAgo(location.updatedAt) : "Recently"}</span>
+                    <span>
+                      {location.updatedAt
+                        ? formatTimeAgo(location.updatedAt)
+                        : "Recently"}
+                    </span>
                   </div>
                   <Badge className={`text-xs ${dangerColorClass}`}>
                     {location.dangerLevel}
@@ -57,7 +69,7 @@ export default function LocationCard({
                 </div>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-2 ml-4">
               {onView && (
                 <Button
@@ -103,7 +115,7 @@ export default function LocationCard({
   }
 
   return (
-    <Card 
+    <Card
       className="fantasy-border fantasy-card-hover transition-all duration-300 cursor-pointer group"
       onClick={() => onView?.(location)}
     >
@@ -118,29 +130,36 @@ export default function LocationCard({
             </Badge>
           </div>
         </div>
-        
+
         <div className="space-y-3">
           <div>
             <h3 className="text-lg font-fantasy font-semibold text-yellow-200 mb-1 group-hover:text-yellow-100 transition-colors duration-200">
               {location.name}
             </h3>
-            <Badge variant="outline" className="bg-purple-900/30 text-purple-300 text-xs">
+            <Badge
+              variant="outline"
+              className="bg-purple-900/30 text-purple-300 text-xs"
+            >
               {location.type}
             </Badge>
           </div>
-          
+
           {location.description && (
             <p className="text-sm text-gray-300 line-clamp-3">
               {location.description}
             </p>
           )}
-          
+
           <div className="flex items-center justify-between pt-2">
             <div className="flex items-center space-x-1 text-xs text-gray-500">
               <Calendar size={12} />
-              <span>{location.updatedAt ? formatTimeAgo(location.updatedAt) : "Recently"}</span>
+              <span>
+                {location.updatedAt
+                  ? formatTimeAgo(location.updatedAt)
+                  : "Recently"}
+              </span>
             </div>
-            
+
             {(onEdit || onDelete) && (
               <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 {onEdit && (
@@ -171,6 +190,30 @@ export default function LocationCard({
             )}
           </div>
         </div>
+
+        {relatedEvents.length > 0 && (
+          <div className="mt-6">
+            <div className="text-xs text-gray-400 mb-1 font-semibold">
+              Події, пов'язані з локацією:
+            </div>
+            <ul className="space-y-1">
+              {relatedEvents.map((event) => (
+                <li key={event.id}>
+                  <Link
+                    href={`/timeline?event=${event.id}`}
+                    className="underline text-yellow-300 hover:text-yellow-200 cursor-pointer"
+                  >
+                    {event.name}{" "}
+                    <span className="text-gray-400">({event.date})</span>{" "}
+                    <span className="ml-1 text-xs bg-yellow-900/40 rounded px-1">
+                      {event.type}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

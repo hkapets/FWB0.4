@@ -34,6 +34,12 @@ import {
   type Region,
   type InsertRegion,
   type WorldArtifact,
+  timelines,
+  type Timeline,
+  type InsertTimeline,
+  events,
+  type Event,
+  type InsertEvent,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -149,6 +155,26 @@ export interface IStorage {
     data: Partial<InsertWorldArtifact>
   ): Promise<WorldArtifact | undefined>;
   deleteArtifact(id: number): Promise<boolean>;
+
+  // Timeline methods
+  getTimelines(worldId: number): Promise<Timeline[]>;
+  getTimeline(id: number): Promise<Timeline | undefined>;
+  createTimeline(timeline: InsertTimeline): Promise<Timeline>;
+  updateTimeline(
+    id: number,
+    timeline: Partial<InsertTimeline>
+  ): Promise<Timeline | undefined>;
+  deleteTimeline(id: number): Promise<boolean>;
+
+  // Event methods
+  getEvents(worldId: number, timelineId?: number): Promise<Event[]>;
+  getEvent(id: number): Promise<Event | undefined>;
+  createEvent(event: InsertEvent): Promise<Event>;
+  updateEvent(
+    id: number,
+    event: Partial<InsertEvent>
+  ): Promise<Event | undefined>;
+  deleteEvent(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -170,6 +196,10 @@ export class MemStorage implements IStorage {
   private worldLoreData: Map<number, WorldLore[]> = new Map();
   private regions: Map<number, Region> = new Map();
   private worldArtifactsData: Map<number, WorldArtifact[]> = new Map();
+  private timelines: Map<number, Timeline> = new Map();
+  private events: Map<number, Event> = new Map();
+  private timelineIdSeq = 1;
+  private eventIdSeq = 1;
 
   constructor() {
     this.users = new Map();
@@ -747,59 +777,68 @@ export class MemStorage implements IStorage {
     }
     return false;
   }
+
+  // Timeline methods
+  async getTimelines(worldId: number): Promise<Timeline[]> {
+    return Array.from(this.timelines.values()).filter(
+      (t) => t.worldId === worldId
+    );
+  }
+  async getTimeline(id: number): Promise<Timeline | undefined> {
+    return this.timelines.get(id);
+  }
+  async createTimeline(timeline: InsertTimeline): Promise<Timeline> {
+    const id = this.timelineIdSeq++;
+    const now = new Date();
+    const t: Timeline = { ...timeline, id, createdAt: now, updatedAt: now };
+    this.timelines.set(id, t);
+    return t;
+  }
+  async updateTimeline(
+    id: number,
+    timeline: Partial<InsertTimeline>
+  ): Promise<Timeline | undefined> {
+    const t = this.timelines.get(id);
+    if (!t) return undefined;
+    const updated: Timeline = { ...t, ...timeline, updatedAt: new Date() };
+    this.timelines.set(id, updated);
+    return updated;
+  }
+  async deleteTimeline(id: number): Promise<boolean> {
+    return this.timelines.delete(id);
+  }
+
+  // Event methods
+  async getEvents(worldId: number, timelineId?: number): Promise<Event[]> {
+    return Array.from(this.events.values()).filter(
+      (e) =>
+        e.worldId === worldId &&
+        (timelineId ? e.timelineId === timelineId : true)
+    );
+  }
+  async getEvent(id: number): Promise<Event | undefined> {
+    return this.events.get(id);
+  }
+  async createEvent(event: InsertEvent): Promise<Event> {
+    const id = this.eventIdSeq++;
+    const now = new Date();
+    const e: Event = { ...event, id, createdAt: now, updatedAt: now };
+    this.events.set(id, e);
+    return e;
+  }
+  async updateEvent(
+    id: number,
+    event: Partial<InsertEvent>
+  ): Promise<Event | undefined> {
+    const e = this.events.get(id);
+    if (!e) return undefined;
+    const updated: Event = { ...e, ...event, updatedAt: new Date() };
+    this.events.set(id, updated);
+    return updated;
+  }
+  async deleteEvent(id: number): Promise<boolean> {
+    return this.events.delete(id);
+  }
 }
 
 export const storage = new MemStorage();
-
-// Events (таймлайн)
-let events: any[] = [];
-
-export function getEvents(worldId: string) {
-  return events.filter((e) => e.worldId === worldId);
-}
-export function getEvent(id: string) {
-  return events.find((e) => e.id === id);
-}
-export function createEvent(worldId: string, data: any) {
-  const event = { ...data, id: Date.now().toString(), worldId };
-  events.push(event);
-  return event;
-}
-export function updateEvent(id: string, data: any) {
-  const idx = events.findIndex((e) => e.id === id);
-  if (idx === -1) return null;
-  events[idx] = { ...events[idx], ...data };
-  return events[idx];
-}
-export function deleteEvent(id: string) {
-  const idx = events.findIndex((e) => e.id === id);
-  if (idx === -1) return false;
-  events.splice(idx, 1);
-  return true;
-}
-
-// Scenarios
-let scenarios: any[] = [];
-export function getScenarios(worldId: string) {
-  return scenarios.filter((s) => s.worldId === worldId);
-}
-export function getScenario(id: string) {
-  return scenarios.find((s) => s.id === id);
-}
-export function createScenario(worldId: string, data: any) {
-  const scenario = { ...data, id: Date.now().toString(), worldId };
-  scenarios.push(scenario);
-  return scenario;
-}
-export function updateScenario(id: string, data: any) {
-  const idx = scenarios.findIndex((s) => s.id === id);
-  if (idx === -1) return null;
-  scenarios[idx] = { ...scenarios[idx], ...data };
-  return scenarios[idx];
-}
-export function deleteScenario(id: string) {
-  const idx = scenarios.findIndex((s) => s.id === id);
-  if (idx === -1) return false;
-  scenarios.splice(idx, 1);
-  return true;
-}

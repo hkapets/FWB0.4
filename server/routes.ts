@@ -719,64 +719,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Event routes
+  // Timeline routes
+  app.get("/api/worlds/:worldId/timelines", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const timelines = await storage.getTimelines(worldId);
+      res.json(timelines);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch timelines" });
+    }
+  });
+  app.post("/api/worlds/:worldId/timelines", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const timelineData = { ...req.body, worldId };
+      const timeline = await storage.createTimeline(timelineData);
+      res.status(201).json(timeline);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid timeline data" });
+    }
+  });
+  app.get("/api/timelines/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const timeline = await storage.getTimeline(id);
+      if (!timeline)
+        return res.status(404).json({ message: "Timeline not found" });
+      res.json(timeline);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch timeline" });
+    }
+  });
+  app.put("/api/timelines/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updateData = req.body;
+      const timeline = await storage.updateTimeline(id, updateData);
+      if (!timeline)
+        return res.status(404).json({ message: "Timeline not found" });
+      res.json(timeline);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid timeline data" });
+    }
+  });
+  app.delete("/api/timelines/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteTimeline(id);
+      if (!deleted)
+        return res.status(404).json({ message: "Timeline not found" });
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete timeline" });
+    }
+  });
+
+  // Event routes (оновлено)
   app.get("/api/worlds/:worldId/events", async (req, res) => {
     try {
-      const worldId = req.params.worldId;
-      const events = getEvents(worldId);
+      const worldId = parseInt(req.params.worldId);
+      const timelineId = req.query.timelineId
+        ? parseInt(req.query.timelineId as string)
+        : undefined;
+      const events = await storage.getEvents(worldId, timelineId);
       res.json(events);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch events" });
     }
   });
-
   app.post("/api/worlds/:worldId/events", async (req, res) => {
     try {
-      const worldId = req.params.worldId;
-      const { name, date, type } = req.body;
-      if (!name || !name.uk || !name.en) {
-        return res.status(400).json({ message: "Name is required" });
-      }
-      const event = createEvent(worldId, req.body);
+      const worldId = parseInt(req.params.worldId);
+      const eventData = { ...req.body, worldId };
+      const event = await storage.createEvent(eventData);
       res.status(201).json(event);
     } catch (error) {
       res.status(400).json({ message: "Invalid event data" });
     }
   });
-
   app.get("/api/events/:id", async (req, res) => {
     try {
-      const id = req.params.id;
-      const event = getEvent(id);
-      if (!event) {
-        return res.status(404).json({ message: "Event not found" });
-      }
+      const id = parseInt(req.params.id);
+      const event = await storage.getEvent(id);
+      if (!event) return res.status(404).json({ message: "Event not found" });
       res.json(event);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch event" });
     }
   });
-
   app.put("/api/events/:id", async (req, res) => {
     try {
-      const id = req.params.id;
-      const updated = updateEvent(id, req.body);
-      if (!updated) {
-        return res.status(404).json({ message: "Event not found" });
-      }
-      res.json(updated);
+      const id = parseInt(req.params.id);
+      const updateData = req.body;
+      const event = await storage.updateEvent(id, updateData);
+      if (!event) return res.status(404).json({ message: "Event not found" });
+      res.json(event);
     } catch (error) {
       res.status(400).json({ message: "Invalid event data" });
     }
   });
-
   app.delete("/api/events/:id", async (req, res) => {
     try {
-      const id = req.params.id;
-      const deleted = deleteEvent(id);
-      if (!deleted) {
-        return res.status(404).json({ message: "Event not found" });
-      }
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteEvent(id);
+      if (!deleted) return res.status(404).json({ message: "Event not found" });
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete event" });
