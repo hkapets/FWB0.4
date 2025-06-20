@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, List, Grid, Church } from "lucide-react";
+import { Plus, Trash2, List, Grid, Cross } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import CreateReligionModal from "@/components/modals/create-religion-modal";
+import { apiRequest } from "@/lib/queryClient";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -15,6 +16,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SortableList } from "@/components/ui/sortable-list";
 import type { WorldLore } from "@shared/schema";
 
 export default function ReligionPage() {
@@ -41,7 +43,7 @@ export default function ReligionPage() {
   const deleteMutation = useMutation({
     mutationFn: async (ids: number[]) => {
       await Promise.all(
-        ids.map((id) => fetch(`/api/lore/${id}`, { method: "DELETE" }))
+        ids.map((id) => apiRequest("DELETE", `/api/lore/${id}`))
       );
     },
     onSuccess: () => {
@@ -63,6 +65,36 @@ export default function ReligionPage() {
     },
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async (reorderedReligions: WorldLore[]) => {
+      // Оновлюємо порядок у базі даних
+      await Promise.all(
+        reorderedReligions.map((religion, index) =>
+          apiRequest("PUT", `/api/lore/${religion.id}`, {
+            ...religion,
+            order: index,
+          })
+        )
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "lore"],
+      });
+      toast({
+        title: "Порядок оновлено",
+        description: "Список релігій переупорядковано",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося оновити порядок",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSelect = (id: number) => {
     setSelected((sel) =>
       sel.includes(id) ? sel.filter((i) => i !== id) : [...sel, id]
@@ -79,21 +111,23 @@ export default function ReligionPage() {
     setIsCreateOpen(true);
   };
 
+  const handleReorder = (reorderedReligions: WorldLore[]) => {
+    reorderMutation.mutate(reorderedReligions);
+  };
+
   const handleSubmit = async (data: any) => {
     if (editReligion) {
       // Update
-      await fetch(`/api/lore/${editReligion.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, type: "religion" }),
+      await apiRequest("PUT", `/api/lore/${editReligion.id}`, {
+        ...data,
+        type: "religion",
       });
       toast({ title: t.actions.edit, description: t.messages.creatureCreated });
     } else {
       // Create
-      await fetch(`/api/worlds/${worldId}/lore`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, type: "religion" }),
+      await apiRequest("POST", `/api/worlds/${worldId}/lore`, {
+        ...data,
+        type: "religion",
       });
       toast({ title: t.actions.add, description: t.messages.creatureCreated });
     }
@@ -108,7 +142,7 @@ export default function ReligionPage() {
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Church className="text-yellow-300" /> Релігії
+          <Cross className="text-yellow-300" /> Релігії
         </h1>
         <div className="flex gap-2 items-center">
           <Button
@@ -152,14 +186,14 @@ export default function ReligionPage() {
         <div className="text-center text-gray-400 py-16">
           {t.actions.loading}...
         </div>
-      ) : religions.length === 0 ? (
+      ) : (religions as WorldLore[]).length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
-          <Church className="w-16 h-16 text-yellow-400 mb-4 animate-bounce" />
+          <Cross className="w-16 h-16 text-yellow-400 mb-4 animate-bounce" />
           <h2 className="text-2xl font-bold mb-2">
             У вас ще немає жодної релігії
           </h2>
           <p className="mb-6 text-gray-400">
-            Додайте першу релігію, щоб урізноманітнити світогляд світу!
+            Створіть першу релігію, щоб збагатити світ!
           </p>
           <Button
             size="lg"
@@ -173,14 +207,17 @@ export default function ReligionPage() {
         </div>
       ) : (
         <ScrollArea className="max-h-[70vh]">
-          <div
+          <SortableList
+            items={religions as WorldLore[]}
+            onReorder={handleReorder}
+            strategy={viewMode === "grid" ? "grid" : "vertical"}
             className={
               viewMode === "grid"
                 ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
                 : "flex flex-col gap-2"
             }
           >
-            {religions.map((religion) => (
+            {(religion) => (
               <div key={religion.id} className="relative group transition-all">
                 <div className="absolute top-2 left-2 z-10">
                   <input
@@ -212,8 +249,8 @@ export default function ReligionPage() {
                   )}
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          </SortableList>
         </ScrollArea>
       )}
 
@@ -252,4 +289,4 @@ export default function ReligionPage() {
     </div>
   );
 }
-// TODO: drag&drop reorder, фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу/пантеону)
+// TODO: фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу/напрямку)

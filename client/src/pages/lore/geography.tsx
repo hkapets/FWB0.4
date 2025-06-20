@@ -1,8 +1,10 @@
-import { useTranslation } from "@/lib/i18n";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Plus, Trash2, List, Grid, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import CreateGeographyModal from "@/components/modals/create-geography-modal";
+import { useTranslation } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
+import CreateGeographyModal from "@/components/modals/create-geography-modal";
 import LocationCard from "@/components/cards/location-card";
 import {
   AlertDialog,
@@ -13,154 +15,220 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import type { Location } from "@shared/schema";
 
 export default function GeographyPage() {
   const t = useTranslation();
-  const [isOpen, setIsOpen] = useState(false);
-  const [locations, setLocations] = useState<any[] | null>(null);
-  const [editLocation, setEditLocation] = useState<any | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [locationToDelete, setLocationToDelete] = useState<any | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const { toast } = useToast();
-  const worldId = 1; // TODO: get from context or props
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [editLocation, setEditLocation] = useState<Location | null>(null);
+  const worldId = 1; // TODO: get from context/props
 
-  useEffect(() => {
-    fetch(`/api/worlds/${worldId}/locations`)
-      .then((res) => res.json())
-      .then(setLocations);
-  }, [worldId]);
+  const { data: locations = [], isLoading } = useQuery({
+    queryKey: ["/api/worlds", worldId, "locations"],
+    enabled: !!worldId,
+  });
 
-  const handleAdd = () => {
-    setEditLocation(null);
-    setIsOpen(true);
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: number[]) => {
+      await Promise.all(
+        ids.map((id) => fetch(`/api/locations/${id}`, { method: "DELETE" }))
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "locations"],
+      });
+      setSelected([]);
+      toast({
+        title: t.actions.delete,
+        description: t.messages.creatureCreated,
+      });
+    },
+    onError: () => {
+      toast({
+        title: t.actions.delete,
+        description: t.messages.errorDesc,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSelect = (id: number) => {
+    setSelected((sel) =>
+      sel.includes(id) ? sel.filter((i) => i !== id) : [...sel, id]
+    );
   };
-  const handleEdit = (location: any) => {
+
+  const handleDelete = () => {
+    setDeleteDialog(false);
+    if (selected.length) deleteMutation.mutate(selected);
+  };
+
+  const handleEdit = (location: Location) => {
     setEditLocation(location);
-    setIsOpen(true);
+    setIsCreateOpen(true);
   };
-  const handleDelete = (location: any) => {
-    setLocationToDelete(location);
-    setDeleteDialogOpen(true);
-  };
-  const confirmDelete = async () => {
-    if (!locationToDelete || !locations) return;
-    await fetch(`/api/locations/${locationToDelete.id}`, { method: "DELETE" });
-    setLocations(locations.filter((l) => l.id !== locationToDelete.id));
-    toast({
-      title: t.actions.delete,
-      description: `${locationToDelete.name} видалено.`,
-    });
-    setDeleteDialogOpen(false);
-    setLocationToDelete(null);
-  };
+
   const handleSubmit = async (data: any) => {
     if (editLocation) {
       // Update
-      const res = await fetch(`/api/locations/${editLocation.id}`, {
+      await fetch(`/api/locations/${editLocation.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      const updated = await res.json();
-      setLocations(locations!.map((l) => (l.id === updated.id ? updated : l)));
-      toast({
-        title: t.actions.edit,
-        description: `${updated.name} оновлено.`,
-      });
+      toast({ title: t.actions.edit, description: t.messages.creatureCreated });
     } else {
       // Create
-      const res = await fetch(`/api/worlds/${worldId}/locations`, {
+      await fetch(`/api/worlds/${worldId}/locations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      const created = await res.json();
-      setLocations([...(locations || []), created]);
-      toast({ title: t.actions.add, description: `${created.name} створено.` });
+      toast({ title: t.actions.add, description: t.messages.creatureCreated });
     }
-    setIsOpen(false);
+    queryClient.invalidateQueries({
+      queryKey: ["/api/worlds", worldId, "locations"],
+    });
+    setIsCreateOpen(false);
+    setEditLocation(null);
   };
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-4 flex items-center justify-between">
-        {t.lore.geography}
-        <Button onClick={handleAdd}>{t.actions.add}</Button>
-      </h1>
-      <div className="fantasy-border rounded-lg p-4 text-gray-300 bg-black/30 min-h-[120px] overflow-x-auto">
-        {locations === null ? (
-          <div className="space-y-2">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="flex items-center gap-2 animate-pulse">
-                <div className="w-8 h-8 bg-gray-700 rounded" />
-                <div className="h-4 w-32 bg-gray-700 rounded" />
+    <div className="p-4 md:p-8 max-w-5xl mx-auto">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <MapPin className="text-yellow-300" /> {t.lore.geography}
+        </h1>
+        <div className="flex gap-2 items-center">
+          <Button
+            variant={viewMode === "grid" ? "default" : "ghost"}
+            size="icon"
+            onClick={() => setViewMode("grid")}
+          >
+            <Grid />
+          </Button>
+          <Button
+            variant={viewMode === "list" ? "default" : "ghost"}
+            size="icon"
+            onClick={() => setViewMode("list")}
+          >
+            <List />
+          </Button>
+          <Button
+            onClick={() => {
+              setEditLocation(null);
+              setIsCreateOpen(true);
+            }}
+            className="ml-2"
+            size="lg"
+          >
+            <Plus className="mr-2" /> {t.messages.addFirstCreature}
+          </Button>
+          {selected.length > 0 && (
+            <Button
+              variant="destructive"
+              onClick={() => setDeleteDialog(true)}
+              className="ml-2"
+              size="lg"
+            >
+              <Trash2 className="mr-2" /> {t.actions.delete} ({selected.length})
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="text-center text-gray-400 py-16">
+          {t.actions.loading}...
+        </div>
+      ) : (locations as Location[]).length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
+          <MapPin className="w-16 h-16 text-yellow-400 mb-4 animate-bounce" />
+          <h2 className="text-2xl font-bold mb-2">
+            У вас ще немає жодної локації
+          </h2>
+          <p className="mb-6 text-gray-400">
+            Створіть першу локацію, щоб збагатити світ!
+          </p>
+          <Button
+            size="lg"
+            onClick={() => {
+              setEditLocation(null);
+              setIsCreateOpen(true);
+            }}
+          >
+            <Plus className="mr-2" /> {t.messages.addFirstCreature}
+          </Button>
+        </div>
+      ) : (
+        <ScrollArea className="max-h-[70vh]">
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
+                : "flex flex-col gap-2"
+            }
+          >
+            {(locations as Location[]).map((location) => (
+              <div key={location.id} className="relative group transition-all">
+                <div className="absolute top-2 left-2 z-10">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(location.id)}
+                    onChange={() => handleSelect(location.id)}
+                    className="accent-yellow-400 w-5 h-5 rounded shadow"
+                    title="Select"
+                  />
+                </div>
+                <div onClick={() => handleEdit(location)}>
+                  <LocationCard
+                    location={location}
+                    viewMode={viewMode}
+                    onEdit={handleEdit}
+                    onDelete={() => {
+                      setSelected([location.id]);
+                      setDeleteDialog(true);
+                    }}
+                    onView={() => {}}
+                  />
+                </div>
               </div>
             ))}
           </div>
-        ) : locations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center text-gray-400 animate-fadein">
-            <img
-              src="/empty-worlds.svg"
-              alt="Порожньо"
-              className="w-28 h-28 mb-4 opacity-70"
-            />
-            <div className="text-lg mb-2">No locations yet</div>
-            <div className="mb-4 text-sm text-gray-500">
-              Create your first location to enrich your world!
-            </div>
-            <Button onClick={handleAdd} size="lg" className="mt-2">
-              Add location
-            </Button>
-          </div>
-        ) : (
-          <ul className="space-y-2">
-            {locations.map((location) => (
-              <li key={location.id} className="animate-fadein">
-                <LocationCard
-                  location={location}
-                  viewMode="list"
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onView={() => setImagePreview(location.imageUrl)}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+        </ScrollArea>
+      )}
+
       <CreateGeographyModal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
+        isOpen={isCreateOpen}
+        onClose={() => {
+          setIsCreateOpen(false);
+          setEditLocation(null);
+        }}
         onSubmit={handleSubmit}
-        initialData={editLocation}
+        initialData={editLocation as any}
       />
-      <Dialog open={!!imagePreview} onOpenChange={() => setImagePreview(null)}>
-        <DialogContent className="max-w-xs bg-black/90">
-          <img
-            src={imagePreview || ""}
-            alt="Location preview"
-            className="w-full h-full object-cover rounded"
-          />
-        </DialogContent>
-      </Dialog>
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+
+      <AlertDialog open={deleteDialog} onOpenChange={setDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Видалити локацію?</AlertDialogTitle>
+            <AlertDialogTitle>{t.actions.delete}</AlertDialogTitle>
           </AlertDialogHeader>
-          <div>
-            Ви впевнені, що хочете видалити <b>{locationToDelete?.name}</b>? Цю
-            дію не можна скасувати.
-          </div>
+          <p>{t.messages.errorDesc}</p>
           <AlertDialogFooter>
-            <AlertDialogCancel>Скасувати</AlertDialogCancel>
+            <AlertDialogCancel>{t.forms.cancel}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={confirmDelete}
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
               className="bg-red-600 hover:bg-red-700"
             >
-              Видалити
+              {t.actions.delete}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -168,3 +236,4 @@ export default function GeographyPage() {
     </div>
   );
 }
+// TODO: drag&drop reorder, фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу/регіону)

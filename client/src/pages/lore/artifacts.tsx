@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import CreateArtifactModal from "@/components/modals/create-artifact-modal";
+import { apiRequest } from "@/lib/queryClient";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -15,6 +16,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SortableList } from "@/components/ui/sortable-list";
 import type { WorldArtifact } from "@shared/schema";
 
 export default function ArtifactsPage() {
@@ -36,7 +38,7 @@ export default function ArtifactsPage() {
   const deleteMutation = useMutation({
     mutationFn: async (ids: number[]) => {
       await Promise.all(
-        ids.map((id) => fetch(`/api/artifacts/${id}`, { method: "DELETE" }))
+        ids.map((id) => apiRequest("DELETE", `/api/artifacts/${id}`))
       );
     },
     onSuccess: () => {
@@ -58,6 +60,36 @@ export default function ArtifactsPage() {
     },
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async (reorderedArtifacts: WorldArtifact[]) => {
+      // Оновлюємо порядок у базі даних
+      await Promise.all(
+        reorderedArtifacts.map((artifact, index) =>
+          apiRequest("PUT", `/api/artifacts/${artifact.id}`, {
+            ...artifact,
+            order: index,
+          })
+        )
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "artifacts"],
+      });
+      toast({
+        title: "Порядок оновлено",
+        description: "Список артефактів переупорядковано",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося оновити порядок",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSelect = (id: number) => {
     setSelected((sel) =>
       sel.includes(id) ? sel.filter((i) => i !== id) : [...sel, id]
@@ -74,20 +106,18 @@ export default function ArtifactsPage() {
     setIsCreateOpen(true);
   };
 
+  const handleReorder = (reorderedArtifacts: WorldArtifact[]) => {
+    reorderMutation.mutate(reorderedArtifacts);
+  };
+
   const handleSubmit = async (data: any) => {
     if (editArtifact) {
-      await fetch(`/api/artifacts/${editArtifact.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      // Update
+      await apiRequest("PUT", `/api/artifacts/${editArtifact.id}`, data);
       toast({ title: t.actions.edit, description: t.messages.creatureCreated });
     } else {
-      await fetch(`/api/worlds/${worldId}/artifacts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      // Create
+      await apiRequest("POST", `/api/worlds/${worldId}/artifacts`, data);
       toast({ title: t.actions.add, description: t.messages.creatureCreated });
     }
     queryClient.invalidateQueries({
@@ -164,14 +194,17 @@ export default function ArtifactsPage() {
         </div>
       ) : (
         <ScrollArea className="max-h-[70vh]">
-          <div
+          <SortableList
+            items={artifacts as WorldArtifact[]}
+            onReorder={handleReorder}
+            strategy={viewMode === "grid" ? "grid" : "vertical"}
             className={
               viewMode === "grid"
                 ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
                 : "flex flex-col gap-2"
             }
           >
-            {(artifacts as WorldArtifact[]).map((artifact) => (
+            {(artifact) => (
               <div key={artifact.id} className="relative group transition-all">
                 <div className="absolute top-2 left-2 z-10">
                   <input
@@ -195,9 +228,9 @@ export default function ArtifactsPage() {
                     <span className="font-semibold text-white truncate max-w-[120px] md:max-w-xs">
                       {artifact.name?.uk || artifact.name}
                     </span>
-                    {artifact.rarity && (
+                    {artifact.type && (
                       <span className="ml-2 text-xs px-2 py-1 rounded bg-yellow-900 text-yellow-200">
-                        {artifact.rarity}
+                        {artifact.type}
                       </span>
                     )}
                   </div>
@@ -208,8 +241,8 @@ export default function ArtifactsPage() {
                   )}
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          </SortableList>
         </ScrollArea>
       )}
 
@@ -248,4 +281,4 @@ export default function ArtifactsPage() {
     </div>
   );
 }
-// TODO: drag&drop reorder, фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу/рідкості)
+// TODO: фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу/рідкісті)

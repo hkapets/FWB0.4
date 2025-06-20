@@ -17,6 +17,7 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SortableList } from "@/components/ui/sortable-list";
 import type { Creature } from "@shared/schema";
 
 export default function BestiaryPage() {
@@ -61,6 +62,36 @@ export default function BestiaryPage() {
     },
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async (reorderedCreatures: Creature[]) => {
+      // Оновлюємо порядок у базі даних
+      await Promise.all(
+        reorderedCreatures.map((creature, index) =>
+          apiRequest("PUT", `/api/creatures/${creature.id}`, {
+            ...creature,
+            order: index,
+          })
+        )
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "creatures"],
+      });
+      toast({
+        title: "Порядок оновлено",
+        description: "Список істот переупорядковано",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося оновити порядок",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSelect = (id: number) => {
     setSelected((sel) =>
       sel.includes(id) ? sel.filter((i) => i !== id) : [...sel, id]
@@ -70,6 +101,10 @@ export default function BestiaryPage() {
   const handleDelete = () => {
     setDeleteDialog(false);
     if (selected.length) deleteMutation.mutate(selected);
+  };
+
+  const handleReorder = (reorderedCreatures: Creature[]) => {
+    reorderMutation.mutate(reorderedCreatures);
   };
 
   return (
@@ -130,15 +165,18 @@ export default function BestiaryPage() {
         </div>
       ) : (
         <ScrollArea className="max-h-[70vh]">
-          <div
+          <SortableList
+            items={creatures as Creature[]}
+            onReorder={handleReorder}
+            strategy={viewMode === "grid" ? "grid" : "vertical"}
             className={
               viewMode === "grid"
                 ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
                 : "flex flex-col gap-2"
             }
           >
-            {(creatures as Creature[]).map((creature) => (
-              <div key={creature.id} className="relative group transition-all">
+            {(creature) => (
+              <div className="relative group transition-all">
                 <div className="absolute top-2 left-2 z-10">
                   <input
                     type="checkbox"
@@ -159,8 +197,8 @@ export default function BestiaryPage() {
                   onView={() => {}}
                 />
               </div>
-            ))}
-          </div>
+            )}
+          </SortableList>
         </ScrollArea>
       )}
 
@@ -195,4 +233,4 @@ export default function BestiaryPage() {
     </div>
   );
 }
-// TODO: drag&drop reorder, фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу, dangerLevel)
+// TODO: фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу, dangerLevel)
