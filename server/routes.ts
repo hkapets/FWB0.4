@@ -11,6 +11,7 @@ import {
   insertWorldMagicTypeSchema,
   insertWorldLoreSchema,
   insertRegionSchema,
+  insertWorldArtifactSchema,
 } from "@shared/schema";
 import path from "path";
 import fs from "fs";
@@ -645,6 +646,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete region" });
+    }
+  });
+
+  // Artifact routes
+  app.get("/api/worlds/:worldId/artifacts", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const artifacts = await storage.getWorldArtifacts(worldId);
+      res.json(artifacts);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch artifacts" });
+    }
+  });
+
+  app.post("/api/worlds/:worldId/artifacts", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const artifactData = insertWorldArtifactSchema.parse({
+        ...req.body,
+        worldId,
+      });
+      const artifact = await storage.createArtifact(artifactData);
+      res.status(201).json(artifact);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid artifact data" });
+    }
+  });
+
+  app.get("/api/artifacts/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const artifact = await storage.getArtifact(id);
+      if (!artifact) {
+        return res.status(404).json({ message: "Artifact not found" });
+      }
+      res.json(artifact);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch artifact" });
+    }
+  });
+
+  app.put("/api/artifacts/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updateData = insertWorldArtifactSchema.partial().parse(req.body);
+      const artifact = await storage.updateArtifact(id, updateData);
+      if (!artifact) {
+        return res.status(404).json({ message: "Artifact not found" });
+      }
+      res.json(artifact);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid artifact data" });
+    }
+  });
+
+  app.delete("/api/artifacts/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteArtifact(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Artifact not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete artifact" });
     }
   });
 

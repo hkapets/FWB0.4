@@ -1082,7 +1082,10 @@ export default function CharactersPage() {
                 : undefined
             }
             worldId={worldId}
-            allLore={lore}
+            allLore={lore?.map((l) => ({
+              ...l,
+              name: typeof l.name === "object" ? l.name : { uk: l.name },
+            }))}
           />
           {/* Modal preview for image */}
           {loreImagePreview && (

@@ -33,6 +33,7 @@ import {
   type InsertWorldLore,
   type Region,
   type InsertRegion,
+  type WorldArtifact,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -139,6 +140,15 @@ export interface IStorage {
     updateData: Partial<InsertRegion>
   ): Promise<Region | undefined>;
   deleteRegion(id: number): Promise<boolean>;
+
+  getWorldArtifacts(worldId: number): Promise<WorldArtifact[]>;
+  getArtifact(id: number): Promise<WorldArtifact | undefined>;
+  createArtifact(data: InsertWorldArtifact): Promise<WorldArtifact>;
+  updateArtifact(
+    id: number,
+    data: Partial<InsertWorldArtifact>
+  ): Promise<WorldArtifact | undefined>;
+  deleteArtifact(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -159,6 +169,7 @@ export class MemStorage implements IStorage {
   private worldMagicTypesData: Map<number, WorldMagicType[]> = new Map();
   private worldLoreData: Map<number, WorldLore[]> = new Map();
   private regions: Map<number, Region> = new Map();
+  private worldArtifactsData: Map<number, WorldArtifact[]> = new Map();
 
   constructor() {
     this.users = new Map();
@@ -683,6 +694,58 @@ export class MemStorage implements IStorage {
 
   async deleteRegion(id: number): Promise<boolean> {
     return this.regions.delete(id);
+  }
+
+  async getWorldArtifacts(worldId: number): Promise<WorldArtifact[]> {
+    return this.worldArtifactsData.get(worldId) || [];
+  }
+
+  async getArtifact(id: number): Promise<WorldArtifact | undefined> {
+    for (const artifacts of Array.from(this.worldArtifactsData.values())) {
+      const found = artifacts.find((a: WorldArtifact) => a.id === id);
+      if (found) return found;
+    }
+    return undefined;
+  }
+
+  async createArtifact(data: InsertWorldArtifact): Promise<WorldArtifact> {
+    const id = this.currentId++;
+    const artifact: WorldArtifact = { ...data, id };
+    const arr = this.worldArtifactsData.get(data.worldId) || [];
+    this.worldArtifactsData.set(data.worldId, [...arr, artifact]);
+    return artifact;
+  }
+
+  async updateArtifact(
+    id: number,
+    data: Partial<InsertWorldArtifact>
+  ): Promise<WorldArtifact | undefined> {
+    for (const [worldId, artifacts] of Array.from(
+      this.worldArtifactsData.entries()
+    )) {
+      const idx = artifacts.findIndex((a: WorldArtifact) => a.id === id);
+      if (idx !== -1) {
+        const updated: WorldArtifact = { ...artifacts[idx], ...data };
+        artifacts[idx] = updated;
+        this.worldArtifactsData.set(worldId, [...artifacts]);
+        return updated;
+      }
+    }
+    return undefined;
+  }
+
+  async deleteArtifact(id: number): Promise<boolean> {
+    for (const [worldId, artifacts] of Array.from(
+      this.worldArtifactsData.entries()
+    )) {
+      const idx = artifacts.findIndex((a: WorldArtifact) => a.id === id);
+      if (idx !== -1) {
+        artifacts.splice(idx, 1);
+        this.worldArtifactsData.set(worldId, [...artifacts]);
+        return true;
+      }
+    }
+    return false;
   }
 }
 
