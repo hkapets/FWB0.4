@@ -18,7 +18,9 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SortableList } from "@/components/ui/sortable-list";
 import { FilterBar } from "@/components/ui/filter-bar";
+import { BulkActions } from "@/components/ui/bulk-actions";
 import { filterData, createEventFilters } from "@/lib/filter-utils";
+import { createEventBulkActions } from "@/lib/bulk-actions-utils";
 import type { Event } from "@shared/schema";
 
 export default function EventsPage() {
@@ -101,6 +103,31 @@ export default function EventsPage() {
     },
   });
 
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ ids, updates }: { ids: number[]; updates: any }) => {
+      await Promise.all(
+        ids.map((id) => apiRequest("PUT", `/api/events/${id}`, updates))
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "events"],
+      });
+      setSelected([]);
+      toast({
+        title: "Оновлено",
+        description: "Вибрані події успішно оновлено",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося оновити події",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSelect = (id: number) => {
     setSelected((sel) =>
       sel.includes(id) ? sel.filter((i) => i !== id) : [...sel, id]
@@ -124,6 +151,17 @@ export default function EventsPage() {
   const handleFiltersChange = (filters: Record<string, any>) => {
     setActiveFilters(filters);
     setSelected([]); // Скидаємо вибір при зміні фільтрів
+  };
+
+  const handleBulkAction = (actionKey: string, value?: string) => {
+    if (actionKey === "delete") {
+      setDeleteDialog(true);
+    } else if (actionKey === "changeType" && value) {
+      bulkUpdateMutation.mutate({
+        ids: selected,
+        updates: { type: value },
+      });
+    }
   };
 
   const handleSubmit = async (data: any) => {
@@ -192,6 +230,14 @@ export default function EventsPage() {
         filters={createEventFilters()}
         onFiltersChange={handleFiltersChange}
         className="mb-6"
+      />
+
+      {/* Масові дії */}
+      <BulkActions
+        selectedCount={selected.length}
+        actions={createEventBulkActions()}
+        onAction={handleBulkAction}
+        className="mb-4"
       />
 
       {isLoading ? (

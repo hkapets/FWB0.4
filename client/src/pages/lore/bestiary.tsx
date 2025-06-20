@@ -19,7 +19,9 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SortableList } from "@/components/ui/sortable-list";
 import { FilterBar } from "@/components/ui/filter-bar";
+import { BulkActions } from "@/components/ui/bulk-actions";
 import { filterData, createCreatureFilters } from "@/lib/filter-utils";
+import { createBestiaryBulkActions } from "@/lib/bulk-actions-utils";
 import type { Creature } from "@shared/schema";
 
 export default function BestiaryPage() {
@@ -103,6 +105,31 @@ export default function BestiaryPage() {
     },
   });
 
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ ids, updates }: { ids: number[]; updates: any }) => {
+      await Promise.all(
+        ids.map((id) => apiRequest("PUT", `/api/creatures/${id}`, updates))
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "creatures"],
+      });
+      setSelected([]);
+      toast({
+        title: "Оновлено",
+        description: "Вибрані істоти успішно оновлено",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося оновити істоти",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSelect = (id: number) => {
     setSelected((sel) =>
       sel.includes(id) ? sel.filter((i) => i !== id) : [...sel, id]
@@ -121,6 +148,22 @@ export default function BestiaryPage() {
   const handleFiltersChange = (filters: Record<string, any>) => {
     setActiveFilters(filters);
     setSelected([]); // Скидаємо вибір при зміні фільтрів
+  };
+
+  const handleBulkAction = (actionKey: string, value?: string) => {
+    if (actionKey === "delete") {
+      setDeleteDialog(true);
+    } else if (actionKey === "changeType" && value) {
+      bulkUpdateMutation.mutate({
+        ids: selected,
+        updates: { type: value },
+      });
+    } else if (actionKey === "changeDangerLevel" && value) {
+      bulkUpdateMutation.mutate({
+        ids: selected,
+        updates: { dangerLevel: value },
+      });
+    }
   };
 
   return (
@@ -151,16 +194,6 @@ export default function BestiaryPage() {
           >
             <Plus className="mr-2" /> {t.messages.addFirstCreature}
           </Button>
-          {selected.length > 0 && (
-            <Button
-              variant="destructive"
-              onClick={() => setDeleteDialog(true)}
-              className="ml-2"
-              size="lg"
-            >
-              <Trash2 className="mr-2" /> {t.actions.delete} ({selected.length})
-            </Button>
-          )}
         </div>
       </div>
 
@@ -169,6 +202,14 @@ export default function BestiaryPage() {
         filters={createCreatureFilters()}
         onFiltersChange={handleFiltersChange}
         className="mb-6"
+      />
+
+      {/* Масові дії */}
+      <BulkActions
+        selectedCount={selected.length}
+        actions={createBestiaryBulkActions()}
+        onAction={handleBulkAction}
+        className="mb-4"
       />
 
       {isLoading ? (
@@ -267,4 +308,4 @@ export default function BestiaryPage() {
     </div>
   );
 }
-// TODO: тултіп, polish анімацій, адаптивність, масові дії (зміна типу, dangerLevel)
+// TODO: тултіп, polish анімацій, адаптивність

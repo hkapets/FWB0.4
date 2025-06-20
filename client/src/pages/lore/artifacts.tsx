@@ -18,7 +18,9 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SortableList } from "@/components/ui/sortable-list";
 import { FilterBar } from "@/components/ui/filter-bar";
+import { BulkActions } from "@/components/ui/bulk-actions";
 import { filterData, createArtifactFilters } from "@/lib/filter-utils";
+import { createArtifactBulkActions } from "@/lib/bulk-actions-utils";
 import type { WorldArtifact } from "@shared/schema";
 
 export default function ArtifactsPage() {
@@ -98,6 +100,31 @@ export default function ArtifactsPage() {
     },
   });
 
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ ids, updates }: { ids: number[]; updates: any }) => {
+      await Promise.all(
+        ids.map((id) => apiRequest("PUT", `/api/artifacts/${id}`, updates))
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "artifacts"],
+      });
+      setSelected([]);
+      toast({
+        title: "Оновлено",
+        description: "Вибрані артефакти успішно оновлено",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося оновити артефакти",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSelect = (id: number) => {
     setSelected((sel) =>
       sel.includes(id) ? sel.filter((i) => i !== id) : [...sel, id]
@@ -121,6 +148,22 @@ export default function ArtifactsPage() {
   const handleFiltersChange = (filters: Record<string, any>) => {
     setActiveFilters(filters);
     setSelected([]); // Скидаємо вибір при зміні фільтрів
+  };
+
+  const handleBulkAction = (actionKey: string, value?: string) => {
+    if (actionKey === "delete") {
+      setDeleteDialog(true);
+    } else if (actionKey === "changeType" && value) {
+      bulkUpdateMutation.mutate({
+        ids: selected,
+        updates: { type: value },
+      });
+    } else if (actionKey === "changeRarity" && value) {
+      bulkUpdateMutation.mutate({
+        ids: selected,
+        updates: { rarity: value },
+      });
+    }
   };
 
   const handleSubmit = async (data: any) => {
@@ -189,6 +232,14 @@ export default function ArtifactsPage() {
         filters={createArtifactFilters()}
         onFiltersChange={handleFiltersChange}
         className="mb-6"
+      />
+
+      {/* Масові дії */}
+      <BulkActions
+        selectedCount={selected.length}
+        actions={createArtifactBulkActions()}
+        onAction={handleBulkAction}
+        className="mb-4"
       />
 
       {isLoading ? (
