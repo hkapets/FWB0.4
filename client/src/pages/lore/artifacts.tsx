@@ -1,8 +1,10 @@
-import { useTranslation } from "@/lib/i18n";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Plus, Trash2, List, Grid, Gem } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import CreateArtifactModal from "@/components/modals/create-artifact-modal";
+import { useTranslation } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
+import CreateArtifactModal from "@/components/modals/create-artifact-modal";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -12,244 +14,233 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from "@/components/ui/tooltip";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import type { WorldArtifact } from "@shared/schema";
 
 export default function ArtifactsPage() {
   const t = useTranslation();
-  const [artifacts, setArtifacts] = useState<any[] | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editArtifact, setEditArtifact] = useState<any | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [artifactToDelete, setArtifactToDelete] = useState<any | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const { toast } = useToast();
-  const worldId = 1; // TODO: get from context or props
-  const { data: events = [] } = useQuery<any[]>({ queryKey: ["/api/events"] });
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [editArtifact, setEditArtifact] = useState<WorldArtifact | null>(null);
+  const worldId = 1; // TODO: get from context/props
 
-  useEffect(() => {
-    fetch(`/api/worlds/${worldId}/artifacts`)
-      .then((res) => res.json())
-      .then(setArtifacts);
-  }, [worldId]);
+  const { data: artifacts = [], isLoading } = useQuery({
+    queryKey: ["/api/worlds", worldId, "artifacts"],
+    enabled: !!worldId,
+  });
 
-  const handleAdd = () => {
-    setEditArtifact(null);
-    setModalOpen(true);
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: number[]) => {
+      await Promise.all(
+        ids.map((id) => fetch(`/api/artifacts/${id}`, { method: "DELETE" }))
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "artifacts"],
+      });
+      setSelected([]);
+      toast({
+        title: t.actions.delete,
+        description: t.messages.creatureCreated,
+      });
+    },
+    onError: () => {
+      toast({
+        title: t.actions.delete,
+        description: t.messages.errorDesc,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSelect = (id: number) => {
+    setSelected((sel) =>
+      sel.includes(id) ? sel.filter((i) => i !== id) : [...sel, id]
+    );
   };
-  const handleEdit = (artifact: any) => {
+
+  const handleDelete = () => {
+    setDeleteDialog(false);
+    if (selected.length) deleteMutation.mutate(selected);
+  };
+
+  const handleEdit = (artifact: WorldArtifact) => {
     setEditArtifact(artifact);
-    setModalOpen(true);
+    setIsCreateOpen(true);
   };
-  const handleDelete = (artifact: any) => {
-    setArtifactToDelete(artifact);
-    setDeleteDialogOpen(true);
-  };
-  const confirmDelete = async () => {
-    if (!artifactToDelete || !artifacts) return;
-    await fetch(`/api/artifacts/${artifactToDelete.id}`, { method: "DELETE" });
-    setArtifacts(artifacts.filter((a) => a.id !== artifactToDelete.id));
-    toast({
-      title: t.actions.delete,
-      description: `${artifactToDelete.name?.uk || ""} видалено.`,
-    });
-    setDeleteDialogOpen(false);
-    setArtifactToDelete(null);
-  };
+
   const handleSubmit = async (data: any) => {
     if (editArtifact) {
-      // Update
-      const res = await fetch(`/api/artifacts/${editArtifact.id}`, {
+      await fetch(`/api/artifacts/${editArtifact.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      const updated = await res.json();
-      setArtifacts(artifacts!.map((a) => (a.id === updated.id ? updated : a)));
-      toast({
-        title: t.actions.edit,
-        description: `${updated.name?.uk} оновлено.`,
-      });
+      toast({ title: t.actions.edit, description: t.messages.creatureCreated });
     } else {
-      // Create
-      const res = await fetch(`/api/worlds/${worldId}/artifacts`, {
+      await fetch(`/api/worlds/${worldId}/artifacts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      const created = await res.json();
-      setArtifacts([...(artifacts || []), created]);
-      toast({
-        title: t.actions.add,
-        description: `${created.name?.uk} створено.`,
-      });
+      toast({ title: t.actions.add, description: t.messages.creatureCreated });
     }
-    setModalOpen(false);
+    queryClient.invalidateQueries({
+      queryKey: ["/api/worlds", worldId, "artifacts"],
+    });
+    setIsCreateOpen(false);
+    setEditArtifact(null);
   };
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-4 flex items-center justify-between">
-        {t.lore.artifacts}
-        <Button onClick={handleAdd}>{t.actions.add}</Button>
-      </h1>
-      <div className="fantasy-border rounded-lg p-4 text-gray-300 bg-black/30 min-h-[120px] overflow-x-auto">
-        {artifacts === null ? (
-          <div className="space-y-2">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="flex items-center gap-2 animate-pulse">
-                <div className="w-8 h-8 bg-gray-700 rounded" />
-                <div className="h-4 w-32 bg-gray-700 rounded" />
+    <div className="p-4 md:p-8 max-w-5xl mx-auto">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <Gem className="text-yellow-300" /> {t.lore.artifacts}
+        </h1>
+        <div className="flex gap-2 items-center">
+          <Button
+            variant={viewMode === "grid" ? "default" : "ghost"}
+            size="icon"
+            onClick={() => setViewMode("grid")}
+          >
+            <Grid />
+          </Button>
+          <Button
+            variant={viewMode === "list" ? "default" : "ghost"}
+            size="icon"
+            onClick={() => setViewMode("list")}
+          >
+            <List />
+          </Button>
+          <Button
+            onClick={() => {
+              setEditArtifact(null);
+              setIsCreateOpen(true);
+            }}
+            className="ml-2"
+            size="lg"
+          >
+            <Plus className="mr-2" /> {t.messages.addFirstCreature}
+          </Button>
+          {selected.length > 0 && (
+            <Button
+              variant="destructive"
+              onClick={() => setDeleteDialog(true)}
+              className="ml-2"
+              size="lg"
+            >
+              <Trash2 className="mr-2" /> {t.actions.delete} ({selected.length})
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="text-center text-gray-400 py-16">
+          {t.actions.loading}...
+        </div>
+      ) : (artifacts as WorldArtifact[]).length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
+          <Gem className="w-16 h-16 text-yellow-400 mb-4 animate-bounce" />
+          <h2 className="text-2xl font-bold mb-2">
+            {t.messages.noResultsFound}
+          </h2>
+          <p className="mb-6 text-gray-400">{t.messages.noResultsDesc}</p>
+          <Button
+            size="lg"
+            onClick={() => {
+              setEditArtifact(null);
+              setIsCreateOpen(true);
+            }}
+          >
+            <Plus className="mr-2" /> {t.messages.addFirstCreature}
+          </Button>
+        </div>
+      ) : (
+        <ScrollArea className="max-h-[70vh]">
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
+                : "flex flex-col gap-2"
+            }
+          >
+            {(artifacts as WorldArtifact[]).map((artifact) => (
+              <div key={artifact.id} className="relative group transition-all">
+                <div className="absolute top-2 left-2 z-10">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(artifact.id)}
+                    onChange={() => handleSelect(artifact.id)}
+                    className="accent-yellow-400 w-5 h-5 rounded shadow"
+                    title="Select"
+                  />
+                </div>
+                <div
+                  className="fantasy-border fantasy-card-hover transition-all duration-300 cursor-pointer group bg-black/40 rounded-lg p-4 flex flex-col gap-2"
+                  onClick={() => handleEdit(artifact)}
+                >
+                  <div className="flex items-center gap-2">
+                    {artifact.icon && (
+                      <span className="text-2xl" title={artifact.icon}>
+                        {artifact.icon}
+                      </span>
+                    )}
+                    <span className="font-semibold text-white truncate max-w-[120px] md:max-w-xs">
+                      {artifact.name?.uk || artifact.name}
+                    </span>
+                    {artifact.rarity && (
+                      <span className="ml-2 text-xs px-2 py-1 rounded bg-yellow-900 text-yellow-200">
+                        {artifact.rarity}
+                      </span>
+                    )}
+                  </div>
+                  {artifact.description && (
+                    <span className="text-gray-400 text-sm max-w-xs truncate">
+                      {artifact.description.uk || artifact.description}
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
-        ) : artifacts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center text-gray-400 animate-fadein">
-            <img
-              src="/empty-worlds.svg"
-              alt="Порожньо"
-              className="w-28 h-28 mb-4 opacity-70"
-            />
-            <div className="text-lg mb-2">У вас ще немає жодного артефакта</div>
-            <div className="mb-4 text-sm text-gray-500">
-              Створіть перший артефакт, щоб додати магію у ваш світ!
-            </div>
-            <Button onClick={handleAdd} size="lg" className="mt-2">
-              Додати артефакт
-            </Button>
-          </div>
-        ) : (
-          <ul className="space-y-2">
-            {artifacts.map((artifact) => {
-              const relatedEvents = events.filter(
-                (e) => e.artifactId === artifact.id
-              );
-              return (
-                <li
-                  key={artifact.id}
-                  className="flex flex-col bg-black/40 rounded px-3 py-2 transition-all duration-300 animate-fadein"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      {artifact.image && (
-                        <img
-                          src={artifact.image}
-                          alt={artifact.name?.uk + " image"}
-                          className="w-10 h-10 object-cover rounded border border-yellow-400 cursor-pointer shadow-md hover:scale-105 transition"
-                          onClick={() => setImagePreview(artifact.image)}
-                        />
-                      )}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span
-                            className="text-2xl cursor-help"
-                            title={artifact.icon}
-                          >
-                            {artifact.icon}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>Іконка артефакта</TooltipContent>
-                      </Tooltip>
-                      <span className="font-semibold text-white truncate max-w-[120px] md:max-w-xs">
-                        {artifact.name?.uk}
-                      </span>
-                      {artifact.rarity && (
-                        <span className="ml-2 text-xs px-2 py-1 rounded bg-yellow-900 text-yellow-200">
-                          {artifact.rarity}
-                        </span>
-                      )}
-                      {artifact.description && (
-                        <span className="text-gray-400 text-sm max-w-xs truncate">
-                          {artifact.description.uk}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex gap-2 flex-shrink-0">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEdit(artifact)}
-                      >
-                        {t.actions.edit}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDelete(artifact)}
-                      >
-                        {t.actions.delete}
-                      </Button>
-                    </div>
-                  </div>
-                  {relatedEvents.length > 0 && (
-                    <div className="mt-2 ml-10">
-                      <div className="text-xs text-gray-400 mb-1 font-semibold">
-                        Події, пов'язані з артефактом:
-                      </div>
-                      <ul className="space-y-1">
-                        {relatedEvents.map((event) => (
-                          <li key={event.id}>
-                            <Link
-                              href={`/timeline?event=${event.id}`}
-                              className="underline text-yellow-300 hover:text-yellow-200 cursor-pointer"
-                            >
-                              {event.name}{" "}
-                              <span className="text-gray-400">
-                                ({event.date})
-                              </span>{" "}
-                              <span className="ml-1 text-xs bg-yellow-900/40 rounded px-1">
-                                {event.type}
-                              </span>
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+        </ScrollArea>
+      )}
+
       <CreateArtifactModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        isOpen={isCreateOpen}
+        onClose={() => {
+          setIsCreateOpen(false);
+          setEditArtifact(null);
+        }}
         onSubmit={handleSubmit}
-        initialData={editArtifact}
-        allArtifacts={artifacts || []}
+        initialData={editArtifact as any}
+        allArtifacts={(artifacts as WorldArtifact[]).map((a) => ({
+          id: a.id,
+          name: typeof a.name === "object" ? a.name : { uk: a.name },
+        }))}
       />
-      <Dialog open={!!imagePreview} onOpenChange={() => setImagePreview(null)}>
-        <DialogContent className="max-w-xs bg-black/90">
-          <img
-            src={imagePreview || ""}
-            alt="Artifact preview"
-            className="w-full h-full object-cover rounded"
-          />
-        </DialogContent>
-      </Dialog>
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+
+      <AlertDialog open={deleteDialog} onOpenChange={setDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Видалити артефакт?</AlertDialogTitle>
+            <AlertDialogTitle>{t.actions.delete}</AlertDialogTitle>
           </AlertDialogHeader>
-          <div>
-            Ви впевнені, що хочете видалити <b>{artifactToDelete?.name?.uk}</b>?
-            Цю дію не можна скасувати.
-          </div>
+          <p>{t.messages.errorDesc}</p>
           <AlertDialogFooter>
-            <AlertDialogCancel>Скасувати</AlertDialogCancel>
+            <AlertDialogCancel>{t.forms.cancel}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={confirmDelete}
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
               className="bg-red-600 hover:bg-red-700"
             >
-              Видалити
+              {t.actions.delete}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -257,3 +248,4 @@ export default function ArtifactsPage() {
     </div>
   );
 }
+// TODO: drag&drop reorder, фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу/рідкості)
