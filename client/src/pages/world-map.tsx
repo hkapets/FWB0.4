@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import type { World, Location, Character, Creature } from "@shared/schema";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +36,16 @@ import { useToast } from "../hooks/use-toast";
 import { SketchPicker } from "react-color";
 import { useI18n } from "../lib/i18n";
 import { useTranslation } from "@/lib/i18n";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 
 export default function WorldMap() {
   const t = useTranslation();
@@ -74,6 +84,9 @@ export default function WorldMap() {
     { value: "dungeon", label: t.mapTypes.dungeon },
     { value: "forest", label: t.mapTypes.forest },
     { value: "custom", label: t.mapTypes.custom },
+    { value: "character", label: "Character" },
+    { value: "event", label: "Event" },
+    { value: "artifact", label: "Artifact" },
   ];
 
   const PERIODS = [
@@ -391,6 +404,9 @@ export default function WorldMap() {
     setDraftType("city");
     setDraftDescription("");
     setDraftLoreId(undefined);
+    setDraftCharacterId(undefined);
+    setDraftEventId(undefined);
+    setDraftArtifactId(undefined);
     setEditingMarker(null);
     setModalOpen(true);
   }
@@ -399,6 +415,10 @@ export default function WorldMap() {
   function handleSaveMarker() {
     if (!draftCoords || !draftName.trim()) return;
     const dangerLevel = "normal";
+    const extra: any = {};
+    if (draftType === "character") extra.characterId = draftCharacterId;
+    if (draftType === "event") extra.eventId = draftEventId;
+    if (draftType === "artifact") extra.artifactId = draftArtifactId;
     withUndo(() => {
       if (editingMarker) {
         updateLocation.mutate({
@@ -411,6 +431,7 @@ export default function WorldMap() {
           worldId: worldId ?? undefined,
           dangerLevel,
           loreId: draftLoreId ?? undefined,
+          ...extra,
         });
       } else {
         createLocation.mutate({
@@ -422,6 +443,7 @@ export default function WorldMap() {
           worldId: worldId ?? undefined,
           dangerLevel,
           loreId: draftLoreId ?? undefined,
+          ...extra,
         });
       }
     });
@@ -432,6 +454,9 @@ export default function WorldMap() {
     setDraftType("city");
     setDraftDescription("");
     setDraftLoreId(undefined);
+    setDraftCharacterId(undefined);
+    setDraftEventId(undefined);
+    setDraftArtifactId(undefined);
   }
 
   // Edit marker
@@ -441,7 +466,10 @@ export default function WorldMap() {
     setDraftName(marker.name || "");
     setDraftType(marker.type);
     setDraftDescription(marker.description || "");
-    setDraftLoreId(undefined);
+    setDraftLoreId(marker.loreId ?? undefined);
+    setDraftCharacterId(marker.characterId ?? undefined);
+    setDraftEventId(marker.eventId ?? undefined);
+    setDraftArtifactId(marker.artifactId ?? undefined);
     setModalOpen(true);
   }
 
@@ -456,6 +484,9 @@ export default function WorldMap() {
       setDraftType("city");
       setDraftDescription("");
       setDraftLoreId(undefined);
+      setDraftCharacterId(undefined);
+      setDraftEventId(undefined);
+      setDraftArtifactId(undefined);
     }
   }
 
@@ -787,6 +818,67 @@ export default function WorldMap() {
     window.addEventListener("touchend", handleTouchEnd);
   }
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  // Функція для upload зображення карти
+  async function handleMapImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !worldId) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("image", file);
+    const res = await fetch("/api/upload/map-image", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
+    if (data.url) {
+      // Оновлюємо world з mapImageUrl
+      await fetch(`/api/worlds/${worldId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mapImageUrl: data.url }),
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/worlds"] });
+      toast({ title: "Карту оновлено!" });
+    }
+    setUploading(false);
+  }
+
+  // Додаю селектори для персонажів, подій, артефактів
+  const [events, setEvents] = useState<any[]>([]);
+  const [artifacts, setArtifacts] = useState<any[]>([]);
+  useEffect(() => {
+    if (!worldId) return;
+    fetch(`/api/worlds/${worldId}/events`)
+      .then((r) => r.json())
+      .then(setEvents);
+    fetch(`/api/worlds/${worldId}/artifacts`)
+      .then((r) => r.json())
+      .then(setArtifacts);
+  }, [worldId]);
+  const [draftCharacterId, setDraftCharacterId] = useState<number | undefined>(
+    undefined
+  );
+  const [draftEventId, setDraftEventId] = useState<number | undefined>(
+    undefined
+  );
+  const [draftArtifactId, setDraftArtifactId] = useState<number | undefined>(
+    undefined
+  );
+
+  // Додаю стейт для діалогу підтвердження видалення
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Додаю підрахунок кількості маркерів кожного типу
+  const markerTypeCounts = {
+    location: locations.filter((m) => m.type === "location").length,
+    character: locations.filter((m) => m.type === "character").length,
+    event: locations.filter((m) => m.type === "event").length,
+    artifact: locations.filter((m) => m.type === "artifact").length,
+  };
+
   if (!currentWorld) {
     return (
       <div className="p-6">
@@ -807,13 +899,34 @@ export default function WorldMap() {
     <div className="p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-fantasy font-bold text-yellow-200 mb-2">
-            World Map
-          </h1>
-          <p className="text-lg text-gray-300">
-            Visual overview of {currentWorld.name}
-          </p>
+        <div className="mb-8 flex items-center gap-4">
+          <div>
+            <h1 className="text-4xl font-fantasy font-bold text-yellow-200 mb-2">
+              World Map
+            </h1>
+            <p className="text-lg text-gray-300">
+              Visual overview of {currentWorld?.name}
+            </p>
+          </div>
+          {currentWorld && (
+            <div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? "Завантаження..." : "Змінити карту"}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleMapImageUpload}
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-4 mb-4">
@@ -1026,6 +1139,36 @@ export default function WorldMap() {
           )}
         </div>
 
+        {/* Додаю над картою панель фільтрів за типом маркера */}
+        <div className="flex gap-4 items-center mb-2">
+          <span className="text-sm font-semibold">Фільтр маркерів:</span>
+          {markerTypes
+            .filter((t) =>
+              ["location", "character", "event", "artifact"].includes(t.value)
+            )
+            .map((type) => (
+              <label
+                key={type.value}
+                className="flex items-center gap-1 text-xs cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={visibleTypes.includes(type.value)}
+                  onChange={() => toggleType(type.value)}
+                />
+                {type.value === "location" && "Локації"}
+                {type.value === "character" && "Персонажі"}
+                {type.value === "event" && "Події"}
+                {type.value === "artifact" && "Артефакти"}
+              </label>
+            ))}
+        </div>
+
+        {/* Додаю інструкцію над картою */}
+        <div className="text-xs text-gray-400 mb-2">
+          Перетягніть маркер мишкою для зміни позиції
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Map Visualization */}
           <div className="lg:col-span-3">
@@ -1037,7 +1180,66 @@ export default function WorldMap() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="h-full">
-                <div className="w-full h-full bg-gradient-to-br from-green-900/20 via-brown-900/20 to-blue-900/20 rounded-lg flex items-center justify-center relative overflow-hidden">
+                <div className="w-full h-full rounded-lg flex items-center justify-center relative overflow-hidden">
+                  {/* Кастомна карта або fallback */}
+                  {currentWorld?.mapImageUrl ? (
+                    <img
+                      src={currentWorld.mapImageUrl}
+                      alt="World map"
+                      className="absolute inset-0 w-full h-full object-contain opacity-100 pointer-events-none select-none z-0"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 opacity-10 pointer-events-none select-none">
+                      {/* SVG fallback (декоративна карта) */}
+                      <svg
+                        viewBox="0 0 800 600"
+                        className="w-full h-full"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <defs>
+                          <pattern
+                            id="mapTexture"
+                            patternUnits="userSpaceOnUse"
+                            width="40"
+                            height="40"
+                          >
+                            <rect width="40" height="40" fill="#1a1a1a" />
+                            <circle cx="20" cy="20" r="1" fill="#4a5568" />
+                          </pattern>
+                        </defs>
+                        <rect
+                          width="800"
+                          height="600"
+                          fill="url(#mapTexture)"
+                        />
+                        {/* Decorative fantasy map elements */}
+                        <path
+                          d="M100 200 L150 150 L200 200 L250 150 L300 200"
+                          stroke="#68D391"
+                          strokeWidth="2"
+                          fill="none"
+                        />
+                        <path
+                          d="M400 300 L450 250 L500 300 L550 250 L600 300"
+                          stroke="#68D391"
+                          strokeWidth="2"
+                          fill="none"
+                        />
+                        <path
+                          d="M0 350 Q200 320 400 350 T800 350"
+                          stroke="#63B3ED"
+                          strokeWidth="3"
+                          fill="none"
+                        />
+                        <path
+                          d="M150 0 Q180 200 200 400 T250 600"
+                          stroke="#63B3ED"
+                          strokeWidth="2"
+                          fill="none"
+                        />
+                      </svg>
+                    </div>
+                  )}
                   {/* Zoom/Pan Controls */}
                   <div className="absolute top-2 right-2 z-10 bg-black/60 rounded px-3 py-1 text-xs text-gray-200 font-mono pointer-events-auto select-none">
                     Scroll — zoom, drag — move
@@ -1061,14 +1263,42 @@ export default function WorldMap() {
                         contentClass="w-full h-full"
                       >
                         <div
-                          className="relative w-full max-w-[clamp(320px,90vw,900px)] h-[clamp(300px,60vw,700px)] mx-auto"
+                          className="relative w-full max-w-[clamp(320px,100vw,900px)] h-[clamp(240px,60vw,700px)] mx-auto overflow-x-auto md:overflow-visible"
                           onClick={
                             drawingRegion
                               ? handleMapClickForRegion
                               : handleMapClick
                           }
                           onDoubleClick={
-                            drawingRegion ? finishDrawRegion : undefined
+                            drawingRegion
+                              ? finishDrawRegion
+                              : (e) => {
+                                  if (
+                                    (e.target as HTMLElement).closest(
+                                      ".marker-pin"
+                                    )
+                                  )
+                                    return;
+                                  const rect = (
+                                    e.currentTarget as HTMLDivElement
+                                  ).getBoundingClientRect();
+                                  const x =
+                                    ((e.clientX - rect.left) / rect.width) *
+                                    800;
+                                  const y =
+                                    ((e.clientY - rect.top) / rect.height) *
+                                    600;
+                                  setDraftCoords({ x, y });
+                                  setDraftName("");
+                                  setDraftType("location");
+                                  setDraftDescription("");
+                                  setDraftLoreId(undefined);
+                                  setDraftCharacterId(undefined);
+                                  setDraftEventId(undefined);
+                                  setDraftArtifactId(undefined);
+                                  setEditingMarker(null);
+                                  setModalOpen(true);
+                                }
                           }
                           style={{
                             cursor: drawingRegion ? "crosshair" : "pointer",
@@ -1180,79 +1410,131 @@ export default function WorldMap() {
                           </div>
 
                           {/* Location markers (from API) */}
-                          {filteredLocations.map((marker) => (
-                            <div
-                              key={marker.id}
-                              className={`absolute marker-pin transform -translate-x-1/2 -translate-y-1/2 group z-10 ${
-                                selectMode &&
-                                selectedMarkers.includes(Number(marker.id))
-                                  ? "ring-4 ring-yellow-400"
-                                  : ""
-                              }`}
-                              style={{
-                                left: `${marker.x ?? 400}px`,
-                                top: `${marker.y ?? 300}px`,
-                                touchAction: "none",
-                              }}
-                              onMouseDown={
-                                selectMode &&
-                                selectedMarkers.includes(Number(marker.id))
-                                  ? (e) => handleGroupMouseDown(e, marker)
-                                  : !selectMode
-                                  ? (e) => handleMarkerMouseDown(e, marker)
-                                  : undefined
-                              }
-                              onTouchStart={(e) =>
-                                handleMarkerTouchStart(e, marker)
-                              }
-                              onClick={(e) => handleMarkerSelect(marker, e)}
-                              tabIndex={0}
-                              aria-label={marker.name || "Marker"}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter")
-                                  handleMarkerSelect(marker, e as any);
-                              }}
-                            >
-                              {"imageUrl" in marker && marker.imageUrl && (
-                                <img
-                                  src={marker.imageUrl}
-                                  alt={marker.name || ""}
-                                  className="w-14 h-14 object-contain absolute -top-14 left-1/2 -translate-x-1/2"
-                                />
-                              )}
+                          {filteredLocations.map((marker) => {
+                            let label = marker.name;
+                            let icon = null;
+                            let typeIcon = null;
+                            let description =
+                              marker.description || "Немає опису";
+                            if (
+                              marker.type === "character" &&
+                              marker.characterId
+                            ) {
+                              const c = characters.find(
+                                (c) => c.id === marker.characterId
+                              );
+                              label = c?.name || label;
+                              typeIcon = (
+                                <Users className="inline w-4 h-4 text-green-400 mr-1" />
+                              );
+                            }
+                            if (marker.type === "event" && marker.eventId) {
+                              const e = events.find(
+                                (e) => e.id === marker.eventId
+                              );
+                              label = e?.name?.uk || e?.name || label;
+                              icon = e?.icon || null;
+                              typeIcon = (
+                                <Crown className="inline w-4 h-4 text-red-400 mr-1" />
+                              );
+                              description =
+                                e?.description?.uk ||
+                                e?.description ||
+                                description;
+                            }
+                            if (
+                              marker.type === "artifact" &&
+                              marker.artifactId
+                            ) {
+                              const a = artifacts.find(
+                                (a) => a.id === marker.artifactId
+                              );
+                              label = a?.name?.uk || a?.name || label;
+                              icon = a?.icon || null;
+                              typeIcon = (
+                                <Compass className="inline w-4 h-4 text-blue-400 mr-1" />
+                              );
+                              description =
+                                a?.description?.uk ||
+                                a?.description ||
+                                description;
+                            }
+                            if (marker.type === "location") {
+                              typeIcon = (
+                                <MapPin className="inline w-4 h-4 text-yellow-400 mr-1" />
+                              );
+                            }
+                            return (
                               <div
-                                className={`bg-yellow-500 rounded-full p-2 shadow-lg cursor-pointer hover:bg-yellow-400 transition-colors ${
-                                  selectMode ? "border-2 border-yellow-300" : ""
+                                key={marker.id}
+                                className={`absolute marker-pin transform -translate-x-1/2 -translate-y-1/2 group z-10 ${
+                                  selectMode &&
+                                  selectedMarkers.includes(Number(marker.id))
+                                    ? "ring-4 ring-yellow-400"
+                                    : ""
                                 }`}
+                                style={{
+                                  left: `${marker.x ?? 400}px`,
+                                  top: `${marker.y ?? 300}px`,
+                                  touchAction: "none",
+                                  minWidth: 44,
+                                  minHeight: 44,
+                                }}
+                                onMouseDown={
+                                  selectMode &&
+                                  selectedMarkers.includes(Number(marker.id))
+                                    ? (e) => handleGroupMouseDown(e, marker)
+                                    : !selectMode
+                                    ? (e) => handleMarkerMouseDown(e, marker)
+                                    : undefined
+                                }
+                                onTouchStart={(e) =>
+                                  handleMarkerTouchStart(e, marker)
+                                }
+                                onClick={(e) => handleMarkerSelect(marker, e)}
+                                tabIndex={0}
+                                aria-label={label || "Marker"}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter")
+                                    handleMarkerSelect(marker, e as any);
+                                }}
                               >
-                                <MapPin className="h-4 w-4 text-white" />
-                              </div>
-                              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black bg-opacity-75 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                {marker.name || "Unnamed"}
-                                {"loreId" in marker && marker.loreId && (
-                                  <div className="mt-1 text-[10px] text-blue-200">
-                                    {typeof lore.find(
-                                      (l) => l.id === marker.loreId
-                                    )?.name === "object"
-                                      ? lore.find((l) => l.id === marker.loreId)
-                                          ?.name.uk
-                                      : String(
-                                          lore.find(
-                                            (l) => l.id === marker.loreId
-                                          )?.name
-                                        )}
+                                {icon && (
+                                  <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-2xl">
+                                    {icon}
+                                  </span>
+                                )}
+                                <div
+                                  className={`bg-yellow-500 rounded-full p-2 shadow-lg cursor-pointer hover:bg-yellow-400 transition-colors ${
+                                    selectMode
+                                      ? "border-2 border-yellow-300"
+                                      : ""
+                                  }`}
+                                >
+                                  <MapPin className="h-4 w-4 text-white" />
+                                </div>
+                                {/* Тултіп */}
+                                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-4 py-3 bg-black bg-opacity-90 text-white text-sm rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-pre-line min-w-[180px] z-50 pointer-events-none md:text-xs md:px-3 md:py-2">
+                                  <div className="flex items-center mb-1">
+                                    {typeIcon}
+                                    <span className="font-semibold">
+                                      {label || "Unnamed"}
+                                    </span>
+                                  </div>
+                                  <div className="text-gray-300 max-w-xs truncate">
+                                    {description || "Немає опису"}
+                                  </div>
+                                </div>
+                                {selectMode && (
+                                  <div className="absolute -top-3 -right-3 bg-yellow-400 rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold text-black border border-white">
+                                    {selectedMarkers.includes(Number(marker.id))
+                                      ? "✓"
+                                      : ""}
                                   </div>
                                 )}
                               </div>
-                              {selectMode && (
-                                <div className="absolute -top-3 -right-3 bg-yellow-400 rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold text-black border border-white">
-                                  {selectedMarkers.includes(Number(marker.id))
-                                    ? "✓"
-                                    : ""}
-                                </div>
-                              )}
-                            </div>
-                          ))}
+                            );
+                          })}
 
                           {locations.length === 0 && markers.length === 0 && (
                             <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
@@ -1271,27 +1553,26 @@ export default function WorldMap() {
                   </TransformWrapper>
                   {/* Marker Modal */}
                   <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-                    <DialogContent>
+                    <DialogContent className="max-w-md w-full">
                       <DialogHeader>
                         <DialogTitle>
-                          {editingMarker ? "Edit Marker" : "Add Marker"}
+                          {editingMarker
+                            ? "Редагувати маркер"
+                            : "Додати маркер"}
                         </DialogTitle>
                       </DialogHeader>
-                      <div className="space-y-4">
-                        <Input
-                          placeholder="Marker name (uk)"
-                          value={draftName}
-                          onChange={(e) => setDraftName(e.target.value)}
-                          autoFocus
-                        />
-                        <Input
-                          placeholder="Marker name (en)"
-                          value={draftName}
-                          onChange={(e) => setDraftName(e.target.value)}
-                        />
+                      <div className="space-y-3">
+                        <label className="block text-sm font-medium text-gray-200 mb-1">
+                          Назва
+                          <Input
+                            value={draftName}
+                            onChange={(e) => setDraftName(e.target.value)}
+                            placeholder="Назва маркера"
+                          />
+                        </label>
                         <Select value={draftType} onValueChange={setDraftType}>
                           <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Type" />
+                            <SelectValue placeholder="Тип маркера" />
                           </SelectTrigger>
                           <SelectContent>
                             {markerTypes.map((type) => (
@@ -1301,40 +1582,93 @@ export default function WorldMap() {
                             ))}
                           </SelectContent>
                         </Select>
-                        <Textarea
-                          placeholder="Description (uk)"
-                          value={draftDescription}
-                          onChange={(e) => setDraftDescription(e.target.value)}
-                        />
-                        <Textarea
-                          placeholder="Description (en)"
-                          value={draftDescription}
-                          onChange={(e) => setDraftDescription(e.target.value)}
-                        />
-                        <Select
-                          value={
-                            draftLoreId !== undefined
-                              ? String(draftLoreId)
-                              : undefined
-                          }
-                          onValueChange={(val) =>
-                            setDraftLoreId(val ? Number(val) : undefined)
-                          }
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Link to Lore (optional)" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">None</SelectItem>
-                            {lore.map((l) => (
-                              <SelectItem key={l.id} value={String(l.id)}>
-                                {typeof l.name === "object"
-                                  ? l.name.uk
-                                  : l.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        {draftType === "character" && (
+                          <label className="block text-sm font-medium text-gray-200 mb-1">
+                            Персонаж
+                            <Select
+                              value={
+                                draftCharacterId ? String(draftCharacterId) : ""
+                              }
+                              onValueChange={(val) =>
+                                setDraftCharacterId(
+                                  val ? Number(val) : undefined
+                                )
+                              }
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Виберіть персонажа" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="">—</SelectItem>
+                                {characters.map((c) => (
+                                  <SelectItem key={c.id} value={String(c.id)}>
+                                    {c.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </label>
+                        )}
+                        {draftType === "event" && (
+                          <label className="block text-sm font-medium text-gray-200 mb-1">
+                            Подія
+                            <Select
+                              value={draftEventId ? String(draftEventId) : ""}
+                              onValueChange={(val) =>
+                                setDraftEventId(val ? Number(val) : undefined)
+                              }
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Виберіть подію" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="">—</SelectItem>
+                                {events.map((e) => (
+                                  <SelectItem key={e.id} value={String(e.id)}>
+                                    {e.name?.uk || e.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </label>
+                        )}
+                        {draftType === "artifact" && (
+                          <label className="block text-sm font-medium text-gray-200 mb-1">
+                            Артефакт
+                            <Select
+                              value={
+                                draftArtifactId ? String(draftArtifactId) : ""
+                              }
+                              onValueChange={(val) =>
+                                setDraftArtifactId(
+                                  val ? Number(val) : undefined
+                                )
+                              }
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Виберіть артефакт" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="">—</SelectItem>
+                                {artifacts.map((a) => (
+                                  <SelectItem key={a.id} value={String(a.id)}>
+                                    {a.name?.uk || a.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </label>
+                        )}
+                        <label className="block text-sm font-medium text-gray-200 mb-1">
+                          Опис
+                          <Textarea
+                            value={draftDescription}
+                            onChange={(e) =>
+                              setDraftDescription(e.target.value)
+                            }
+                            placeholder="Опис маркера"
+                          />
+                        </label>
                         {draftCoords && (
                           <div className="text-xs text-gray-400">
                             x: {draftCoords.x.toFixed(0)}, y:{" "}
@@ -1342,34 +1676,58 @@ export default function WorldMap() {
                           </div>
                         )}
                       </div>
-                      <DialogFooter className="flex flex-row gap-2 justify-between mt-4">
+                      <div className="flex gap-2 justify-end mt-4">
                         {editingMarker && (
-                          <Button
-                            variant="destructive"
-                            onClick={handleDeleteMarker}
-                            type="button"
-                          >
-                            Delete
-                          </Button>
+                          <>
+                            <AlertDialog
+                              open={deleteDialogOpen}
+                              onOpenChange={setDeleteDialogOpen}
+                            >
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Видалити маркер?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Ви впевнені, що хочете видалити цей маркер?
+                                    Дію не можна скасувати.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>
+                                    Скасувати
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    className="bg-red-600 hover:bg-red-700"
+                                    onClick={() => {
+                                      handleDeleteMarker();
+                                      setDeleteDialogOpen(false);
+                                    }}
+                                  >
+                                    Видалити
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                            <Button
+                              variant="destructive"
+                              onClick={() => setDeleteDialogOpen(true)}
+                              type="button"
+                            >
+                              Видалити
+                            </Button>
+                          </>
                         )}
-                        <div className="flex-1 text-right">
-                          <Button
-                            variant="outline"
-                            onClick={() => setModalOpen(false)}
-                            type="button"
-                            className="mr-2"
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            onClick={handleSaveMarker}
-                            type="button"
-                            disabled={!draftName.trim()}
-                          >
-                            Save
-                          </Button>
-                        </div>
-                      </DialogFooter>
+                        <Button
+                          variant="outline"
+                          onClick={() => setModalOpen(false)}
+                        >
+                          Скасувати
+                        </Button>
+                        <Button onClick={handleSaveMarker}>
+                          {editingMarker ? "Зберегти" : "Додати"}
+                        </Button>
+                      </div>
                     </DialogContent>
                   </Dialog>
                 </div>
@@ -1383,27 +1741,37 @@ export default function WorldMap() {
             <Card className="fantasy-border">
               <CardHeader>
                 <CardTitle className="text-yellow-200 font-fantasy">
-                  Legend
+                  Легенда
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center space-x-3">
-                  <div className="bg-purple-600 rounded-full p-1">
-                    <MapPin className="h-3 w-3 text-white" />
-                  </div>
-                  <span className="text-sm text-gray-300">Locations</span>
+                  <MapPin className="h-4 w-4 text-yellow-400" />
+                  <span className="text-sm text-gray-300">Локації</span>
+                  <span className="ml-2 text-xs text-gray-400">
+                    {markerTypeCounts.location}
+                  </span>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <div className="bg-green-600 rounded-full p-1">
-                    <Users className="h-3 w-3 text-white" />
-                  </div>
-                  <span className="text-sm text-gray-300">Characters</span>
+                  <Users className="h-4 w-4 text-green-400" />
+                  <span className="text-sm text-gray-300">Персонажі</span>
+                  <span className="ml-2 text-xs text-gray-400">
+                    {markerTypeCounts.character}
+                  </span>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <div className="bg-red-600 rounded-full p-1">
-                    <Crown className="h-3 w-3 text-white" />
-                  </div>
-                  <span className="text-sm text-gray-300">Creatures</span>
+                  <Crown className="h-4 w-4 text-red-400" />
+                  <span className="text-sm text-gray-300">Події</span>
+                  <span className="ml-2 text-xs text-gray-400">
+                    {markerTypeCounts.event}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Compass className="h-4 w-4 text-blue-400" />
+                  <span className="text-sm text-gray-300">Артефакти</span>
+                  <span className="ml-2 text-xs text-gray-400">
+                    {markerTypeCounts.artifact}
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -1487,6 +1855,52 @@ export default function WorldMap() {
                   <li>• Route planning</li>
                   <li>• Terrain layers</li>
                 </ul>
+              </CardContent>
+            </Card>
+
+            {/* Шари */}
+            <Card className="fantasy-border">
+              <CardHeader>
+                <CardTitle className="text-yellow-200 font-fantasy">
+                  Шари
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {["location", "character", "event", "artifact"].map((type) => (
+                  <label
+                    key={type}
+                    className="flex items-center gap-2 text-sm cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={visibleTypes.includes(type)}
+                      onChange={() => toggleType(type)}
+                    />
+                    {type === "location" && (
+                      <>
+                        <MapPin className="inline w-4 h-4 text-yellow-400" />{" "}
+                        Локації
+                      </>
+                    )}
+                    {type === "character" && (
+                      <>
+                        <Users className="inline w-4 h-4 text-green-400" />{" "}
+                        Персонажі
+                      </>
+                    )}
+                    {type === "event" && (
+                      <>
+                        <Crown className="inline w-4 h-4 text-red-400" /> Події
+                      </>
+                    )}
+                    {type === "artifact" && (
+                      <>
+                        <Compass className="inline w-4 h-4 text-blue-400" />{" "}
+                        Артефакти
+                      </>
+                    )}
+                  </label>
+                ))}
               </CardContent>
             </Card>
           </div>
@@ -1630,6 +2044,27 @@ export default function WorldMap() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Додаю floating action button у кінець return перед </div> */}
+      <div className="fixed bottom-8 right-8 z-50">
+        <button
+          className="bg-yellow-500 hover:bg-yellow-400 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg text-3xl transition-colors"
+          title="Додати маркер"
+          onClick={() => {
+            setDraftCoords({ x: 400, y: 300 });
+            setDraftName("");
+            setDraftType("location");
+            setDraftDescription("");
+            setDraftLoreId(undefined);
+            setDraftCharacterId(undefined);
+            setDraftEventId(undefined);
+            setDraftArtifactId(undefined);
+            setEditingMarker(null);
+            setModalOpen(true);
+          }}
+        >
+          +
+        </button>
+      </div>
     </div>
   );
 }

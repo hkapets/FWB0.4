@@ -117,3 +117,74 @@ export const worldTemplates: WorldTemplate[] = [
     artifacts: [],
   },
 ];
+
+// === Повний експорт шаблону світу ===
+export async function exportFullWorldTemplate(worldId: number) {
+  const [
+    world,
+    races,
+    classes,
+    magic,
+    locations,
+    creatures,
+    artifacts,
+    lore,
+    characters,
+    events,
+    regions,
+    relations,
+  ] = await Promise.all([
+    fetch(`/api/worlds/${worldId}`).then((r) => r.json()),
+    fetch(`/api/worlds/${worldId}/races`).then((r) => r.json()),
+    fetch(`/api/worlds/${worldId}/classes`).then((r) => r.json()),
+    fetch(`/api/worlds/${worldId}/magic`).then((r) => r.json()),
+    fetch(`/api/worlds/${worldId}/locations`).then((r) => r.json()),
+    fetch(`/api/worlds/${worldId}/creatures`).then((r) => r.json()),
+    fetch(`/api/worlds/${worldId}/artifacts`).then((r) => r.json()),
+    fetch(`/api/worlds/${worldId}/lore`).then((r) => r.json()),
+    fetch(`/api/worlds/${worldId}/characters`).then((r) => r.json()),
+    fetch(`/api/worlds/${worldId}/events`).then((r) => r.json()),
+    fetch(`/api/worlds/${worldId}/regions`).then((r) => r.json()),
+    fetch(`/api/worlds/${worldId}/relations`)
+      .then((r) => r.json())
+      .catch(() => []),
+  ]);
+
+  const template = {
+    name: world.name,
+    description: world.description,
+    icon: world.icon,
+    features: world.features || [],
+    races,
+    classes,
+    magic,
+    locations,
+    creatures,
+    artifacts,
+    lore,
+    characters,
+    events,
+    regions,
+    relations,
+  };
+  return template;
+}
+
+export async function saveWorldTemplateLocallyAndRemotely(worldId: number) {
+  const template = await exportFullWorldTemplate(worldId);
+  // Зберігаємо у localStorage
+  const saved = JSON.parse(
+    localStorage.getItem("customWorldTemplates") || "[]"
+  );
+  localStorage.setItem(
+    "customWorldTemplates",
+    JSON.stringify([...saved, template])
+  );
+  // Відправляємо на сервер
+  await fetch("/api/world-templates", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(template),
+  });
+  return template;
+}

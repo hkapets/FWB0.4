@@ -9,6 +9,7 @@ import { useTranslation } from "@/lib/i18n";
 import EntityForm from "@/components/entity-form";
 import { z } from "zod";
 import React from "react";
+import { worldTemplates, WorldTemplate } from "@/lib/worldTemplates";
 
 const worldSchema = z.object({
   name: z.object({ uk: z.string().min(1), en: z.string().min(1) }),
@@ -23,6 +24,12 @@ const worldSchema = z.object({
   era: z.string().optional(),
   settings: z.string().optional(),
   order: z.number().optional(),
+  races: z.array(z.string()).optional(),
+  classes: z.array(z.string()).optional(),
+  magic: z.array(z.string()).optional(),
+  locations: z.array(z.string()).optional(),
+  bestiary: z.array(z.string()).optional(),
+  artifacts: z.array(z.string()).optional(),
 });
 
 type WorldForm = z.infer<typeof worldSchema>;
@@ -50,6 +57,46 @@ export default function CreateWorldModal({
 }: CreateWorldModalProps) {
   const { toast } = useToast();
   const t = useTranslation();
+  const [selectedTemplate, setSelectedTemplate] =
+    React.useState<WorldTemplate | null>(null);
+
+  const getDefaultValues = () => {
+    if (initialData) return initialData;
+    if (selectedTemplate) {
+      return {
+        name: { uk: selectedTemplate.name, en: selectedTemplate.name },
+        description: {
+          uk: selectedTemplate.description,
+          en: selectedTemplate.description,
+        },
+        icon: selectedTemplate.icon,
+        type: "fantasy",
+        genre: "fantasy",
+        size: "",
+        era: "",
+        settings: selectedTemplate.features.join(", "),
+        order: 0,
+        races: selectedTemplate.races,
+        classes: selectedTemplate.classes,
+        magic: selectedTemplate.magic,
+        locations: selectedTemplate.locations,
+        bestiary: selectedTemplate.bestiary,
+        artifacts: selectedTemplate.artifacts,
+      };
+    }
+    return {
+      name: { uk: "", en: "" },
+      description: { uk: "", en: "" },
+      icon: "",
+      image: undefined,
+      type: "fantasy",
+      genre: "fantasy",
+      size: "",
+      era: "",
+      settings: "",
+      order: 0,
+    };
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -59,22 +106,46 @@ export default function CreateWorldModal({
             {t.actions.add} Світ
           </DialogTitle>
         </DialogHeader>
+        <div className="mb-4">
+          <div className="flex flex-wrap gap-2 justify-center">
+            {worldTemplates.map((tpl) => (
+              <button
+                key={tpl.id}
+                type="button"
+                className={`rounded-lg border-2 px-4 py-2 flex flex-col items-center min-w-[120px] max-w-[160px] transition-all duration-200 ${
+                  selectedTemplate?.id === tpl.id
+                    ? "border-yellow-400 bg-yellow-900/30"
+                    : "border-gray-700 bg-black/30 hover:border-yellow-300"
+                }`}
+                onClick={() => setSelectedTemplate(tpl)}
+              >
+                <span className="text-3xl mb-1">{tpl.icon}</span>
+                <span className="font-bold text-yellow-100 text-center">
+                  {tpl.name}
+                </span>
+                <span className="text-xs text-gray-300 text-center line-clamp-2">
+                  {tpl.description}
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="flex justify-center mt-2">
+            <button
+              type="button"
+              className={`rounded px-3 py-1 text-sm font-semibold ${
+                !selectedTemplate
+                  ? "bg-yellow-700 text-white"
+                  : "bg-gray-700 text-gray-200 hover:bg-yellow-800"
+              }`}
+              onClick={() => setSelectedTemplate(null)}
+            >
+              Почати з нуля
+            </button>
+          </div>
+        </div>
         <EntityForm
           schema={worldSchema}
-          defaultValues={
-            initialData || {
-              name: { uk: "", en: "" },
-              description: { uk: "", en: "" },
-              icon: "",
-              image: undefined,
-              type: "fantasy",
-              genre: "fantasy",
-              size: "",
-              era: "",
-              settings: "",
-              order: 0,
-            }
-          }
+          defaultValues={getDefaultValues()}
           onSubmit={onSubmit}
           onCancel={onClose}
           submitLabel={t.forms.create}

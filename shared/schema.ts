@@ -24,6 +24,7 @@ export const worlds = pgTable("worlds", {
   description: text("description"),
   type: text("type").notNull(),
   userId: integer("user_id").notNull(),
+  mapImageUrl: text("map_image_url"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -39,6 +40,9 @@ export const locations = pgTable("locations", {
   x: integer("x"),
   y: integer("y"),
   loreId: integer("lore_id"),
+  characterId: integer("character_id"),
+  eventId: integer("event_id"),
+  artifactId: integer("artifact_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   imageUrl: text("image_url"),

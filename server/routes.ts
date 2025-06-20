@@ -783,6 +783,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // === World Templates (Full Export) ===
+  app.post("/api/world-templates", async (req, res) => {
+    try {
+      const template = req.body;
+      if (!template || !template.name) {
+        return res.status(400).json({ message: "Invalid template data" });
+      }
+      const filePath = path.join(__dirname, "../world-templates.json");
+      let templates: any[] = [];
+      if (fs.existsSync(filePath)) {
+        const raw = fs.readFileSync(filePath, "utf-8");
+        try {
+          templates = JSON.parse(raw);
+        } catch {
+          templates = [];
+        }
+      }
+      // Додаємо новий шаблон
+      templates.push({ ...template, id: `template_${Date.now()}` });
+      fs.writeFileSync(filePath, JSON.stringify(templates, null, 2), "utf-8");
+      res.status(201).json({ ok: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to save template" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
