@@ -32,6 +32,7 @@ interface LoreTreeProps {
   selectedLoreIds?: string[];
   onSelectLore?: (id: string, checked: boolean) => void;
   onSelectAll?: (checked: boolean, visibleLore: LoreItem[]) => void;
+  onAdd?: (item: LoreItem) => void;
 }
 
 const ITEM_TYPE = "LORE_ITEM";
@@ -59,6 +60,7 @@ const LoreTree: React.FC<LoreTreeProps> = ({
   selectedLoreIds = [],
   onSelectLore,
   onSelectAll,
+  onAdd,
 }) => {
   const { toast } = useToast();
   const tree = useMemo(
@@ -97,10 +99,21 @@ const LoreTree: React.FC<LoreTreeProps> = ({
 
   if (!lore || lore.length === 0) {
     return (
-      <div className="space-y-2">
-        <Skeleton className="h-8 w-full rounded" />
-        <Skeleton className="h-8 w-2/3 rounded" />
-        <Skeleton className="h-8 w-1/2 rounded" />
+      <div className="flex flex-col items-center justify-center py-12 text-center text-gray-400 animate-fadein">
+        <img
+          src="/empty-worlds.svg"
+          alt="Порожньо"
+          className="w-28 h-28 mb-4 opacity-70"
+        />
+        <div className="text-lg mb-2">No lore yet</div>
+        <div className="mb-4 text-sm text-gray-500">
+          Create your first lore entry to enrich your world!
+        </div>
+        {typeof onEdit === "function" && (
+          <Button onClick={() => onEdit({})} size="lg" className="mt-2">
+            Add lore
+          </Button>
+        )}
       </div>
     );
   }

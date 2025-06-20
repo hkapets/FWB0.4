@@ -478,7 +478,22 @@ export default function CharactersPage() {
           {t.forms.lore}
         </Button>
       </div>
-      {tab === "characters" && <div>/* Characters CRUD here */</div>}
+      {tab === "characters" && (
+        <div className="flex flex-col items-center justify-center py-12 text-center text-gray-400 animate-fadein">
+          <img
+            src="/empty-worlds.svg"
+            alt="Порожньо"
+            className="w-28 h-28 mb-4 opacity-70"
+          />
+          <div className="text-lg mb-2">No characters yet</div>
+          <div className="mb-4 text-sm text-gray-500">
+            Create your first character to bring your world to life!
+          </div>
+          <Button size="lg" className="mt-2">
+            Add character
+          </Button>
+        </div>
+      )}
       {tab === "races" && (
         <div>
           <div className="flex justify-between items-center mb-4">
@@ -499,7 +514,20 @@ export default function CharactersPage() {
                 ))}
               </div>
             ) : races.length === 0 ? (
-              <p>No races yet.</p>
+              <div className="flex flex-col items-center justify-center py-12 text-center text-gray-400 animate-fadein">
+                <img
+                  src="/empty-worlds.svg"
+                  alt="Порожньо"
+                  className="w-28 h-28 mb-4 opacity-70"
+                />
+                <div className="text-lg mb-2">No races yet</div>
+                <div className="mb-4 text-sm text-gray-500">
+                  Create your first race to enrich your world!
+                </div>
+                <Button onClick={handleAddRace} size="lg" className="mt-2">
+                  Add race
+                </Button>
+              </div>
             ) : (
               <ul className="space-y-2">
                 {races.map((race) => (
@@ -507,28 +535,36 @@ export default function CharactersPage() {
                     key={race.id}
                     className="flex items-center justify-between bg-black/40 rounded px-3 py-2 transition-all duration-300 animate-fadein"
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       {race.image && (
                         <img
                           src={race.image}
                           alt={race.name + " image"}
-                          className="w-8 h-8 object-cover rounded border border-yellow-400 cursor-pointer"
+                          className="w-10 h-10 object-cover rounded border border-yellow-400 cursor-pointer shadow-md hover:scale-105 transition"
                           onClick={() => setImagePreview(race.image)}
                         />
                       )}
-                      <span className="text-2xl" title={race.icon}>
-                        {race.icon}
-                      </span>
-                      <span className="font-semibold text-white">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span
+                            className="text-2xl cursor-help"
+                            title={race.icon}
+                          >
+                            {race.icon}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Race icon</TooltipContent>
+                      </Tooltip>
+                      <span className="font-semibold text-white truncate max-w-[120px] md:max-w-xs">
                         {race.name}
                       </span>
                       {race.description && (
-                        <span className="text-gray-400 text-sm">
+                        <span className="text-gray-400 text-sm max-w-xs truncate">
                           {race.description}
                         </span>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-shrink-0">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -633,7 +669,20 @@ export default function CharactersPage() {
                 ))}
               </div>
             ) : classes.length === 0 ? (
-              <p>No classes yet.</p>
+              <div className="flex flex-col items-center justify-center py-12 text-center text-gray-400 animate-fadein">
+                <img
+                  src="/empty-worlds.svg"
+                  alt="Порожньо"
+                  className="w-28 h-28 mb-4 opacity-70"
+                />
+                <div className="text-lg mb-2">No classes yet</div>
+                <div className="mb-4 text-sm text-gray-500">
+                  Create your first class to expand your world!
+                </div>
+                <Button onClick={handleAddClass} size="lg" className="mt-2">
+                  Add class
+                </Button>
+              </div>
             ) : (
               <ul className="space-y-2">
                 {classes.map((classItem) => (
@@ -641,28 +690,36 @@ export default function CharactersPage() {
                     key={classItem.id}
                     className="flex items-center justify-between bg-black/40 rounded px-3 py-2 transition-all duration-300 animate-fadein"
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       {classItem.image && (
                         <img
                           src={classItem.image}
                           alt={classItem.name + " image"}
-                          className="w-8 h-8 object-cover rounded border border-yellow-400 cursor-pointer"
+                          className="w-10 h-10 object-cover rounded border border-yellow-400 cursor-pointer shadow-md hover:scale-105 transition"
                           onClick={() => setClassImagePreview(classItem.image)}
                         />
                       )}
-                      <span className="text-2xl" title={classItem.icon}>
-                        {classItem.icon}
-                      </span>
-                      <span className="font-semibold text-white">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span
+                            className="text-2xl cursor-help"
+                            title={classItem.icon}
+                          >
+                            {classItem.icon}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Class icon</TooltipContent>
+                      </Tooltip>
+                      <span className="font-semibold text-white truncate max-w-[120px] md:max-w-xs">
                         {classItem.name}
                       </span>
                       {classItem.description && (
-                        <span className="text-gray-400 text-sm">
+                        <span className="text-gray-400 text-sm max-w-xs truncate">
                           {classItem.description}
                         </span>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-shrink-0">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -769,7 +826,20 @@ export default function CharactersPage() {
                 ))}
               </div>
             ) : magic.length === 0 ? (
-              <p>No magic types yet.</p>
+              <div className="flex flex-col items-center justify-center py-12 text-center text-gray-400 animate-fadein">
+                <img
+                  src="/empty-worlds.svg"
+                  alt="Порожньо"
+                  className="w-28 h-28 mb-4 opacity-70"
+                />
+                <div className="text-lg mb-2">No magic types yet</div>
+                <div className="mb-4 text-sm text-gray-500">
+                  Create your first magic type to empower your world!
+                </div>
+                <Button onClick={handleAddMagic} size="lg" className="mt-2">
+                  Add magic
+                </Button>
+              </div>
             ) : (
               <ul className="space-y-2">
                 {magic.map((magicItem) => (
@@ -777,28 +847,36 @@ export default function CharactersPage() {
                     key={magicItem.id}
                     className="flex items-center justify-between bg-black/40 rounded px-3 py-2 transition-all duration-300 animate-fadein"
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       {magicItem.image && (
                         <img
                           src={magicItem.image}
                           alt={magicItem.name + " image"}
-                          className="w-8 h-8 object-cover rounded border border-yellow-400 cursor-pointer"
+                          className="w-10 h-10 object-cover rounded border border-yellow-400 cursor-pointer shadow-md hover:scale-105 transition"
                           onClick={() => setMagicImagePreview(magicItem.image)}
                         />
                       )}
-                      <span className="text-2xl" title={magicItem.icon}>
-                        {magicItem.icon}
-                      </span>
-                      <span className="font-semibold text-white">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span
+                            className="text-2xl cursor-help"
+                            title={magicItem.icon}
+                          >
+                            {magicItem.icon}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Magic icon</TooltipContent>
+                      </Tooltip>
+                      <span className="font-semibold text-white truncate max-w-[120px] md:max-w-xs">
                         {magicItem.name}
                       </span>
                       {magicItem.description && (
-                        <span className="text-gray-400 text-sm">
+                        <span className="text-gray-400 text-sm max-w-xs truncate">
                           {magicItem.description}
                         </span>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-shrink-0">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
