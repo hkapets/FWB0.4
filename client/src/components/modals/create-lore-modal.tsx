@@ -213,16 +213,20 @@ export default function CreateEditLoreModal({
   };
 
   // Parent select options (exclude self and descendants)
-  const parentOptions = (allLore as LoreListItem[])
+  const parentOptions: { value: string; label: string }[] = (
+    allLore as LoreListItem[]
+  )
     .filter(
       (l): l is LoreListItem =>
         !!l &&
+        !!l.name &&
+        typeof l.name === "object" &&
         typeof l.id !== "undefined" &&
         (!initialData || l.id !== (initialData as LoreListItem)?.id)
     )
-    .map((l) => ({
+    .map((l: any) => ({
       value: String(l.id),
-      label: l.name && l.name.uk ? l.name.uk : String(l.id),
+      label: l.name.uk || String(l.id),
     }));
 
   // Drag&drop у textarea (markdown)
@@ -268,11 +272,15 @@ export default function CreateEditLoreModal({
           ) {
             const start = textarea?.selectionStart ?? 0;
             const end = textarea?.selectionEnd ?? 0;
-            const before = form.getValues("description")[lang].slice(0, start);
-            const after = form.getValues("description")[lang].slice(end);
+            const descObj = (form.getValues("description") ?? {}) as {
+              uk?: string;
+              en?: string;
+            };
+            const before = (descObj[lang] ?? "").slice(0, start);
+            const after = (descObj[lang] ?? "").slice(end);
             const md = `![image](${data.url})`;
+            const desc: { uk?: string; en?: string } = descObj;
             const newValue = before + md + after;
-            const desc = form.getValues("description") || { uk: "", en: "" };
             form.setValue("description", {
               uk: desc.uk ?? "",
               en: desc.en ?? "",
@@ -286,7 +294,9 @@ export default function CreateEditLoreModal({
                 );
             }, 0);
           } else {
-            const desc2 = form.getValues("description") || { uk: "", en: "" };
+            const desc2: { uk?: string; en?: string } = form.getValues(
+              "description"
+            ) || { uk: "", en: "" };
             form.setValue("description", {
               uk: desc2.uk ?? "",
               en: desc2.en ?? "",
@@ -328,7 +338,7 @@ export default function CreateEditLoreModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="fantasy-border max-w-md w-full mx-4">
+      <DialogContent className="fantasy-border max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
             {t.actions.add} {t.navigation.lore}

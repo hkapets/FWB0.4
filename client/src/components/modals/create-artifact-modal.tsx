@@ -66,7 +66,7 @@ export default function CreateArtifactModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="fantasy-border max-w-md w-full mx-4">
+      <DialogContent className="fantasy-border max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
             {t.actions.add} Артефакт

@@ -118,7 +118,7 @@ export default function CreateCharacterModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="fantasy-border max-w-md w-full mx-4">
+      <DialogContent className="fantasy-border max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
             <Users className="mr-2" />
