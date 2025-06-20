@@ -13,6 +13,11 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 
 export default function MythologyPage() {
   const t = useTranslation();
@@ -106,7 +111,20 @@ export default function MythologyPage() {
             ))}
           </div>
         ) : mythologies.length === 0 ? (
-          <p>Немає міфологій.</p>
+          <div className="flex flex-col items-center justify-center py-12 text-center text-gray-400 animate-fadein">
+            <img
+              src="/empty-worlds.svg"
+              alt="Порожньо"
+              className="w-28 h-28 mb-4 opacity-70"
+            />
+            <div className="text-lg mb-2">У вас ще немає жодної міфології</div>
+            <div className="mb-4 text-sm text-gray-500">
+              Додайте першу міфологію, щоб створити легенди світу!
+            </div>
+            <Button onClick={handleAdd} size="lg" className="mt-2">
+              Додати міфологію
+            </Button>
+          </div>
         ) : (
           <ul className="space-y-2">
             {mythologies.map((mythology) => (
@@ -114,19 +132,27 @@ export default function MythologyPage() {
                 key={mythology.id}
                 className="flex items-center justify-between bg-black/40 rounded px-3 py-2 transition-all duration-300 animate-fadein"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-0">
                   {mythology.image && (
                     <img
                       src={mythology.image}
                       alt={mythology.name?.uk + " image"}
-                      className="w-8 h-8 object-cover rounded border border-yellow-400 cursor-pointer"
+                      className="w-10 h-10 object-cover rounded border border-yellow-400 cursor-pointer shadow-md hover:scale-105 transition"
                       onClick={() => setImagePreview(mythology.image)}
                     />
                   )}
-                  <span className="text-2xl" title={mythology.icon}>
-                    {mythology.icon}
-                  </span>
-                  <span className="font-semibold text-white">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className="text-2xl cursor-help"
+                        title={mythology.icon}
+                      >
+                        {mythology.icon}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Іконка міфології</TooltipContent>
+                  </Tooltip>
+                  <span className="font-semibold text-white truncate max-w-[120px] md:max-w-xs">
                     {mythology.name?.uk}
                   </span>
                   {mythology.pantheon && (
@@ -140,7 +166,7 @@ export default function MythologyPage() {
                     </span>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-shrink-0">
                   <Button
                     size="sm"
                     variant="outline"

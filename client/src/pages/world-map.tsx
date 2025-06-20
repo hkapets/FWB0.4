@@ -46,6 +46,11 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 
 export default function WorldMap() {
   const t = useTranslation();
@@ -1467,7 +1472,7 @@ export default function WorldMap() {
                             return (
                               <div
                                 key={marker.id}
-                                className={`absolute marker-pin transform -translate-x-1/2 -translate-y-1/2 group z-10 ${
+                                className={`absolute marker-pin transform -translate-x-1/2 -translate-y-1/2 group z-10 animate-fadein ${
                                   selectMode &&
                                   selectedMarkers.includes(Number(marker.id))
                                     ? "ring-4 ring-yellow-400"
@@ -1537,14 +1542,35 @@ export default function WorldMap() {
                           })}
 
                           {locations.length === 0 && markers.length === 0 && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-                              <Map className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                              <p className="text-lg font-fantasy">
-                                Your map awaits locations...
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 animate-fadein">
+                              <img
+                                src="/empty-worlds.svg"
+                                alt="Порожньо"
+                                className="w-32 h-32 mb-4 opacity-70"
+                              />
+                              <p className="text-lg font-fantasy mb-2">
+                                Ваша карта чекає на локації...
                               </p>
-                              <p className="text-sm">
-                                Add locations to see them appear on the map
+                              <p className="text-sm mb-4">
+                                Додайте локацію, щоб побачити її на карті
                               </p>
+                              <Button
+                                size="lg"
+                                onClick={() => {
+                                  setDraftCoords({ x: 400, y: 300 });
+                                  setDraftName("");
+                                  setDraftType("location");
+                                  setDraftDescription("");
+                                  setDraftLoreId(undefined);
+                                  setDraftCharacterId(undefined);
+                                  setDraftEventId(undefined);
+                                  setDraftArtifactId(undefined);
+                                  setEditingMarker(null);
+                                  setModalOpen(true);
+                                }}
+                              >
+                                Додати локацію
+                              </Button>
                             </div>
                           )}
                         </div>
@@ -2044,27 +2070,34 @@ export default function WorldMap() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* Додаю floating action button у кінець return перед </div> */}
-      <div className="fixed bottom-8 right-8 z-50">
-        <button
-          className="bg-yellow-500 hover:bg-yellow-400 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg text-3xl transition-colors"
-          title="Додати маркер"
-          onClick={() => {
-            setDraftCoords({ x: 400, y: 300 });
-            setDraftName("");
-            setDraftType("location");
-            setDraftDescription("");
-            setDraftLoreId(undefined);
-            setDraftCharacterId(undefined);
-            setDraftEventId(undefined);
-            setDraftArtifactId(undefined);
-            setEditingMarker(null);
-            setModalOpen(true);
-          }}
-        >
-          +
-        </button>
-      </div>
+      {/* Floating action button з тултіпом */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="fixed bottom-8 right-8 z-50">
+            <button
+              className="bg-yellow-500 hover:bg-yellow-400 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg text-3xl transition-colors"
+              title="Додати маркер"
+              onClick={() => {
+                setDraftCoords({ x: 400, y: 300 });
+                setDraftName("");
+                setDraftType("location");
+                setDraftDescription("");
+                setDraftLoreId(undefined);
+                setDraftCharacterId(undefined);
+                setDraftEventId(undefined);
+                setDraftArtifactId(undefined);
+                setEditingMarker(null);
+                setModalOpen(true);
+              }}
+            >
+              +
+            </button>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          Додати маркер (або подвійний клік по карті)
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 }

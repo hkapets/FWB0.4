@@ -13,6 +13,11 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 
 export default function ReligionPage() {
   const t = useTranslation();
@@ -104,7 +109,20 @@ export default function ReligionPage() {
             ))}
           </div>
         ) : religions.length === 0 ? (
-          <p>Немає релігій.</p>
+          <div className="flex flex-col items-center justify-center py-12 text-center text-gray-400 animate-fadein">
+            <img
+              src="/empty-worlds.svg"
+              alt="Порожньо"
+              className="w-28 h-28 mb-4 opacity-70"
+            />
+            <div className="text-lg mb-2">У вас ще немає жодної релігії</div>
+            <div className="mb-4 text-sm text-gray-500">
+              Додайте першу релігію, щоб урізноманітнити світогляд світу!
+            </div>
+            <Button onClick={handleAdd} size="lg" className="mt-2">
+              Додати релігію
+            </Button>
+          </div>
         ) : (
           <ul className="space-y-2">
             {religions.map((religion) => (
@@ -112,19 +130,27 @@ export default function ReligionPage() {
                 key={religion.id}
                 className="flex items-center justify-between bg-black/40 rounded px-3 py-2 transition-all duration-300 animate-fadein"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-0">
                   {religion.image && (
                     <img
                       src={religion.image}
                       alt={religion.name?.uk + " image"}
-                      className="w-8 h-8 object-cover rounded border border-yellow-400 cursor-pointer"
+                      className="w-10 h-10 object-cover rounded border border-yellow-400 cursor-pointer shadow-md hover:scale-105 transition"
                       onClick={() => setImagePreview(religion.image)}
                     />
                   )}
-                  <span className="text-2xl" title={religion.icon}>
-                    {religion.icon}
-                  </span>
-                  <span className="font-semibold text-white">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className="text-2xl cursor-help"
+                        title={religion.icon}
+                      >
+                        {religion.icon}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Іконка релігії</TooltipContent>
+                  </Tooltip>
+                  <span className="font-semibold text-white truncate max-w-[120px] md:max-w-xs">
                     {religion.name?.uk}
                   </span>
                   {religion.pantheon && (
@@ -138,7 +164,7 @@ export default function ReligionPage() {
                     </span>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-shrink-0">
                   <Button
                     size="sm"
                     variant="outline"

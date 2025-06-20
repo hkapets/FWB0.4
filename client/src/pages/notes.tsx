@@ -13,6 +13,11 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 
 export default function NotesPage() {
   const t = useTranslation();
@@ -102,7 +107,20 @@ export default function NotesPage() {
             ))}
           </div>
         ) : notes.length === 0 ? (
-          <p>Немає нотаток.</p>
+          <div className="flex flex-col items-center justify-center py-12 text-center text-gray-400 animate-fadein">
+            <img
+              src="/empty-worlds.svg"
+              alt="Порожньо"
+              className="w-28 h-28 mb-4 opacity-70"
+            />
+            <div className="text-lg mb-2">У вас ще немає жодної нотатки</div>
+            <div className="mb-4 text-sm text-gray-500">
+              Додайте першу нотатку, щоб зберігати ідеї та деталі світу!
+            </div>
+            <Button onClick={handleAdd} size="lg" className="mt-2">
+              Додати нотатку
+            </Button>
+          </div>
         ) : (
           <ul className="space-y-2">
             {notes.map((note) => (
@@ -110,19 +128,24 @@ export default function NotesPage() {
                 key={note.id}
                 className="flex items-center justify-between bg-black/40 rounded px-3 py-2 transition-all duration-300 animate-fadein"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-0">
                   {note.imageUrl && (
                     <img
                       src={note.imageUrl}
                       alt={note.name?.uk + " image"}
-                      className="w-8 h-8 object-cover rounded border border-yellow-400 cursor-pointer"
+                      className="w-10 h-10 object-cover rounded border border-yellow-400 cursor-pointer shadow-md hover:scale-105 transition"
                       onClick={() => setImagePreview(note.imageUrl)}
                     />
                   )}
-                  <span className="text-2xl" title={note.icon}>
-                    {note.icon}
-                  </span>
-                  <span className="font-semibold text-white">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-2xl cursor-help" title={note.icon}>
+                        {note.icon}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Іконка нотатки</TooltipContent>
+                  </Tooltip>
+                  <span className="font-semibold text-white truncate max-w-[120px] md:max-w-xs">
                     {note.name?.uk}
                   </span>
                   {note.tags && (
@@ -136,7 +159,7 @@ export default function NotesPage() {
                     </span>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-shrink-0">
                   <Button
                     size="sm"
                     variant="outline"

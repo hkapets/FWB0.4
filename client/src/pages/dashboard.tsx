@@ -30,6 +30,11 @@ import {
   saveWorldTemplateLocallyAndRemotely,
   exportFullWorldTemplate,
 } from "@/lib/worldTemplates";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 
 interface DashboardProps {
   currentWorldId: number | null;
@@ -418,55 +423,98 @@ export default function DashboardPage({
 
   // --- ДАШБОРД ДЛЯ ВИБРАНОГО СВІТУ ---
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-4 flex items-center justify-between">
-        {currentWorld.name}
-        <div className="flex gap-2">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto">
+      {/* Порожній стан для світів */}
+      {worlds.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400">
+          <img
+            src="/empty-worlds.svg"
+            alt="Порожньо"
+            className="w-32 h-32 mb-4 opacity-70"
+          />
+          <div className="text-lg mb-2">У вас ще немає жодного світу</div>
+          <div className="mb-4 text-sm text-gray-500">
+            Створіть свій перший світ, щоб розпочати!
+          </div>
           <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setCurrentWorldId(null)}
+            onClick={() => setIsCreateWorldModalOpen(true)}
+            size="lg"
+            className="mt-2"
           >
-            {t.actions.delete} {t.navigation.currentWorld}
-          </Button>
-          <Button size="sm" variant="outline" onClick={handleSaveAsTemplate}>
-            Зберегти як шаблон (мінімальний)
-          </Button>
-          <Button size="sm" variant="outline" onClick={handleFullExport}>
-            Повний експорт шаблону
-          </Button>
-          <Button size="sm" variant="outline" onClick={handleExportToFile}>
-            Експортувати у файл
-          </Button>
-          <label className="inline-block">
-            <span className="sr-only">Імпорт шаблону</span>
-            <input
-              type="file"
-              accept="application/json"
-              className="hidden"
-              onChange={handleImportFromFile}
-            />
-            <Button size="sm" variant="outline" asChild>
-              <span>Імпортувати з файлу</span>
-            </Button>
-          </label>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={async () => {
-              // Відновлення з першого шаблону у localStorage (демо)
-              const saved = JSON.parse(
-                localStorage.getItem("customWorldTemplates") || "[]"
-              );
-              if (saved.length === 0)
-                return toast({ title: "Немає шаблонів у localStorage" });
-              await handleRestoreWorldFromTemplate(saved[0]);
-            }}
-          >
-            Відновити світ з шаблону
+            Створити світ
           </Button>
         </div>
-      </h1>
+      )}
+      {/* Quick actions */}
+      <div className="flex flex-wrap gap-4 mb-8 justify-center md:justify-start">
+        {quickActions.map((action) => (
+          <Tooltip key={action.title}>
+            <TooltipTrigger asChild>
+              <Button
+                className={`flex flex-col items-center justify-center w-36 h-32 text-center text-white font-semibold text-base shadow-md transition-all duration-200 ${action.color}`}
+                onClick={action.onClick}
+                disabled={action.disabled}
+                size="lg"
+              >
+                <span className="mb-2">
+                  <action.icon size={32} />
+                </span>
+                {action.title}
+                <span className="text-xs font-normal mt-1 text-gray-200 opacity-70">
+                  {action.description}
+                </span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{action.description}</TooltipContent>
+          </Tooltip>
+        ))}
+      </div>
+      {/* Останні локації */}
+      <div className="mb-8">
+        <h2 className="text-xl font-bold text-yellow-100 mb-2">
+          Останні локації
+        </h2>
+        {recentLocations.length === 0 ? (
+          <div className="text-gray-400 text-sm flex items-center gap-2">
+            Немає локацій.{" "}
+            <Button
+              size="sm"
+              onClick={() => setIsCreateLocationModalOpen(true)}
+            >
+              Додати
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-4 animate-fadein">
+            {recentLocations.map((loc) => (
+              <LocationCard key={loc.id} location={loc} viewMode="list" />
+            ))}
+          </div>
+        )}
+      </div>
+      {/* Останні персонажі */}
+      <div className="mb-8">
+        <h2 className="text-xl font-bold text-yellow-100 mb-2">
+          Останні персонажі
+        </h2>
+        {recentCharacters.length === 0 ? (
+          <div className="text-gray-400 text-sm flex items-center gap-2">
+            Немає персонажів.{" "}
+            <Button
+              size="sm"
+              onClick={() => setIsCreateCharacterModalOpen(true)}
+            >
+              Додати
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-4 animate-fadein">
+            {recentCharacters.map((char) => (
+              <CharacterCard key={char.id} character={char} viewMode="list" />
+            ))}
+          </div>
+        )}
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <Card className="fantasy-border">
           <CardHeader>
@@ -520,40 +568,6 @@ export default function DashboardPage({
               <ArrowRight className="w-6 h-6 text-yellow-400" />
               <span>{t.dashboard.exportShareDesc}</span>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="fantasy-border">
-          <CardHeader>
-            <CardTitle className="text-yellow-200 font-fantasy">
-              {t.dashboard.recentLocations}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {recentLocations.length === 0 ? (
-              <span>{t.dashboard.noRecentActivity}</span>
-            ) : (
-              recentLocations.map((loc) => (
-                <LocationCard key={loc.id} location={loc} />
-              ))
-            )}
-          </CardContent>
-        </Card>
-        <Card className="fantasy-border">
-          <CardHeader>
-            <CardTitle className="text-yellow-200 font-fantasy">
-              {t.dashboard.recentCharacters}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {recentCharacters.length === 0 ? (
-              <span>{t.dashboard.noRecentActivity}</span>
-            ) : (
-              recentCharacters.map((char) => (
-                <CharacterCard key={char.id} character={char} />
-              ))
-            )}
           </CardContent>
         </Card>
       </div>

@@ -15,6 +15,11 @@ import {
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 
 export default function ArtifactsPage() {
   const t = useTranslation();
@@ -105,7 +110,20 @@ export default function ArtifactsPage() {
             ))}
           </div>
         ) : artifacts.length === 0 ? (
-          <p>Немає артефактів.</p>
+          <div className="flex flex-col items-center justify-center py-12 text-center text-gray-400 animate-fadein">
+            <img
+              src="/empty-worlds.svg"
+              alt="Порожньо"
+              className="w-28 h-28 mb-4 opacity-70"
+            />
+            <div className="text-lg mb-2">У вас ще немає жодного артефакта</div>
+            <div className="mb-4 text-sm text-gray-500">
+              Створіть перший артефакт, щоб додати магію у ваш світ!
+            </div>
+            <Button onClick={handleAdd} size="lg" className="mt-2">
+              Додати артефакт
+            </Button>
+          </div>
         ) : (
           <ul className="space-y-2">
             {artifacts.map((artifact) => {
@@ -117,20 +135,28 @@ export default function ArtifactsPage() {
                   key={artifact.id}
                   className="flex flex-col bg-black/40 rounded px-3 py-2 transition-all duration-300 animate-fadein"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                       {artifact.image && (
                         <img
                           src={artifact.image}
                           alt={artifact.name?.uk + " image"}
-                          className="w-8 h-8 object-cover rounded border border-yellow-400 cursor-pointer"
+                          className="w-10 h-10 object-cover rounded border border-yellow-400 cursor-pointer shadow-md hover:scale-105 transition"
                           onClick={() => setImagePreview(artifact.image)}
                         />
                       )}
-                      <span className="text-2xl" title={artifact.icon}>
-                        {artifact.icon}
-                      </span>
-                      <span className="font-semibold text-white">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span
+                            className="text-2xl cursor-help"
+                            title={artifact.icon}
+                          >
+                            {artifact.icon}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Іконка артефакта</TooltipContent>
+                      </Tooltip>
+                      <span className="font-semibold text-white truncate max-w-[120px] md:max-w-xs">
                         {artifact.name?.uk}
                       </span>
                       {artifact.rarity && (
@@ -144,7 +170,7 @@ export default function ArtifactsPage() {
                         </span>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-shrink-0">
                       <Button
                         size="sm"
                         variant="outline"

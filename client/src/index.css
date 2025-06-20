@@ -253,3 +253,17 @@
 .animate-\[reorder_0\.3s\] {
   animation: reorder 0.3s;
 }
+
+.animate-fadein {
+  animation: fadein 0.5s;
+}
+@keyframes fadein {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
