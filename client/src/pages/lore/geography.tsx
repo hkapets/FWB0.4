@@ -6,6 +6,7 @@ import { useTranslation } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import CreateGeographyModal from "@/components/modals/create-geography-modal";
 import LocationCard from "@/components/cards/location-card";
+import { apiRequest } from "@/lib/queryClient";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -16,6 +17,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SortableList } from "@/components/ui/sortable-list";
 import type { Location } from "@shared/schema";
 
 export default function GeographyPage() {
@@ -37,7 +39,7 @@ export default function GeographyPage() {
   const deleteMutation = useMutation({
     mutationFn: async (ids: number[]) => {
       await Promise.all(
-        ids.map((id) => fetch(`/api/locations/${id}`, { method: "DELETE" }))
+        ids.map((id) => apiRequest("DELETE", `/api/locations/${id}`))
       );
     },
     onSuccess: () => {
@@ -59,6 +61,36 @@ export default function GeographyPage() {
     },
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async (reorderedLocations: Location[]) => {
+      // Оновлюємо порядок у базі даних
+      await Promise.all(
+        reorderedLocations.map((location, index) =>
+          apiRequest("PUT", `/api/locations/${location.id}`, {
+            ...location,
+            order: index,
+          })
+        )
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "locations"],
+      });
+      toast({
+        title: "Порядок оновлено",
+        description: "Список локацій переупорядковано",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося оновити порядок",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSelect = (id: number) => {
     setSelected((sel) =>
       sel.includes(id) ? sel.filter((i) => i !== id) : [...sel, id]
@@ -75,22 +107,18 @@ export default function GeographyPage() {
     setIsCreateOpen(true);
   };
 
+  const handleReorder = (reorderedLocations: Location[]) => {
+    reorderMutation.mutate(reorderedLocations);
+  };
+
   const handleSubmit = async (data: any) => {
     if (editLocation) {
       // Update
-      await fetch(`/api/locations/${editLocation.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      await apiRequest("PUT", `/api/locations/${editLocation.id}`, data);
       toast({ title: t.actions.edit, description: t.messages.creatureCreated });
     } else {
       // Create
-      await fetch(`/api/worlds/${worldId}/locations`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      await apiRequest("POST", `/api/worlds/${worldId}/locations`, data);
       toast({ title: t.actions.add, description: t.messages.creatureCreated });
     }
     queryClient.invalidateQueries({
@@ -169,14 +197,17 @@ export default function GeographyPage() {
         </div>
       ) : (
         <ScrollArea className="max-h-[70vh]">
-          <div
+          <SortableList
+            items={locations as Location[]}
+            onReorder={handleReorder}
+            strategy={viewMode === "grid" ? "grid" : "vertical"}
             className={
               viewMode === "grid"
                 ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
                 : "flex flex-col gap-2"
             }
           >
-            {(locations as Location[]).map((location) => (
+            {(location) => (
               <div key={location.id} className="relative group transition-all">
                 <div className="absolute top-2 left-2 z-10">
                   <input
@@ -200,8 +231,8 @@ export default function GeographyPage() {
                   />
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          </SortableList>
         </ScrollArea>
       )}
 
@@ -236,4 +267,4 @@ export default function GeographyPage() {
     </div>
   );
 }
-// TODO: drag&drop reorder, фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу/регіону)
+// TODO: фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу/регіону)

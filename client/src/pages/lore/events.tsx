@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import CreateEventModal from "@/components/modals/create-event-modal";
+import { apiRequest } from "@/lib/queryClient";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -15,6 +16,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SortableList } from "@/components/ui/sortable-list";
 import type { Event } from "@shared/schema";
 
 export default function EventsPage() {
@@ -36,7 +38,7 @@ export default function EventsPage() {
   const deleteMutation = useMutation({
     mutationFn: async (ids: number[]) => {
       await Promise.all(
-        ids.map((id) => fetch(`/api/events/${id}`, { method: "DELETE" }))
+        ids.map((id) => apiRequest("DELETE", `/api/events/${id}`))
       );
     },
     onSuccess: () => {
@@ -58,6 +60,36 @@ export default function EventsPage() {
     },
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async (reorderedEvents: Event[]) => {
+      // Оновлюємо порядок у базі даних
+      await Promise.all(
+        reorderedEvents.map((event, index) =>
+          apiRequest("PUT", `/api/events/${event.id}`, {
+            ...event,
+            order: index,
+          })
+        )
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "events"],
+      });
+      toast({
+        title: "Порядок оновлено",
+        description: "Список подій переупорядковано",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося оновити порядок",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSelect = (id: number) => {
     setSelected((sel) =>
       sel.includes(id) ? sel.filter((i) => i !== id) : [...sel, id]
@@ -74,22 +106,18 @@ export default function EventsPage() {
     setIsCreateOpen(true);
   };
 
+  const handleReorder = (reorderedEvents: Event[]) => {
+    reorderMutation.mutate(reorderedEvents);
+  };
+
   const handleSubmit = async (data: any) => {
     if (editEvent) {
       // Update
-      await fetch(`/api/events/${editEvent.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      await apiRequest("PUT", `/api/events/${editEvent.id}`, data);
       toast({ title: t.actions.edit, description: t.messages.creatureCreated });
     } else {
       // Create
-      await fetch(`/api/worlds/${worldId}/events`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      await apiRequest("POST", `/api/worlds/${worldId}/events`, data);
       toast({ title: t.actions.add, description: t.messages.creatureCreated });
     }
     queryClient.invalidateQueries({
@@ -168,14 +196,17 @@ export default function EventsPage() {
         </div>
       ) : (
         <ScrollArea className="max-h-[70vh]">
-          <div
+          <SortableList
+            items={events as Event[]}
+            onReorder={handleReorder}
+            strategy={viewMode === "grid" ? "grid" : "vertical"}
             className={
               viewMode === "grid"
                 ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
                 : "flex flex-col gap-2"
             }
           >
-            {(events as Event[]).map((event) => (
+            {(event) => (
               <div key={event.id} className="relative group transition-all">
                 <div className="absolute top-2 left-2 z-10">
                   <input
@@ -212,8 +243,8 @@ export default function EventsPage() {
                   )}
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          </SortableList>
         </ScrollArea>
       )}
 
@@ -252,4 +283,4 @@ export default function EventsPage() {
     </div>
   );
 }
-// TODO: drag&drop reorder, фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу/дати)
+// TODO: фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу/дати)

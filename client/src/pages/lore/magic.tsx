@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import CreateMagicModal from "@/components/modals/create-magic-modal";
+import { apiRequest } from "@/lib/queryClient";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -15,6 +16,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SortableList } from "@/components/ui/sortable-list";
 
 export default function MagicPage() {
   const t = useTranslation();
@@ -35,7 +37,7 @@ export default function MagicPage() {
   const deleteMutation = useMutation({
     mutationFn: async (ids: number[]) => {
       await Promise.all(
-        ids.map((id) => fetch(`/api/magic/${id}`, { method: "DELETE" }))
+        ids.map((id) => apiRequest("DELETE", `/api/magic/${id}`))
       );
     },
     onSuccess: () => {
@@ -57,6 +59,36 @@ export default function MagicPage() {
     },
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async (reorderedMagic: any[]) => {
+      // Оновлюємо порядок у базі даних
+      await Promise.all(
+        reorderedMagic.map((magicItem, index) =>
+          apiRequest("PUT", `/api/magic/${magicItem.id}`, {
+            ...magicItem,
+            order: index,
+          })
+        )
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "magic"],
+      });
+      toast({
+        title: "Порядок оновлено",
+        description: "Список магії переупорядковано",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося оновити порядок",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSelect = (id: number) => {
     setSelected((sel) =>
       sel.includes(id) ? sel.filter((i) => i !== id) : [...sel, id]
@@ -73,22 +105,18 @@ export default function MagicPage() {
     setIsCreateOpen(true);
   };
 
+  const handleReorder = (reorderedMagic: any[]) => {
+    reorderMutation.mutate(reorderedMagic);
+  };
+
   const handleSubmit = async (data: any) => {
     if (editMagic) {
       // Update
-      await fetch(`/api/magic/${editMagic.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      await apiRequest("PUT", `/api/magic/${editMagic.id}`, data);
       toast({ title: t.actions.edit, description: t.messages.creatureCreated });
     } else {
       // Create
-      await fetch(`/api/worlds/${worldId}/magic`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      await apiRequest("POST", `/api/worlds/${worldId}/magic`, data);
       toast({ title: t.actions.add, description: t.messages.creatureCreated });
     }
     queryClient.invalidateQueries({
@@ -167,14 +195,17 @@ export default function MagicPage() {
         </div>
       ) : (
         <ScrollArea className="max-h-[70vh]">
-          <div
+          <SortableList
+            items={magic as any[]}
+            onReorder={handleReorder}
+            strategy={viewMode === "grid" ? "grid" : "vertical"}
             className={
               viewMode === "grid"
                 ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
                 : "flex flex-col gap-2"
             }
           >
-            {(magic as any[]).map((magicItem) => (
+            {(magicItem) => (
               <div key={magicItem.id} className="relative group transition-all">
                 <div className="absolute top-2 left-2 z-10">
                   <input
@@ -211,8 +242,8 @@ export default function MagicPage() {
                   )}
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          </SortableList>
         </ScrollArea>
       )}
 
@@ -247,4 +278,4 @@ export default function MagicPage() {
     </div>
   );
 }
-// TODO: drag&drop reorder, фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу/школи)
+// TODO: фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу/школи)

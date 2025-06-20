@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, List, Grid, BookOpen } from "lucide-react";
+import { Plus, Trash2, List, Grid, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import CreateMythologyModal from "@/components/modals/create-mythology-modal";
+import { apiRequest } from "@/lib/queryClient";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -15,6 +16,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SortableList } from "@/components/ui/sortable-list";
 import type { WorldLore } from "@shared/schema";
 
 export default function MythologyPage() {
@@ -34,14 +36,14 @@ export default function MythologyPage() {
   });
 
   // Фільтруємо тільки міфологію
-  const mythologies = (allLore as WorldLore[]).filter(
+  const mythology = (allLore as WorldLore[]).filter(
     (lore) => lore.type === "mythology"
   );
 
   const deleteMutation = useMutation({
     mutationFn: async (ids: number[]) => {
       await Promise.all(
-        ids.map((id) => fetch(`/api/lore/${id}`, { method: "DELETE" }))
+        ids.map((id) => apiRequest("DELETE", `/api/lore/${id}`))
       );
     },
     onSuccess: () => {
@@ -63,6 +65,36 @@ export default function MythologyPage() {
     },
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async (reorderedMythology: WorldLore[]) => {
+      // Оновлюємо порядок у базі даних
+      await Promise.all(
+        reorderedMythology.map((myth, index) =>
+          apiRequest("PUT", `/api/lore/${myth.id}`, {
+            ...myth,
+            order: index,
+          })
+        )
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "lore"],
+      });
+      toast({
+        title: "Порядок оновлено",
+        description: "Список міфології переупорядковано",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося оновити порядок",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSelect = (id: number) => {
     setSelected((sel) =>
       sel.includes(id) ? sel.filter((i) => i !== id) : [...sel, id]
@@ -74,26 +106,28 @@ export default function MythologyPage() {
     if (selected.length) deleteMutation.mutate(selected);
   };
 
-  const handleEdit = (mythology: WorldLore) => {
-    setEditMythology(mythology);
+  const handleEdit = (myth: WorldLore) => {
+    setEditMythology(myth);
     setIsCreateOpen(true);
+  };
+
+  const handleReorder = (reorderedMythology: WorldLore[]) => {
+    reorderMutation.mutate(reorderedMythology);
   };
 
   const handleSubmit = async (data: any) => {
     if (editMythology) {
       // Update
-      await fetch(`/api/lore/${editMythology.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, type: "mythology" }),
+      await apiRequest("PUT", `/api/lore/${editMythology.id}`, {
+        ...data,
+        type: "mythology",
       });
       toast({ title: t.actions.edit, description: t.messages.creatureCreated });
     } else {
       // Create
-      await fetch(`/api/worlds/${worldId}/lore`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, type: "mythology" }),
+      await apiRequest("POST", `/api/worlds/${worldId}/lore`, {
+        ...data,
+        type: "mythology",
       });
       toast({ title: t.actions.add, description: t.messages.creatureCreated });
     }
@@ -108,7 +142,7 @@ export default function MythologyPage() {
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <h1 className="text-3xl font-bold flex items-center gap-2">
-          <BookOpen className="text-yellow-300" /> Міфологія
+          <Zap className="text-yellow-300" /> Міфологія
         </h1>
         <div className="flex gap-2 items-center">
           <Button
@@ -152,9 +186,9 @@ export default function MythologyPage() {
         <div className="text-center text-gray-400 py-16">
           {t.actions.loading}...
         </div>
-      ) : mythologies.length === 0 ? (
+      ) : mythology.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
-          <BookOpen className="w-16 h-16 text-yellow-400 mb-4 animate-bounce" />
+          <Zap className="w-16 h-16 text-yellow-400 mb-4 animate-bounce" />
           <h2 className="text-2xl font-bold mb-2">
             У вас ще немає жодної міфології
           </h2>
@@ -173,47 +207,50 @@ export default function MythologyPage() {
         </div>
       ) : (
         <ScrollArea className="max-h-[70vh]">
-          <div
+          <SortableList
+            items={mythology}
+            onReorder={handleReorder}
+            strategy={viewMode === "grid" ? "grid" : "vertical"}
             className={
               viewMode === "grid"
                 ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
                 : "flex flex-col gap-2"
             }
           >
-            {mythologies.map((mythology) => (
-              <div key={mythology.id} className="relative group transition-all">
+            {(myth) => (
+              <div key={myth.id} className="relative group transition-all">
                 <div className="absolute top-2 left-2 z-10">
                   <input
                     type="checkbox"
-                    checked={selected.includes(mythology.id)}
-                    onChange={() => handleSelect(mythology.id)}
+                    checked={selected.includes(myth.id)}
+                    onChange={() => handleSelect(myth.id)}
                     className="accent-yellow-400 w-5 h-5 rounded shadow"
                     title="Select"
                   />
                 </div>
                 <div
                   className="fantasy-border fantasy-card-hover transition-all duration-300 cursor-pointer group bg-black/40 rounded-lg p-4 flex flex-col gap-2"
-                  onClick={() => handleEdit(mythology)}
+                  onClick={() => handleEdit(myth)}
                 >
                   <div className="flex items-center gap-2">
-                    {mythology.icon && (
-                      <span className="text-2xl" title={mythology.icon}>
-                        {mythology.icon}
+                    {myth.icon && (
+                      <span className="text-2xl" title={myth.icon}>
+                        {myth.icon}
                       </span>
                     )}
                     <span className="font-semibold text-white truncate max-w-[120px] md:max-w-xs">
-                      {mythology.name}
+                      {myth.name}
                     </span>
                   </div>
-                  {mythology.description && (
+                  {myth.description && (
                     <span className="text-gray-400 text-sm max-w-xs truncate">
-                      {mythology.description}
+                      {myth.description}
                     </span>
                   )}
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          </SortableList>
         </ScrollArea>
       )}
 
@@ -225,7 +262,7 @@ export default function MythologyPage() {
         }}
         onSubmit={handleSubmit}
         initialData={editMythology as any}
-        allMythologies={mythologies.map((m) => ({
+        allMythology={mythology.map((m) => ({
           id: m.id,
           name: typeof m.name === "object" ? m.name : { uk: m.name },
         }))}
@@ -252,4 +289,4 @@ export default function MythologyPage() {
     </div>
   );
 }
-// TODO: drag&drop reorder, фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу/пантеону)
+// TODO: фільтри, тултіп, polish анімацій, адаптивність, масові дії (зміна типу/категорії)
