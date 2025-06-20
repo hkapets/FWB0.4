@@ -24,6 +24,11 @@ import {
   getScenario,
   updateScenario,
   deleteScenario,
+  getEvents,
+  getEvent,
+  createEvent,
+  updateEvent,
+  deleteEvent,
 } from "./storage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -711,6 +716,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete artifact" });
+    }
+  });
+
+  // Event routes
+  app.get("/api/worlds/:worldId/events", async (req, res) => {
+    try {
+      const worldId = req.params.worldId;
+      const events = getEvents(worldId);
+      res.json(events);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
+  app.post("/api/worlds/:worldId/events", async (req, res) => {
+    try {
+      const worldId = req.params.worldId;
+      const { name, date, type } = req.body;
+      if (!name || !name.uk || !name.en) {
+        return res.status(400).json({ message: "Name is required" });
+      }
+      const event = createEvent(worldId, req.body);
+      res.status(201).json(event);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid event data" });
+    }
+  });
+
+  app.get("/api/events/:id", async (req, res) => {
+    try {
+      const id = req.params.id;
+      const event = getEvent(id);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      res.json(event);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch event" });
+    }
+  });
+
+  app.put("/api/events/:id", async (req, res) => {
+    try {
+      const id = req.params.id;
+      const updated = updateEvent(id, req.body);
+      if (!updated) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid event data" });
+    }
+  });
+
+  app.delete("/api/events/:id", async (req, res) => {
+    try {
+      const id = req.params.id;
+      const deleted = deleteEvent(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete event" });
     }
   });
 
