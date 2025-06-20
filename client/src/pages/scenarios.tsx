@@ -364,6 +364,7 @@ function ScenarioNode({
 }
 
 function ScenarioForm({ initialData, onSave, onCancel }: any) {
+  const t = useTranslation();
   const [nameUk, setNameUk] = useState(initialData?.name?.uk || "");
   const [nameEn, setNameEn] = useState(initialData?.name?.en || "");
   const [descriptionUk, setDescriptionUk] = useState(

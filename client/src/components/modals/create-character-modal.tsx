@@ -93,7 +93,13 @@ export default function CreateCharacterModal({
       });
       toast({
         title: "Character Created",
-        description: `${character.name.uk || character.name} додано!`,
+        description: `${
+          typeof character.name === "object" &&
+          character.name !== null &&
+          "uk" in character.name
+            ? (character.name as { uk?: string }).uk
+            : character.name
+        } додано!`,
       });
       handleClose();
     },
@@ -171,7 +177,7 @@ export default function CreateCharacterModal({
             },
             {
               name: "image",
-              label: t.forms.image || "Зображення",
+              label: "Зображення",
               type: "image",
             },
           ]}
