@@ -18,7 +18,9 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SortableList } from "@/components/ui/sortable-list";
 import { FilterBar } from "@/components/ui/filter-bar";
+import { BulkActions } from "@/components/ui/bulk-actions";
 import { filterData } from "@/lib/filter-utils";
+import { createReligionBulkActions } from "@/lib/bulk-actions-utils";
 import type { WorldLore } from "@shared/schema";
 
 // Фільтри для релігії
@@ -104,6 +106,31 @@ export default function ReligionPage() {
     },
   });
 
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ ids, updates }: { ids: number[]; updates: any }) => {
+      await Promise.all(
+        ids.map((id) => apiRequest("PUT", `/api/lore/${id}`, updates))
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "lore"],
+      });
+      setSelected([]);
+      toast({
+        title: "Оновлено",
+        description: "Властивості релігій змінено",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося оновити властивості",
+        variant: "destructive",
+      });
+    },
+  });
+
   const reorderMutation = useMutation({
     mutationFn: async (reorderedReligions: WorldLore[]) => {
       // Оновлюємо порядок у базі даних
@@ -157,6 +184,22 @@ export default function ReligionPage() {
   const handleFiltersChange = (filters: Record<string, any>) => {
     setActiveFilters(filters);
     setSelected([]); // Скидаємо вибір при зміні фільтрів
+  };
+
+  const handleBulkAction = (actionKey: string, value?: string) => {
+    if (actionKey === "delete") {
+      setDeleteDialog(true);
+    } else if (actionKey === "changeType" && value) {
+      bulkUpdateMutation.mutate({
+        ids: selected,
+        updates: { type: value },
+      });
+    } else if (actionKey === "changeAlignment" && value) {
+      bulkUpdateMutation.mutate({
+        ids: selected,
+        updates: { alignment: value },
+      });
+    }
   };
 
   const handleSubmit = async (data: any) => {
@@ -231,6 +274,14 @@ export default function ReligionPage() {
         filters={createReligionFilters()}
         onFiltersChange={handleFiltersChange}
         className="mb-6"
+      />
+
+      {/* Масові дії */}
+      <BulkActions
+        selectedCount={selected.length}
+        actions={createReligionBulkActions()}
+        onAction={handleBulkAction}
+        className="mb-4"
       />
 
       {isLoading ? (

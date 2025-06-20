@@ -18,7 +18,9 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SortableList } from "@/components/ui/sortable-list";
 import { FilterBar } from "@/components/ui/filter-bar";
+import { BulkActions } from "@/components/ui/bulk-actions";
 import { filterData } from "@/lib/filter-utils";
+import { createMagicBulkActions } from "@/lib/bulk-actions-utils";
 
 // Фільтри для магії
 const createMagicFilters = () => [
@@ -98,6 +100,31 @@ export default function MagicPage() {
     },
   });
 
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ ids, updates }: { ids: number[]; updates: any }) => {
+      await Promise.all(
+        ids.map((id) => apiRequest("PUT", `/api/magic/${id}`, updates))
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "magic"],
+      });
+      setSelected([]);
+      toast({
+        title: "Оновлено",
+        description: "Властивості магії змінено",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося оновити властивості",
+        variant: "destructive",
+      });
+    },
+  });
+
   const reorderMutation = useMutation({
     mutationFn: async (reorderedMagic: any[]) => {
       // Оновлюємо порядок у базі даних
@@ -151,6 +178,22 @@ export default function MagicPage() {
   const handleFiltersChange = (filters: Record<string, any>) => {
     setActiveFilters(filters);
     setSelected([]); // Скидаємо вибір при зміні фільтрів
+  };
+
+  const handleBulkAction = (actionKey: string, value?: string) => {
+    if (actionKey === "delete") {
+      setDeleteDialog(true);
+    } else if (actionKey === "changeType" && value) {
+      bulkUpdateMutation.mutate({
+        ids: selected,
+        updates: { type: value },
+      });
+    } else if (actionKey === "changeSchool" && value) {
+      bulkUpdateMutation.mutate({
+        ids: selected,
+        updates: { school: value },
+      });
+    }
   };
 
   const handleSubmit = async (data: any) => {
@@ -219,6 +262,14 @@ export default function MagicPage() {
         filters={createMagicFilters()}
         onFiltersChange={handleFiltersChange}
         className="mb-6"
+      />
+
+      {/* Масові дії */}
+      <BulkActions
+        selectedCount={selected.length}
+        actions={createMagicBulkActions()}
+        onAction={handleBulkAction}
+        className="mb-4"
       />
 
       {isLoading ? (

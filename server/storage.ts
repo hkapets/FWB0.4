@@ -248,6 +248,7 @@ export class MemStorage implements IStorage {
       createdAt: now,
       updatedAt: now,
       description: insertWorld.description ?? null,
+      mapImageUrl: insertWorld.mapImageUrl ?? null,
     };
     this.worlds.set(id, world);
     return world;
@@ -264,6 +265,8 @@ export class MemStorage implements IStorage {
       ...world,
       ...updateData,
       updatedAt: new Date(),
+      description: updateData.description ?? world.description ?? null,
+      mapImageUrl: updateData.mapImageUrl ?? world.mapImageUrl ?? null,
     };
     this.worlds.set(id, updatedWorld);
     return updatedWorld;
@@ -298,6 +301,9 @@ export class MemStorage implements IStorage {
       loreId:
         insertLocation.loreId !== undefined ? insertLocation.loreId : null,
       imageUrl: insertLocation.imageUrl ?? null,
+      characterId: insertLocation.characterId ?? null,
+      eventId: insertLocation.eventId ?? null,
+      artifactId: insertLocation.artifactId ?? null,
     };
     this.locations.set(id, location);
     return location;
@@ -314,6 +320,7 @@ export class MemStorage implements IStorage {
       ...location,
       ...updateData,
       updatedAt: new Date(),
+      description: updateData.description ?? location.description ?? null,
       x: updateData.x ?? location.x,
       y: updateData.y ?? location.y,
       loreId:
@@ -322,6 +329,10 @@ export class MemStorage implements IStorage {
           : location.loreId !== undefined
           ? location.loreId
           : null,
+      imageUrl: updateData.imageUrl ?? location.imageUrl ?? null,
+      characterId: updateData.characterId ?? location.characterId ?? null,
+      eventId: updateData.eventId ?? location.eventId ?? null,
+      artifactId: updateData.artifactId ?? location.artifactId ?? null,
     };
     this.locations.set(id, updatedLocation);
     return updatedLocation;
@@ -368,6 +379,7 @@ export class MemStorage implements IStorage {
       ...character,
       ...updateData,
       updatedAt: new Date(),
+      description: updateData.description ?? character.description ?? null,
     };
     this.characters.set(id, updatedCharacter);
     return updatedCharacter;
@@ -414,6 +426,7 @@ export class MemStorage implements IStorage {
       ...creature,
       ...updateData,
       updatedAt: new Date(),
+      description: updateData.description ?? creature.description ?? null,
     };
     this.creatures.set(id, updatedCreature);
     return updatedCreature;
@@ -755,7 +768,10 @@ export class MemStorage implements IStorage {
     )) {
       const idx = artifacts.findIndex((a: WorldArtifact) => a.id === id);
       if (idx !== -1) {
-        const updated: WorldArtifact = { ...artifacts[idx], ...data };
+        const updated: WorldArtifact = {
+          ...artifacts[idx],
+          ...data,
+        };
         artifacts[idx] = updated;
         this.worldArtifactsData.set(worldId, [...artifacts]);
         return updated;
@@ -790,7 +806,13 @@ export class MemStorage implements IStorage {
   async createTimeline(timeline: InsertTimeline): Promise<Timeline> {
     const id = this.timelineIdSeq++;
     const now = new Date();
-    const t: Timeline = { ...timeline, id, createdAt: now, updatedAt: now };
+    const t: Timeline = {
+      ...timeline,
+      id,
+      createdAt: now,
+      updatedAt: now,
+      description: timeline.description ?? null,
+    };
     this.timelines.set(id, t);
     return t;
   }
@@ -822,7 +844,22 @@ export class MemStorage implements IStorage {
   async createEvent(event: InsertEvent): Promise<Event> {
     const id = this.eventIdSeq++;
     const now = new Date();
-    const e: Event = { ...event, id, createdAt: now, updatedAt: now };
+    const e: Event = {
+      ...event,
+      id,
+      createdAt: now,
+      updatedAt: now,
+      description: event.description ?? null,
+      characterId: event.characterId ?? null,
+      locationId: event.locationId ?? null,
+      artifactId: event.artifactId ?? null,
+      timelineId: event.timelineId ?? null,
+      icon: event.icon ?? null,
+      image: event.image ?? null,
+      color: event.color ?? null,
+      order: event.order ?? null,
+      endDate: event.endDate ?? null,
+    };
     this.events.set(id, e);
     return e;
   }
@@ -832,7 +869,21 @@ export class MemStorage implements IStorage {
   ): Promise<Event | undefined> {
     const e = this.events.get(id);
     if (!e) return undefined;
-    const updated: Event = { ...e, ...event, updatedAt: new Date() };
+    const updated: Event = {
+      ...e,
+      ...event,
+      updatedAt: new Date(),
+      description: event.description ?? e.description ?? null,
+      characterId: event.characterId ?? e.characterId ?? null,
+      locationId: event.locationId ?? e.locationId ?? null,
+      artifactId: event.artifactId ?? e.artifactId ?? null,
+      timelineId: event.timelineId ?? e.timelineId ?? null,
+      icon: event.icon ?? e.icon ?? null,
+      image: event.image ?? e.image ?? null,
+      color: event.color ?? e.color ?? null,
+      order: event.order ?? e.order ?? null,
+      endDate: event.endDate ?? e.endDate ?? null,
+    };
     this.events.set(id, updated);
     return updated;
   }

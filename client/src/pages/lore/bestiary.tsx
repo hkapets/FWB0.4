@@ -20,6 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { SortableList } from "@/components/ui/sortable-list";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { BulkActions } from "@/components/ui/bulk-actions";
+import { CardSkeleton, ListItemSkeleton } from "@/components/ui/skeleton";
 import { filterData, createCreatureFilters } from "@/lib/filter-utils";
 import { createBestiaryBulkActions } from "@/lib/bulk-actions-utils";
 import type { Creature } from "@shared/schema";
@@ -166,6 +167,26 @@ export default function BestiaryPage() {
     }
   };
 
+  // Loading skeleton
+  const LoadingSkeleton = () => {
+    if (viewMode === "grid") {
+      return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <CardSkeleton key={index} />
+          ))}
+        </div>
+      );
+    }
+    return (
+      <div className="flex flex-col gap-2">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <ListItemSkeleton key={index} />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
@@ -213,8 +234,14 @@ export default function BestiaryPage() {
       />
 
       {isLoading ? (
-        <div className="text-center text-gray-400 py-16">
-          {t.actions.loading}...
+        <div className="space-y-4">
+          <div className="text-center text-gray-400 py-4">
+            <div className="inline-flex items-center space-x-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-400"></div>
+              <span>{t.actions.loading} істоти...</span>
+            </div>
+          </div>
+          <LoadingSkeleton />
         </div>
       ) : (creatures as Creature[]).length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
@@ -300,7 +327,14 @@ export default function BestiaryPage() {
               disabled={deleteMutation.isPending}
               className="bg-red-600 hover:bg-red-700"
             >
-              {t.actions.delete}
+              {deleteMutation.isPending ? (
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Видалення...</span>
+                </div>
+              ) : (
+                t.actions.delete
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

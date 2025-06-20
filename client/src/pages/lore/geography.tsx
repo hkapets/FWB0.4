@@ -19,7 +19,9 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SortableList } from "@/components/ui/sortable-list";
 import { FilterBar } from "@/components/ui/filter-bar";
+import { BulkActions } from "@/components/ui/bulk-actions";
 import { filterData, createLocationFilters } from "@/lib/filter-utils";
+import { createGeographyBulkActions } from "@/lib/bulk-actions-utils";
 import type { Location } from "@shared/schema";
 
 export default function GeographyPage() {
@@ -67,6 +69,31 @@ export default function GeographyPage() {
       toast({
         title: t.actions.delete,
         description: t.messages.errorDesc,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ ids, updates }: { ids: number[]; updates: any }) => {
+      await Promise.all(
+        ids.map((id) => apiRequest("PUT", `/api/locations/${id}`, updates))
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "locations"],
+      });
+      setSelected([]);
+      toast({
+        title: "Оновлено",
+        description: "Властивості локацій змінено",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося оновити властивості",
         variant: "destructive",
       });
     },
@@ -125,6 +152,22 @@ export default function GeographyPage() {
   const handleFiltersChange = (filters: Record<string, any>) => {
     setActiveFilters(filters);
     setSelected([]); // Скидаємо вибір при зміні фільтрів
+  };
+
+  const handleBulkAction = (actionKey: string, value?: string) => {
+    if (actionKey === "delete") {
+      setDeleteDialog(true);
+    } else if (actionKey === "changeType" && value) {
+      bulkUpdateMutation.mutate({
+        ids: selected,
+        updates: { type: value },
+      });
+    } else if (actionKey === "changeDangerLevel" && value) {
+      bulkUpdateMutation.mutate({
+        ids: selected,
+        updates: { dangerLevel: value },
+      });
+    }
   };
 
   const handleSubmit = async (data: any) => {
@@ -193,6 +236,14 @@ export default function GeographyPage() {
         filters={createLocationFilters()}
         onFiltersChange={handleFiltersChange}
         className="mb-6"
+      />
+
+      {/* Масові дії */}
+      <BulkActions
+        selectedCount={selected.length}
+        actions={createGeographyBulkActions()}
+        onAction={handleBulkAction}
+        className="mb-4"
       />
 
       {isLoading ? (

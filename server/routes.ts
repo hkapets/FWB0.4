@@ -18,18 +18,6 @@ import fs from "fs";
 import expressFileUpload from "express-fileupload";
 import { readFileSync } from "fs";
 import { join } from "path";
-import {
-  getScenarios,
-  createScenario,
-  getScenario,
-  updateScenario,
-  deleteScenario,
-  getEvents,
-  getEvent,
-  createEvent,
-  updateEvent,
-  deleteEvent,
-} from "./storage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Temporary user ID for demo purposes (in real app, this would come from auth)
@@ -569,27 +557,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Сценарії
+  /*
   app.get("/api/worlds/:worldId/scenarios", (req, res) => {
-    res.json(getScenarios(req.params.worldId));
+   res.json(storage.getScenarios(req.params.worldId));
   });
   app.post("/api/worlds/:worldId/scenarios", (req, res) => {
-    res.json(createScenario(req.params.worldId, req.body));
+   res.json(storage.createScenario(req.params.worldId, req.body));
   });
   app.get("/api/scenarios/:id", (req, res) => {
-    const scenario = getScenario(req.params.id);
+   const scenario = storage.getScenario(req.params.id);
     if (!scenario) return res.status(404).json({ error: "Not found" });
     res.json(scenario);
   });
   app.put("/api/scenarios/:id", (req, res) => {
-    const scenario = updateScenario(req.params.id, req.body);
+   const scenario = storage.updateScenario(req.params.id, req.body);
     if (!scenario) return res.status(404).json({ error: "Not found" });
     res.json(scenario);
   });
   app.delete("/api/scenarios/:id", (req, res) => {
-    const ok = deleteScenario(req.params.id);
+   const ok = storage.deleteScenario(req.params.id);
     if (!ok) return res.status(404).json({ error: "Not found" });
     res.json({ ok: true });
   });
+  */
 
   app.get("/api/docs/openapi.json", (req, res) => {
     const openapi = readFileSync(join(__dirname, "../openapi.json"), "utf-8");

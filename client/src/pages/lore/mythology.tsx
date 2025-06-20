@@ -18,7 +18,9 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SortableList } from "@/components/ui/sortable-list";
 import { FilterBar } from "@/components/ui/filter-bar";
+import { BulkActions } from "@/components/ui/bulk-actions";
 import { filterData } from "@/lib/filter-utils";
+import { createMythologyBulkActions } from "@/lib/bulk-actions-utils";
 import type { WorldLore } from "@shared/schema";
 
 // Фільтри для міфології
@@ -63,18 +65,22 @@ export default function MythologyPage() {
   const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
   const worldId = 1; // TODO: get from context/props
 
-  const { data: lore = [], isLoading } = useQuery({
+  const { data: allLore = [], isLoading } = useQuery({
     queryKey: ["/api/worlds", worldId, "lore"],
     enabled: !!worldId,
   });
 
-  const mythologies = (lore as WorldLore[]).filter(
+  // Фільтруємо тільки міфологію
+  const mythologies = (allLore as WorldLore[]).filter(
     (lore) => lore.type === "mythology"
   );
 
   // Фільтрація даних
   const filteredMythologies = useMemo(() => {
-    return filterData(mythologies, activeFilters, ["name", "description"]);
+    return filterData(mythologies as WorldLore[], activeFilters, [
+      "name",
+      "description",
+    ]);
   }, [mythologies, activeFilters]);
 
   const deleteMutation = useMutation({
@@ -97,6 +103,31 @@ export default function MythologyPage() {
       toast({
         title: t.actions.delete,
         description: t.messages.errorDesc,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ ids, updates }: { ids: number[]; updates: any }) => {
+      await Promise.all(
+        ids.map((id) => apiRequest("PUT", `/api/lore/${id}`, updates))
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/worlds", worldId, "lore"],
+      });
+      setSelected([]);
+      toast({
+        title: "Оновлено",
+        description: "Властивості міфології змінено",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося оновити властивості",
         variant: "destructive",
       });
     },
@@ -157,10 +188,29 @@ export default function MythologyPage() {
     setSelected([]); // Скидаємо вибір при зміні фільтрів
   };
 
+  const handleBulkAction = (actionKey: string, value?: string) => {
+    if (actionKey === "delete") {
+      setDeleteDialog(true);
+    } else if (actionKey === "changeType" && value) {
+      bulkUpdateMutation.mutate({
+        ids: selected,
+        updates: { type: value },
+      });
+    } else if (actionKey === "changeCulture" && value) {
+      bulkUpdateMutation.mutate({
+        ids: selected,
+        updates: { culture: value },
+      });
+    }
+  };
+
   const handleSubmit = async (data: any) => {
     if (editMythology) {
       // Update
-      await apiRequest("PUT", `/api/lore/${editMythology.id}`, data);
+      await apiRequest("PUT", `/api/lore/${editMythology.id}`, {
+        ...data,
+        type: "mythology",
+      });
       toast({ title: t.actions.edit, description: t.messages.creatureCreated });
     } else {
       // Create
@@ -208,16 +258,6 @@ export default function MythologyPage() {
           >
             <Plus className="mr-2" /> {t.messages.addFirstCreature}
           </Button>
-          {selected.length > 0 && (
-            <Button
-              variant="destructive"
-              onClick={() => setDeleteDialog(true)}
-              className="ml-2"
-              size="lg"
-            >
-              <Trash2 className="mr-2" /> {t.actions.delete} ({selected.length})
-            </Button>
-          )}
         </div>
       </div>
 
@@ -226,6 +266,14 @@ export default function MythologyPage() {
         filters={createMythologyFilters()}
         onFiltersChange={handleFiltersChange}
         className="mb-6"
+      />
+
+      {/* Масові дії */}
+      <BulkActions
+        selectedCount={selected.length}
+        actions={createMythologyBulkActions()}
+        onAction={handleBulkAction}
+        className="mb-4"
       />
 
       {isLoading ? (
