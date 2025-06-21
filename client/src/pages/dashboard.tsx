@@ -330,9 +330,9 @@ export default function DashboardPage({
     );
   }
 
-  // Якщо світ вибрано, показуємо звичайний дашборд
+  // Основний дашборд
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-8 grid gap-8 animate-fadein">
       {/* Заголовок світу */}
       <div className="flex items-center justify-between">
         <div>

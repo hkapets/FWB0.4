@@ -11,7 +11,7 @@ import LanguageSelector from "@/components/ui/language-selector";
 import { useTranslation } from "@/lib/i18n";
 import { useAudioContext } from "@/components/audio-provider";
 import GlobalSearch from "@/components/global-search";
-import { useLocation } from "wouter";
+import { Link } from "wouter";
 
 interface HeaderProps {
   currentWorldId: number | null;
@@ -20,7 +20,6 @@ interface HeaderProps {
 export default function Header({ currentWorldId }: HeaderProps) {
   const t = useTranslation();
   const { muted, setMuted, volume, setVolume, nextTrack } = useAudioContext();
-  const [, setLocation] = useLocation();
 
   const handleSave = () => {
     // TODO: Implement save functionality
@@ -32,25 +31,18 @@ export default function Header({ currentWorldId }: HeaderProps) {
     console.log("Exporting project...");
   };
 
-  const handleNavigateHome = () => {
-    setLocation("/");
-  };
-
   return (
     <header className="fixed top-0 left-0 w-full h-16 flex items-center px-6 bg-gradient-to-r from-purple-900 via-gray-900 to-purple-800 shadow-lg z-50 fantasy-border">
       <div className="w-full max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center w-full">
-          <div
-            onClick={handleNavigateHome}
-            className="flex items-center space-x-4 cursor-pointer"
-          >
+          <Link href="/" className="flex items-center space-x-4">
             <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
               <Crown className="text-purple-900 text-xl" />
             </div>
             <h1 className="text-2xl lg:text-3xl font-fantasy font-bold text-yellow-200">
               Fantasy World Builder
             </h1>
-          </div>
+          </Link>
           <div className="flex items-center gap-4">
             <GlobalSearch />
             <Button

@@ -1,6 +1,7 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -122,6 +123,9 @@ export default function CreateWorldModal({
           <DialogTitle className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
             {t.actions.add} Світ
           </DialogTitle>
+          <DialogDescription className="hidden">
+            Create a new world here.
+          </DialogDescription>
         </DialogHeader>
         <div className="mb-4">
           <p className="text-center text-sm text-gray-300 mb-2">
