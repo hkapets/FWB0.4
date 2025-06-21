@@ -175,6 +175,24 @@ export interface IStorage {
     event: Partial<InsertEvent>
   ): Promise<Event | undefined>;
   deleteEvent(id: number): Promise<boolean>;
+
+  // Writing methods
+  getWorldWriting(worldId: number): Promise<any[]>;
+  createWorldWriting(writingData: any): Promise<any>;
+  updateWorldWriting(id: number, updateData: any): Promise<any | undefined>;
+  deleteWorldWriting(id: number): Promise<boolean>;
+
+  // Politics methods
+  getWorldPolitics(worldId: number): Promise<any[]>;
+  createWorldPolitics(politicsData: any): Promise<any>;
+  updateWorldPolitics(id: number, updateData: any): Promise<any | undefined>;
+  deleteWorldPolitics(id: number): Promise<boolean>;
+
+  // History methods
+  getWorldHistory(worldId: number): Promise<any[]>;
+  createWorldHistory(historyData: any): Promise<any>;
+  updateWorldHistory(id: number, updateData: any): Promise<any | undefined>;
+  deleteWorldHistory(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -200,6 +218,9 @@ export class MemStorage implements IStorage {
   private events: Map<number, Event> = new Map();
   private timelineIdSeq = 1;
   private eventIdSeq = 1;
+  private worldWritingData: Map<number, any[]> = new Map();
+  private worldPoliticsData: Map<number, any[]> = new Map();
+  private worldHistoryData: Map<number, any[]> = new Map();
 
   constructor() {
     this.users = new Map();
@@ -889,6 +910,169 @@ export class MemStorage implements IStorage {
   }
   async deleteEvent(id: number): Promise<boolean> {
     return this.events.delete(id);
+  }
+
+  // Writing methods
+  async getWorldWriting(worldId: number): Promise<any[]> {
+    return this.worldWritingData.get(worldId) || [];
+  }
+
+  async createWorldWriting(writingData: any): Promise<any> {
+    const id = ++this.currentId;
+    const writing = {
+      id,
+      ...writingData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const worldWritings = this.worldWritingData.get(writingData.worldId) || [];
+    worldWritings.push(writing);
+    this.worldWritingData.set(writingData.worldId, worldWritings);
+
+    return writing;
+  }
+
+  async updateWorldWriting(
+    id: number,
+    updateData: any
+  ): Promise<any | undefined> {
+    for (const [worldId, writings] of Array.from(
+      this.worldWritingData.entries()
+    )) {
+      const index = writings.findIndex((w: any) => w.id === id);
+      if (index !== -1) {
+        writings[index] = {
+          ...writings[index],
+          ...updateData,
+          updatedAt: new Date().toISOString(),
+        };
+        return writings[index];
+      }
+    }
+    return undefined;
+  }
+
+  async deleteWorldWriting(id: number): Promise<boolean> {
+    for (const [worldId, writings] of Array.from(
+      this.worldWritingData.entries()
+    )) {
+      const index = writings.findIndex((w: any) => w.id === id);
+      if (index !== -1) {
+        writings.splice(index, 1);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Politics methods
+  async getWorldPolitics(worldId: number): Promise<any[]> {
+    return this.worldPoliticsData.get(worldId) || [];
+  }
+
+  async createWorldPolitics(politicsData: any): Promise<any> {
+    const id = ++this.currentId;
+    const politics = {
+      id,
+      ...politicsData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const worldPolitics =
+      this.worldPoliticsData.get(politicsData.worldId) || [];
+    worldPolitics.push(politics);
+    this.worldPoliticsData.set(politicsData.worldId, worldPolitics);
+
+    return politics;
+  }
+
+  async updateWorldPolitics(
+    id: number,
+    updateData: any
+  ): Promise<any | undefined> {
+    for (const [worldId, politics] of Array.from(
+      this.worldPoliticsData.entries()
+    )) {
+      const index = politics.findIndex((p: any) => p.id === id);
+      if (index !== -1) {
+        politics[index] = {
+          ...politics[index],
+          ...updateData,
+          updatedAt: new Date().toISOString(),
+        };
+        return politics[index];
+      }
+    }
+    return undefined;
+  }
+
+  async deleteWorldPolitics(id: number): Promise<boolean> {
+    for (const [worldId, politics] of Array.from(
+      this.worldPoliticsData.entries()
+    )) {
+      const index = politics.findIndex((p: any) => p.id === id);
+      if (index !== -1) {
+        politics.splice(index, 1);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // History methods
+  async getWorldHistory(worldId: number): Promise<any[]> {
+    return this.worldHistoryData.get(worldId) || [];
+  }
+
+  async createWorldHistory(historyData: any): Promise<any> {
+    const id = ++this.currentId;
+    const history = {
+      id,
+      ...historyData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const worldHistory = this.worldHistoryData.get(historyData.worldId) || [];
+    worldHistory.push(history);
+    this.worldHistoryData.set(historyData.worldId, worldHistory);
+
+    return history;
+  }
+
+  async updateWorldHistory(
+    id: number,
+    updateData: any
+  ): Promise<any | undefined> {
+    for (const [worldId, history] of Array.from(
+      this.worldHistoryData.entries()
+    )) {
+      const index = history.findIndex((h: any) => h.id === id);
+      if (index !== -1) {
+        history[index] = {
+          ...history[index],
+          ...updateData,
+          updatedAt: new Date().toISOString(),
+        };
+        return history[index];
+      }
+    }
+    return undefined;
+  }
+
+  async deleteWorldHistory(id: number): Promise<boolean> {
+    for (const [worldId, history] of Array.from(
+      this.worldHistoryData.entries()
+    )) {
+      const index = history.findIndex((h: any) => h.id === id);
+      if (index !== -1) {
+        history.splice(index, 1);
+        return true;
+      }
+    }
+    return false;
   }
 }
 

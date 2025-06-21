@@ -556,6 +556,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Writing CRUD
+  app.get("/api/worlds/:worldId/writing", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const writing = await storage.getWorldWriting(worldId);
+      res.json(writing);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch writing" });
+    }
+  });
+
+  app.post("/api/worlds/:worldId/writing", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const writingData = { ...req.body, worldId };
+      const writingItem = await storage.createWorldWriting(writingData);
+      res.status(201).json(writingItem);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid writing data" });
+    }
+  });
+
+  app.put("/api/writing/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updateData = req.body;
+      const writingItem = await storage.updateWorldWriting(id, updateData);
+      if (!writingItem) {
+        return res.status(404).json({ message: "Writing not found" });
+      }
+      res.json(writingItem);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid writing data" });
+    }
+  });
+
+  app.delete("/api/writing/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteWorldWriting(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Writing not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete writing" });
+    }
+  });
+
+  // Politics CRUD
+  app.get("/api/worlds/:worldId/politics", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const politics = await storage.getWorldPolitics(worldId);
+      res.json(politics);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch politics" });
+    }
+  });
+
+  app.post("/api/worlds/:worldId/politics", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const politicsData = { ...req.body, worldId };
+      const politicsItem = await storage.createWorldPolitics(politicsData);
+      res.status(201).json(politicsItem);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid politics data" });
+    }
+  });
+
+  app.put("/api/politics/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updateData = req.body;
+      const politicsItem = await storage.updateWorldPolitics(id, updateData);
+      if (!politicsItem) {
+        return res.status(404).json({ message: "Politics not found" });
+      }
+      res.json(politicsItem);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid politics data" });
+    }
+  });
+
+  app.delete("/api/politics/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteWorldPolitics(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Politics not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete politics" });
+    }
+  });
+
+  // History CRUD
+  app.get("/api/worlds/:worldId/history", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const history = await storage.getWorldHistory(worldId);
+      res.json(history);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch history" });
+    }
+  });
+
+  app.post("/api/worlds/:worldId/history", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const historyData = { ...req.body, worldId };
+      const historyItem = await storage.createWorldHistory(historyData);
+      res.status(201).json(historyItem);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid history data" });
+    }
+  });
+
+  app.put("/api/history/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updateData = req.body;
+      const historyItem = await storage.updateWorldHistory(id, updateData);
+      if (!historyItem) {
+        return res.status(404).json({ message: "History not found" });
+      }
+      res.json(historyItem);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid history data" });
+    }
+  });
+
+  app.delete("/api/history/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteWorldHistory(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "History not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete history" });
+    }
+  });
+
   // Сценарії
   /*
   app.get("/api/worlds/:worldId/scenarios", (req, res) => {

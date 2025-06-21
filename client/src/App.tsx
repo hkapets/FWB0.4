@@ -23,6 +23,10 @@ import Bestiary from "@/pages/lore/bestiary";
 import Magic from "@/pages/lore/magic";
 import Artifacts from "@/pages/lore/artifacts";
 import Events from "@/pages/lore/events";
+import Races from "@/pages/lore/races";
+import Writing from "@/pages/lore/writing";
+import Politics from "@/pages/lore/politics";
+import History from "@/pages/lore/history";
 import { AudioProvider } from "@/components/audio-provider";
 
 function App() {
@@ -41,7 +45,11 @@ function App() {
                   setCurrentWorldId={setCurrentWorldId}
                 />
               )}
-              <main className="flex-1 overflow-y-auto scroll-fantasy">
+              <main
+                className={`overflow-y-auto scroll-fantasy ${
+                  currentWorldId !== null ? "flex-1" : "w-full"
+                }`}
+              >
                 <Switch>
                   <Route
                     path="/"
@@ -69,7 +77,34 @@ function App() {
                   <Route path="/lore/magic" component={Magic} />
                   <Route path="/lore/artifacts" component={Artifacts} />
                   <Route path="/lore/events" component={Events} />
-                  <Route path="/world-map" component={WorldMap} />
+                  <Route
+                    path="/lore/races"
+                    component={() => <Races currentWorldId={currentWorldId} />}
+                  />
+                  <Route
+                    path="/lore/writing"
+                    component={() => (
+                      <Writing currentWorldId={currentWorldId} />
+                    )}
+                  />
+                  <Route
+                    path="/lore/politics"
+                    component={() => (
+                      <Politics currentWorldId={currentWorldId} />
+                    )}
+                  />
+                  <Route
+                    path="/lore/history"
+                    component={() => (
+                      <History currentWorldId={currentWorldId} />
+                    )}
+                  />
+                  <Route
+                    path="/world-map"
+                    component={() => (
+                      <WorldMap currentWorldId={currentWorldId} />
+                    )}
+                  />
                   <Route path="/relations" component={Relations} />
                   <Route path="/timeline" component={Timeline} />
                   <Route path="/notes" component={Notes} />

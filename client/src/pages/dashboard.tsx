@@ -11,6 +11,10 @@ import {
   History,
   HelpCircle,
   ArrowRight,
+  Sparkles,
+  BookOpen,
+  Compass,
+  Sword,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import CreateWorldModal from "@/components/modals/create-world-modal";
@@ -198,379 +202,374 @@ export default function DashboardPage({
     });
     const newWorld = await res.json();
     const newWorldId = newWorld.id;
-    let errors: string[] = [];
-    // Допоміжна функція для batch POST
+
+    // Функція для batch POST запитів
     async function batchPost(url: string, items: any[]) {
-      for (const item of items) {
-        try {
-          await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...item, worldId: newWorldId }),
-          });
-        } catch (e) {
-          errors.push(url);
-        }
-      }
-    }
-    // races
-    if (Array.isArray(template.races) && template.races.length) {
-      await batchPost(
-        `/api/worlds/${newWorldId}/races`,
-        template.races.map((name: any) => ({ name }))
+      const promises = items.map((item) =>
+        fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...item, worldId: newWorldId }),
+        })
       );
+      await Promise.all(promises);
     }
-    // classes
-    if (Array.isArray(template.classes) && template.classes.length) {
-      await batchPost(
-        `/api/worlds/${newWorldId}/classes`,
-        template.classes.map((name: any) => ({ name }))
-      );
-    }
-    // magic
-    if (Array.isArray(template.magic) && template.magic.length) {
-      await batchPost(
-        `/api/worlds/${newWorldId}/magic`,
-        template.magic.map((name: any) => ({ name }))
-      );
-    }
-    // locations
-    if (Array.isArray(template.locations) && template.locations.length) {
-      await batchPost(
-        `/api/worlds/${newWorldId}/locations`,
-        template.locations.map((name: any) => ({ name }))
-      );
-    }
-    // creatures
-    if (Array.isArray(template.creatures) && template.creatures.length) {
-      await batchPost(
-        `/api/worlds/${newWorldId}/creatures`,
-        template.creatures
-      );
-    }
-    // artifacts
-    if (Array.isArray(template.artifacts) && template.artifacts.length) {
-      await batchPost(
-        `/api/worlds/${newWorldId}/artifacts`,
-        template.artifacts
-      );
-    }
-    // lore
-    if (Array.isArray(template.lore) && template.lore.length) {
-      await batchPost(`/api/worlds/${newWorldId}/lore`, template.lore);
-    }
-    // characters
-    if (Array.isArray(template.characters) && template.characters.length) {
-      await batchPost(
-        `/api/worlds/${newWorldId}/characters`,
-        template.characters
-      );
-    }
-    // events
-    if (Array.isArray(template.events) && template.events.length) {
-      await batchPost(`/api/worlds/${newWorldId}/events`, template.events);
-    }
-    // regions
-    if (Array.isArray(template.regions) && template.regions.length) {
-      await batchPost(`/api/worlds/${newWorldId}/regions`, template.regions);
-    }
-    // relations
-    if (Array.isArray(template.relations) && template.relations.length) {
-      await batchPost(
-        `/api/worlds/${newWorldId}/relations`,
-        template.relations
-      );
-    }
-    if (errors.length === 0) {
-      toast({
-        title: "Світ повністю створено з шаблону!",
-        description: newWorld.name,
-      });
-    } else {
-      toast({
-        title: "Світ створено, але деякі сутності не імпортовано",
-        description: errors.join(", "),
-      });
-    }
+
+    // Відновлюємо дані з шаблону
+    if (template.races?.length) await batchPost("/api/races", template.races);
+    if (template.classes?.length)
+      await batchPost("/api/classes", template.classes);
+    if (template.magic?.length) await batchPost("/api/magic", template.magic);
+    if (template.locations?.length)
+      await batchPost("/api/locations", template.locations);
+    if (template.bestiary?.length)
+      await batchPost("/api/creatures", template.bestiary);
+    if (template.artifacts?.length)
+      await batchPost("/api/artifacts", template.artifacts);
+
     setCurrentWorldId(newWorldId);
+    refetchWorlds();
+    toast({
+      title: "Світ відновлено з шаблону!",
+      description: template.name,
+    });
   };
 
-  const quickActions = [
-    {
-      title: t.dashboard.createWorld,
-      description: t.dashboard.createWorldDesc,
-      icon: Plus,
-      color: "bg-green-600 hover:bg-green-500",
-      onClick: () => setIsCreateWorldModalOpen(true),
-    },
-    {
-      title: t.dashboard.addLocation,
-      description: t.dashboard.addLocationDesc,
-      icon: MapPin,
-      color: "bg-purple-600 hover:bg-purple-500",
-      onClick: () => setIsCreateLocationModalOpen(true),
-      disabled: !worldId,
-    },
-    {
-      title: t.dashboard.createCharacter,
-      description: t.dashboard.createCharacterDesc,
-      icon: UserPlus,
-      color: "bg-yellow-600 hover:bg-yellow-500",
-      onClick: () => setIsCreateCharacterModalOpen(true),
-      disabled: !worldId,
-    },
-    {
-      title: t.dashboard.addCreature,
-      description: t.dashboard.addCreatureDesc,
-      icon: Crown,
-      color: "bg-red-600 hover:bg-red-500",
-      onClick: () => setIsCreateCreatureModalOpen(true),
-      disabled: !worldId,
-    },
-  ];
-
-  // --- СТАРТОВИЙ ЕКРАН ---
-  if (!currentWorld) {
+  // Якщо немає світу, показуємо привітання
+  if (!currentWorldId) {
     return (
-      <div className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#1a1a2e] to-[#16213e]">
-        <img
-          src="/attached_assets/image_1750090217986.png"
-          alt="Fantasy background"
-          className="absolute inset-0 w-full h-full object-cover opacity-30 pointer-events-none select-none"
-        />
-        <div className="relative z-10 max-w-xl mx-auto text-center p-8 bg-black/60 rounded-xl shadow-lg">
-          <h1 className="text-4xl font-fantasy font-bold text-yellow-200 mb-4">
-            Fantasy World Builder
-          </h1>
-          <p className="text-lg text-gray-200 mb-6">
-            {t.header.title}. {t.dashboard.subtitle}
-          </p>
-          <Button
-            size="lg"
-            className="mb-4 bg-yellow-700 hover:bg-yellow-600"
-            onClick={() => setIsCreateWorldModalOpen(true)}
-          >
-            {t.navigation.createWorld}
-          </Button>
-          {worlds.length > 0 && (
-            <div className="mt-6">
-              <h2 className="text-xl font-bold text-yellow-100 mb-2">
-                {t.navigation.recentWorlds}
-              </h2>
-              <ul className="space-y-2">
-                {worlds.map((w) => (
-                  <li
-                    key={w.id}
-                    className="flex items-center justify-between bg-black/40 rounded px-4 py-2"
-                  >
-                    <span
-                      className="text-lg text-white font-semibold cursor-pointer"
-                      onClick={() => handleSelectWorld(w.id)}
-                    >
-                      {w.name}
-                    </span>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleSelectWorld(w.id)}
-                      >
-                        {t.actions.edit}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDeleteWorld(w)}
-                      >
-                        {t.actions.delete}
-                      </Button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-        <CreateWorldModal
-          isOpen={isCreateWorldModalOpen}
-          onClose={() => setIsCreateWorldModalOpen(false)}
-          onSubmit={() => {
-            setIsCreateWorldModalOpen(false);
-            refetchWorlds();
+      <div className="min-h-screen relative overflow-hidden">
+        {/* Фонове зображення */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+          style={{
+            backgroundImage:
+              'url(\'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"%3E%3Cdefs%3E%3CradialGradient id="a" cx="50%25" cy="50%25" r="50%25"%3E%3Cstop offset="0%25" stop-color="%23c084fc" stop-opacity="0.3"/%3E%3Cstop offset="100%25" stop-color="%231e1b4b" stop-opacity="0.8"/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width="1200" height="800" fill="url(%23a)"/%3E%3C/svg%3E\')',
           }}
         />
-        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <DialogContent>
-            <div className="text-lg mb-4">
-              Видалити світ <b>{worldToDelete?.name}</b>?
+
+        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 text-center">
+          <div className="max-w-4xl mx-auto">
+            {/* Логотип */}
+            <div className="mb-8">
+              <div className="w-24 h-24 mx-auto bg-gradient-to-br from-fantasy-gold-400 to-fantasy-gold-600 rounded-full flex items-center justify-center shadow-2xl mb-6">
+                <Crown className="text-4xl text-white" />
+              </div>
+              <h1 className="text-5xl md:text-7xl font-fantasy font-bold text-fantasy-gold-400 mb-4">
+                Fantasy World Builder
+              </h1>
+              <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-2xl mx-auto">
+                Створюйте епічні світи, розробляйте персонажів та пишіть історії
+              </p>
             </div>
-            <div className="flex gap-2 justify-end">
+
+            {/* Опис функцій */}
+            <div className="grid md:grid-cols-3 gap-6 mb-12">
+              <div className="bg-black/20 backdrop-blur-sm rounded-lg p-6 border border-fantasy-purple-500/30">
+                <BookOpen className="w-12 h-12 text-fantasy-purple-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-fantasy-purple-300 mb-2">
+                  Багатий Лор
+                </h3>
+                <p className="text-gray-400">
+                  Створюйте географію, раси, магію та історію вашого світу
+                </p>
+              </div>
+              <div className="bg-black/20 backdrop-blur-sm rounded-lg p-6 border border-fantasy-green-500/30">
+                <Compass className="w-12 h-12 text-fantasy-green-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-fantasy-green-300 mb-2">
+                  Інтерактивні карти
+                </h3>
+                <p className="text-gray-400">
+                  Малюйте карти світу, додавайте маркери та локації
+                </p>
+              </div>
+              <div className="bg-black/20 backdrop-blur-sm rounded-lg p-6 border border-fantasy-gold-500/30">
+                <Sword className="w-12 h-12 text-fantasy-gold-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-fantasy-gold-300 mb-2">
+                  Персонажі та події
+                </h3>
+                <p className="text-gray-400">
+                  Розробляйте персонажів та створюйте хронологію подій
+                </p>
+              </div>
+            </div>
+
+            {/* Кнопки дій */}
+            <div className="space-y-4">
               <Button
-                variant="outline"
-                onClick={() => setShowDeleteDialog(false)}
+                onClick={() => setIsCreateWorldModalOpen(true)}
+                className="fantasy-button px-8 py-4 text-lg font-semibold"
+                size="lg"
               >
-                Скасувати
+                <Plus className="mr-2 h-6 w-6" />
+                Створити новий світ
               </Button>
-              <Button variant="destructive" onClick={confirmDeleteWorld}>
-                Видалити
-              </Button>
+
+              {worlds.length > 0 && (
+                <div className="mt-8">
+                  <p className="text-gray-400 mb-4">
+                    Або виберіть існуючий світ:
+                  </p>
+                  <div className="flex flex-wrap gap-3 justify-center">
+                    {worlds.map((world) => (
+                      <Button
+                        key={world.id}
+                        onClick={() => handleSelectWorld(world.id)}
+                        variant="outline"
+                        className="border-fantasy-purple-500/50 text-fantasy-purple-300 hover:bg-fantasy-purple-500/20"
+                      >
+                        {world.name}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        </div>
       </div>
     );
   }
 
-  // --- ДАШБОРД ДЛЯ ВИБРАНОГО СВІТУ ---
+  // Якщо світ вибрано, показуємо звичайний дашборд
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto">
-      {/* Порожній стан для світів */}
-      {worlds.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400">
-          <img
-            src="/empty-worlds.svg"
-            alt="Порожньо"
-            className="w-32 h-32 mb-4 opacity-70"
-          />
-          <div className="text-lg mb-2">У вас ще немає жодного світу</div>
-          <div className="mb-4 text-sm text-gray-500">
-            Створіть свій перший світ, щоб розпочати!
-          </div>
+    <div className="p-6 space-y-6">
+      {/* Заголовок світу */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-fantasy font-bold text-fantasy-gold-400">
+            {currentWorld?.name}
+          </h1>
+          <p className="text-gray-400 mt-1">
+            {currentWorld?.description || "Ваш фентезі світ"}
+          </p>
+        </div>
+        <div className="flex gap-2">
           <Button
             onClick={() => setIsCreateWorldModalOpen(true)}
-            size="lg"
-            className="mt-2"
+            className="fantasy-button"
           >
-            Створити світ
+            <Plus className="mr-2 h-4 w-4" />
+            Новий світ
           </Button>
         </div>
+      </div>
+
+      {/* Статистика */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card className="fantasy-border bg-black/20 backdrop-blur-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400 flex items-center">
+                <MapPin className="mr-2 h-4 w-4 text-fantasy-green-400" />
+                Локації
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-fantasy-green-400">
+                {stats.locations}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="fantasy-border bg-black/20 backdrop-blur-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400 flex items-center">
+                <UserPlus className="mr-2 h-4 w-4 text-fantasy-purple-400" />
+                Персонажі
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-fantasy-purple-400">
+                {stats.characters}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="fantasy-border bg-black/20 backdrop-blur-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400 flex items-center">
+                <Sword className="mr-2 h-4 w-4 text-fantasy-gold-400" />
+                Істоти
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-fantasy-gold-400">
+                {stats.creatures}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="fantasy-border bg-black/20 backdrop-blur-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400 flex items-center">
+                <BarChart3 className="mr-2 h-4 w-4 text-blue-400" />
+                Всього
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-400">
+                {stats.total}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
-      {/* Quick actions */}
-      <div className="flex flex-wrap gap-4 mb-8 justify-center md:justify-start">
-        {quickActions.map((action) => (
-          <Tooltip key={action.title}>
-            <TooltipTrigger asChild>
-              <Button
-                className={`flex flex-col items-center justify-center w-36 h-32 text-center text-white font-semibold text-base shadow-md transition-all duration-200 ${action.color}`}
-                onClick={action.onClick}
-                disabled={action.disabled}
-                size="lg"
-              >
-                <span className="mb-2">
-                  <action.icon size={32} />
-                </span>
-                {action.title}
-                <span className="text-xs font-normal mt-1 text-gray-200 opacity-70">
-                  {action.description}
-                </span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{action.description}</TooltipContent>
-          </Tooltip>
-        ))}
+
+      {/* Швидкі дії */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Button
+          onClick={() => setIsCreateLocationModalOpen(true)}
+          className="fantasy-button h-auto p-4 flex flex-col items-center"
+        >
+          <MapPin className="h-8 w-8 mb-2 text-fantasy-green-400" />
+          <span className="font-semibold">Додати локацію</span>
+        </Button>
+        <Button
+          onClick={() => setIsCreateCharacterModalOpen(true)}
+          className="fantasy-button h-auto p-4 flex flex-col items-center"
+        >
+          <UserPlus className="h-8 w-8 mb-2 text-fantasy-purple-400" />
+          <span className="font-semibold">Створити персонажа</span>
+        </Button>
+        <Button
+          onClick={() => setIsCreateCreatureModalOpen(true)}
+          className="fantasy-button h-auto p-4 flex flex-col items-center"
+        >
+          <Sword className="h-8 w-8 mb-2 text-fantasy-gold-400" />
+          <span className="font-semibold">Додати істоту</span>
+        </Button>
+        <Button
+          onClick={handleSaveAsTemplate}
+          className="fantasy-button h-auto p-4 flex flex-col items-center"
+        >
+          <Sparkles className="h-8 w-8 mb-2 text-fantasy-purple-400" />
+          <span className="font-semibold">Зберегти як шаблон</span>
+        </Button>
       </div>
-      {/* Останні локації */}
-      <div className="mb-8">
-        <h2 className="text-xl font-bold text-yellow-100 mb-2">
-          Останні локації
-        </h2>
-        {recentLocations.length === 0 ? (
-          <div className="text-gray-400 text-sm flex items-center gap-2">
-            Немає локацій.{" "}
-            <Button
-              size="sm"
-              onClick={() => setIsCreateLocationModalOpen(true)}
-            >
-              Додати
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-4 animate-fadein">
-            {recentLocations.map((loc) => (
-              <LocationCard key={loc.id} location={loc} viewMode="list" />
-            ))}
-          </div>
-        )}
-      </div>
-      {/* Останні персонажі */}
-      <div className="mb-8">
-        <h2 className="text-xl font-bold text-yellow-100 mb-2">
-          Останні персонажі
-        </h2>
-        {recentCharacters.length === 0 ? (
-          <div className="text-gray-400 text-sm flex items-center gap-2">
-            Немає персонажів.{" "}
-            <Button
-              size="sm"
-              onClick={() => setIsCreateCharacterModalOpen(true)}
-            >
-              Додати
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-4 animate-fadein">
-            {recentCharacters.map((char) => (
-              <CharacterCard key={char.id} character={char} viewMode="list" />
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <Card className="fantasy-border">
+
+      {/* Остання активність */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Останні локації */}
+        <Card className="fantasy-border bg-black/20 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-yellow-200 font-fantasy">
-              {t.dashboard.worldStats}
+            <CardTitle className="flex items-center text-fantasy-green-400">
+              <MapPin className="mr-2 h-5 w-5" />
+              Останні локації
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            <div className="flex items-center gap-4">
-              <BarChart3 className="w-6 h-6 text-yellow-400" />
-              <span>
-                {t.dashboard.locations}: {stats?.locations ?? 0}
-              </span>
-            </div>
-            <div className="flex items-center gap-4">
-              <UserPlus className="w-6 h-6 text-yellow-400" />
-              <span>
-                {t.dashboard.characters}: {stats?.characters ?? 0}
-              </span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Crown className="w-6 h-6 text-yellow-400" />
-              <span>
-                {t.dashboard.creatures}: {stats?.creatures ?? 0}
-              </span>
-            </div>
-            <div className="flex items-center gap-4">
-              <History className="w-6 h-6 text-yellow-400" />
-              <span>
-                {t.dashboard.totalElements}: {stats?.total ?? 0}
-              </span>
-            </div>
+          <CardContent>
+            {recentLocations.length > 0 ? (
+              <div className="space-y-3">
+                {recentLocations.map((location) => (
+                  <LocationCard key={location.id} location={location} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-400">
+                <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Поки що немає локацій</p>
+                <Button
+                  onClick={() => setIsCreateLocationModalOpen(true)}
+                  variant="outline"
+                  className="mt-4"
+                >
+                  Додати першу локацію
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
-        <Card className="fantasy-border">
+
+        {/* Останні персонажі */}
+        <Card className="fantasy-border bg-black/20 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-yellow-200 font-fantasy">
-              {t.dashboard.quickHelp}
+            <CardTitle className="flex items-center text-fantasy-purple-400">
+              <UserPlus className="mr-2 h-5 w-5" />
+              Останні персонажі
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            <div className="flex items-center gap-4">
-              <HelpCircle className="w-6 h-6 text-yellow-400" />
-              <span>{t.dashboard.gettingStartedDesc}</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <ArrowRight className="w-6 h-6 text-yellow-400" />
-              <span>{t.dashboard.worldMapHelpDesc}</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <ArrowRight className="w-6 h-6 text-yellow-400" />
-              <span>{t.dashboard.exportShareDesc}</span>
-            </div>
+          <CardContent>
+            {recentCharacters.length > 0 ? (
+              <div className="space-y-3">
+                {recentCharacters.map((character) => (
+                  <CharacterCard key={character.id} character={character} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-400">
+                <UserPlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>Поки що немає персонажів</p>
+                <Button
+                  onClick={() => setIsCreateCharacterModalOpen(true)}
+                  variant="outline"
+                  className="mt-4"
+                >
+                  Створити першого персонажа
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Модалки */}
+      <CreateWorldModal
+        isOpen={isCreateWorldModalOpen}
+        onClose={() => setIsCreateWorldModalOpen(false)}
+        onSubmit={async (data) => {
+          try {
+            const response = await fetch("/api/worlds", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(data),
+            });
+            const world = await response.json();
+            setCurrentWorldId(world.id);
+            refetchWorlds();
+            setIsCreateWorldModalOpen(false);
+          } catch (error) {
+            console.error("Error creating world:", error);
+          }
+        }}
+      />
+      {worldId && (
+        <>
+          <CreateLocationModal
+            isOpen={isCreateLocationModalOpen}
+            onClose={() => setIsCreateLocationModalOpen(false)}
+            worldId={worldId}
+          />
+          <CreateCharacterModal
+            isOpen={isCreateCharacterModalOpen}
+            onClose={() => setIsCreateCharacterModalOpen(false)}
+            worldId={worldId}
+          />
+          <CreateCreatureModal
+            isOpen={isCreateCreatureModalOpen}
+            onClose={() => setIsCreateCreatureModalOpen(false)}
+            worldId={worldId}
+          />
+        </>
+      )}
+
+      {/* Діалог видалення */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <h2 className="text-lg font-semibold">Видалити світ?</h2>
+          <p className="text-gray-400">
+            Це назавжди видалить світ "{worldToDelete?.name}" та всі його дані.
+          </p>
+          <div className="flex gap-2 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+            >
+              Скасувати
+            </Button>
+            <Button variant="destructive" onClick={confirmDeleteWorld}>
+              Видалити
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

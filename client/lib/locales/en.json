@@ -1,0 +1,82 @@
+{
+  "actions": {
+    "add": "Add",
+    "edit": "Edit",
+    "delete": "Delete",
+    "loading": "Loading"
+  },
+  "forms": {
+    "level": "Level",
+    "name": "Name",
+    "description": "Description",
+    "race": "Race",
+    "class": "Class",
+    "cancel": "Cancel",
+    "save": "Save",
+    "create": "Create"
+  },
+  "messages": {
+    "error": "Error",
+    "errorDesc": "An unexpected error occurred."
+  },
+  "characters": {
+    "title": "Characters",
+    "subtitle": "Manage your story's characters",
+    "add": "Add Character",
+    "editCharacter": "Edit Character",
+    "addCharacter": "Add New Character",
+    "searchPlaceholder": "Search characters...",
+    "noCharacters": "No Characters Found",
+    "noCharactersDesc": "Create your first character to begin.",
+    "addFirst": "Add First Character",
+    "selectRace": "Select Race",
+    "selectClass": "Select Class",
+    "allRaces": "All Races",
+    "allClasses": "All Classes"
+  },
+  "character": {
+    "created": "Character Created",
+    "updated": "Character Updated",
+    "deleted": "Character Deleted",
+    "saveError": "Failed to save character.",
+    "deleteError": "Failed to delete character."
+  },
+  "characterRaces": {
+    "human": "Human",
+    "elf": "Elf",
+    "dwarf": "Dwarf",
+    "halfling": "Halfling",
+    "gnome": "Gnome",
+    "halfElf": "Half-Elf",
+    "halfOrc": "Half-Orc",
+    "tiefling": "Tiefling",
+    "dragonborn": "Dragonborn",
+    "orc": "Orc",
+    "goblin": "Goblin",
+    "fairy": "Fairy",
+    "angel": "Angel",
+    "demon": "Demon",
+    "vampire": "Vampire",
+    "werewolf": "Werewolf"
+  },
+  "characterClasses": {
+    "warrior": "Warrior",
+    "wizard": "Wizard",
+    "rogue": "Rogue",
+    "cleric": "Cleric",
+    "ranger": "Ranger",
+    "bard": "Bard",
+    "paladin": "Paladin",
+    "sorcerer": "Sorcerer",
+    "warlock": "Warlock",
+    "druid": "Druid",
+    "barbarian": "Barbarian",
+    "monk": "Monk",
+    "assassin": "Assassin",
+    "knight": "Knight",
+    "merchant": "Merchant",
+    "scholar": "Scholar",
+    "noble": "Noble",
+    "peasant": "Peasant"
+  }
+}

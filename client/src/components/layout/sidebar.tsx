@@ -12,10 +12,23 @@ import {
   Settings,
   Globe,
   Plus,
+  ChevronDown,
+  ChevronRight,
+  UserPlus,
+  BookOpen,
+  Compass,
+  History,
+  FileText,
+  ScrollText,
+  Landmark,
+  Sparkles,
+  LogOut,
 } from "lucide-react";
 import CreateWorldModal from "@/components/modals/create-world-modal";
 import { useTranslation } from "@/lib/i18n";
 import type { World } from "@shared/schema";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 interface SidebarProps {
   currentWorldId: number | null;
@@ -29,6 +42,15 @@ export default function Sidebar({
   const [location] = useLocation();
   const [isCreateWorldModalOpen, setIsCreateWorldModalOpen] = useState(false);
   const t = useTranslation();
+  const [expandedSections, setExpandedSections] = useState<{
+    lore: boolean;
+    characters: boolean;
+    maps: boolean;
+  }>({
+    lore: true,
+    characters: false,
+    maps: false,
+  });
 
   const { data: worlds = [] } = useQuery<World[]>({
     queryKey: ["/api/worlds"],
@@ -46,51 +68,136 @@ export default function Sidebar({
 
   const currentWorld = worlds.find((w) => w.id === currentWorldId);
 
-  const navigationItems = [
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
+  const navItems = [
     {
-      path: "/dashboard",
-      icon: Home,
-      label: t.navigation.dashboard,
-      count: null,
-    },
-    {
-      path: "/create-world",
-      icon: Plus,
-      label: t.navigation.createWorld,
-      count: null,
-    },
-    {
-      path: "/characters",
-      icon: Users,
-      label: t.navigation.characters,
-      count: null,
-    },
-    {
-      path: "/lore",
-      icon: Crown,
-      label: t.navigation.lore,
-      count: null,
+      title: t.navigation.lore,
+      icon: BookOpen,
+      href: "/lore",
+      expanded: expandedSections.lore,
+      onToggle: () => toggleSection("lore"),
       children: [
-        { path: "/lore/geography", label: t.lore.geography },
-        { path: "/lore/bestiary", label: t.lore.bestiary },
-        { path: "/lore/magic", label: t.lore.magic },
-        { path: "/lore/artifacts", label: t.lore.artifacts },
-        { path: "/lore/events", label: t.lore.events },
+        {
+          title: t.lore.geography,
+          href: "/lore/geography",
+          icon: MapPin,
+          count: stats?.locations || 0,
+        },
+        {
+          title: t.lore.bestiary,
+          href: "/lore/bestiary",
+          icon: Crown,
+          count: stats?.creatures || 0,
+        },
+        {
+          title: "Раси",
+          href: "/lore/races",
+          icon: Users,
+          count: 0,
+        },
+        {
+          title: "Магія",
+          href: "/lore/magic",
+          icon: Sparkles,
+          count: 0,
+        },
+        {
+          title: "Артефакти",
+          href: "/lore/artifacts",
+          icon: Crown,
+          count: 0,
+        },
+        {
+          title: "Писемність",
+          href: "/lore/writing",
+          icon: ScrollText,
+          count: 0,
+        },
+        {
+          title: "Політика",
+          href: "/lore/politics",
+          icon: Landmark,
+          count: 0,
+        },
+        {
+          title: "Історія",
+          href: "/lore/history",
+          icon: History,
+          count: 0,
+        },
+        {
+          title: "Події",
+          href: "/lore/events",
+          icon: FileText,
+          count: 0,
+        },
       ],
     },
     {
-      path: "/relations",
-      icon: Globe,
-      label: t.navigation.relations,
-      count: null,
+      title: t.navigation.characters,
+      icon: UserPlus,
+      href: "/characters",
+      expanded: expandedSections.characters,
+      onToggle: () => toggleSection("characters"),
+      children: [
+        {
+          title: "Персонажі",
+          href: "/characters",
+          icon: UserPlus,
+          count: stats?.characters || 0,
+        },
+      ],
     },
     {
-      path: "/timeline",
-      icon: MapPin,
-      label: t.navigation.timeline,
-      count: null,
+      title: t.navigation.worldMap,
+      icon: Compass,
+      href: "/world-map",
+      expanded: expandedSections.maps,
+      onToggle: () => toggleSection("maps"),
+      children: [
+        {
+          title: "Карта світу",
+          href: "/world-map",
+          icon: Compass,
+          count: 0,
+        },
+      ],
     },
-    { path: "/notes", icon: Settings, label: t.navigation.notes, count: null },
+    {
+      title: "Хронологія",
+      icon: History,
+      href: "/timeline",
+      count: 0,
+    },
+    {
+      title: "Нотатки",
+      icon: FileText,
+      href: "/notes",
+      count: 0,
+    },
+    {
+      title: "Сценарії",
+      icon: ScrollText,
+      href: "/scenarios",
+      count: 0,
+    },
+    {
+      title: "Зв'язки",
+      icon: Users,
+      href: "/relations",
+      count: 0,
+    },
+    {
+      title: t.navigation.settings,
+      icon: Settings,
+      href: "/settings",
+    },
   ];
 
   return (
@@ -138,45 +245,76 @@ export default function Sidebar({
           </div>
 
           <div className="space-y-1">
-            {navigationItems.map((item) => {
-              const Icon = item.icon;
-              const isActive =
-                location === item.path ||
-                (location === "/" && item.path === "/dashboard");
-              return (
-                <div key={item.path}>
-                  <Link href={item.path}>
+            {navItems.map((item) => (
+              <div key={item.href}>
+                {item.children ? (
+                  <div>
                     <Button
                       variant="ghost"
-                      className={`w-full justify-start nav-item hover:bg-purple-700/30 transition-colors duration-200 ${
-                        isActive ? "active" : ""
+                      className="w-full justify-between text-left hover:bg-purple-700/30 transition-colors duration-200"
+                      onClick={item.onToggle}
+                    >
+                      <div className="flex items-center">
+                        <item.icon className="mr-2 h-4 w-4 text-yellow-400" />
+                        <span className="text-yellow-300">{item.title}</span>
+                      </div>
+                      {item.expanded ? (
+                        <ChevronDown className="h-4 w-4 text-yellow-400" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-yellow-400" />
+                      )}
+                    </Button>
+                    {item.expanded && (
+                      <div className="ml-6 mt-2 space-y-1">
+                        {item.children.map((child) => (
+                          <Link key={child.href} href={child.href}>
+                            <Button
+                              variant="ghost"
+                              className={`w-full justify-between text-left text-sm ${
+                                location === child.href
+                                  ? "bg-purple-700/30 text-yellow-200"
+                                  : "hover:bg-purple-700/20 text-gray-300"
+                              }`}
+                            >
+                              <div className="flex items-center">
+                                <child.icon className="mr-2 h-3 w-3" />
+                                <span>{child.title}</span>
+                              </div>
+                              {child.count > 0 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {child.count}
+                                </Badge>
+                              )}
+                            </Button>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <Link href={item.href}>
+                    <Button
+                      variant="ghost"
+                      className={`w-full justify-between text-left ${
+                        location === item.href
+                          ? "bg-purple-700/30 text-yellow-200"
+                          : "hover:bg-purple-700/20 text-gray-300"
                       }`}
                     >
-                      {Icon && (
-                        <Icon className="mr-3 h-4 w-4 text-yellow-400" />
+                      <div className="flex items-center">
+                        <item.icon className="mr-2 h-4 w-4" />
+                        <span>{item.title}</span>
+                      </div>
+                      {item.count !== undefined && item.count > 0 && (
+                        <Badge variant="secondary" className="text-xs">
+                          {item.count}
+                        </Badge>
                       )}
-                      <span className="font-medium">{item.label}</span>
                     </Button>
                   </Link>
-                  {item.children && isActive && (
-                    <div className="ml-8 mt-1 space-y-1">
-                      {item.children.map((child) => (
-                        <Link key={child.path} href={child.path}>
-                          <Button
-                            variant="ghost"
-                            className={`w-full justify-start text-left hover:bg-purple-700/20 transition-colors duration-200 ${
-                              location === child.path ? "active" : ""
-                            }`}
-                          >
-                            <span className="font-medium">{child.label}</span>
-                          </Button>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                )}
+              </div>
+            ))}
           </div>
 
           {worlds.length > 0 && (
@@ -206,9 +344,19 @@ export default function Sidebar({
       <CreateWorldModal
         isOpen={isCreateWorldModalOpen}
         onClose={() => setIsCreateWorldModalOpen(false)}
-        onWorldCreated={(world) => {
-          setCurrentWorldId(world.id);
-          setIsCreateWorldModalOpen(false);
+        onSubmit={async (data) => {
+          try {
+            const response = await fetch("/api/worlds", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(data),
+            });
+            const world = await response.json();
+            setCurrentWorldId(world.id);
+            setIsCreateWorldModalOpen(false);
+          } catch (error) {
+            console.error("Error creating world:", error);
+          }
         }}
       />
     </>

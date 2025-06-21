@@ -1,0 +1,82 @@
+{
+  "actions": {
+    "add": "Додати",
+    "edit": "Редагувати",
+    "delete": "Видалити",
+    "loading": "Завантаження"
+  },
+  "forms": {
+    "level": "Рівень",
+    "name": "Ім'я",
+    "description": "Опис",
+    "race": "Раса",
+    "class": "Клас",
+    "cancel": "Скасувати",
+    "save": "Зберегти",
+    "create": "Створити"
+  },
+  "messages": {
+    "error": "Помилка",
+    "errorDesc": "Сталася неочікувана помилка."
+  },
+  "characters": {
+    "title": "Персонажі",
+    "subtitle": "Керуйте персонажами вашої історії",
+    "add": "Додати персонажа",
+    "editCharacter": "Редагувати персонажа",
+    "addCharacter": "Додати нового персонажа",
+    "searchPlaceholder": "Пошук персонажів...",
+    "noCharacters": "Персонажів не знайдено",
+    "noCharactersDesc": "Створіть свого першого персонажа, щоб почати.",
+    "addFirst": "Додати першого персонажа",
+    "selectRace": "Оберіть расу",
+    "selectClass": "Оберіть клас",
+    "allRaces": "Усі раси",
+    "allClasses": "Усі класи"
+  },
+  "character": {
+    "created": "Персонажа створено",
+    "updated": "Персонажа оновлено",
+    "deleted": "Персонажа видалено",
+    "saveError": "Не вдалося зберегти персонажа.",
+    "deleteError": "Не вдалося видалити персонажа."
+  },
+  "characterRaces": {
+    "human": "Людина",
+    "elf": "Ельф",
+    "dwarf": "Гном",
+    "halfling": "Напіврослик",
+    "gnome": "Гном",
+    "halfElf": "Напівельф",
+    "halfOrc": "Напіворк",
+    "tiefling": "Тіфлінг",
+    "dragonborn": "Дракононароджений",
+    "orc": "Орк",
+    "goblin": "Гоблін",
+    "fairy": "Фея",
+    "angel": "Ангел",
+    "demon": "Демон",
+    "vampire": "Вампір",
+    "werewolf": "Перевертень"
+  },
+  "characterClasses": {
+    "warrior": "Воїн",
+    "wizard": "Чарівник",
+    "rogue": "Розбійник",
+    "cleric": "Клірик",
+    "ranger": "Слідопит",
+    "bard": "Бард",
+    "paladin": "Паладин",
+    "sorcerer": "Чаклун",
+    "warlock": "Відьмак",
+    "druid": "Друїд",
+    "barbarian": "Варвар",
+    "monk": "Монах",
+    "assassin": "Вбивця",
+    "knight": "Лицар",
+    "merchant": "Торговець",
+    "scholar": "Вчений",
+    "noble": "Шляхтич",
+    "peasant": "Селянин"
+  }
+}
