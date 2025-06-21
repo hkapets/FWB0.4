@@ -29,6 +29,12 @@ import { useTranslation } from "@/lib/i18n";
 import type { World } from "@shared/schema";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface SidebarProps {
   currentWorldId: number | null;
@@ -220,14 +226,31 @@ export default function Sidebar({
             </div>
 
             {currentWorld ? (
-              <div className="fantasy-border p-3 bg-purple-900/20">
-                <h3 className="font-semibold text-yellow-200">
-                  {currentWorld.name}
-                </h3>
-                <p className="text-sm text-gray-300 mt-1">
-                  {currentWorld.description}
-                </p>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div className="fantasy-border p-3 bg-purple-900/20 cursor-pointer hover:bg-purple-900/40">
+                    <h3 className="font-semibold text-yellow-200">
+                      {currentWorld.name}
+                    </h3>
+                    <p className="text-sm text-gray-300 mt-1 truncate">
+                      {currentWorld.description}
+                    </p>
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 fantasy-input">
+                  {worlds.map((world) => (
+                    <DropdownMenuItem
+                      key={world.id}
+                      onSelect={() => setCurrentWorldId(world.id)}
+                      className={
+                        world.id === currentWorldId ? "bg-purple-700/50" : ""
+                      }
+                    >
+                      <span>{world.name}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <div className="fantasy-border p-3 bg-purple-900/20">
                 <p className="text-sm text-gray-400">
