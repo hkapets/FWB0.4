@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -23,6 +23,7 @@ import {
   Landmark,
   Sparkles,
   LogOut,
+  Trash2,
 } from "lucide-react";
 import CreateWorldModal from "@/components/modals/create-world-modal";
 import { useTranslation } from "@/lib/i18n";
@@ -34,7 +35,19 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "@/hooks/use-toast";
 
 interface SidebarProps {
   currentWorldId: number | null;
@@ -46,7 +59,10 @@ export default function Sidebar({
   setCurrentWorldId,
 }: SidebarProps) {
   const [location] = useLocation();
+  const queryClient = useQueryClient();
   const [isCreateWorldModalOpen, setIsCreateWorldModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [worldToDelete, setWorldToDelete] = useState<World | null>(null);
   const t = useTranslation();
   const [expandedSections, setExpandedSections] = useState<{
     lore: boolean;
@@ -79,6 +95,50 @@ export default function Sidebar({
       ...prev,
       [section]: !prev[section],
     }));
+  };
+
+  const handleDeleteClick = (world: World) => {
+    setWorldToDelete(world);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!worldToDelete) return;
+
+    try {
+      const response = await fetch(`/api/worlds/${worldToDelete.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete world");
+      }
+
+      toast({
+        title: "Світ видалено",
+        description: `Світ "${worldToDelete.name}" було успішно видалено.`,
+      });
+
+      // Оновлюємо кеш TanStack Query
+      queryClient.invalidateQueries({ queryKey: ["/api/worlds"] });
+
+      // Переключаємо на інший світ, якщо поточний був видалений
+      if (currentWorldId === worldToDelete.id) {
+        const remainingWorlds = worlds.filter((w) => w.id !== worldToDelete.id);
+        setCurrentWorldId(
+          remainingWorlds.length > 0 ? remainingWorlds[0].id : null
+        );
+      }
+    } catch (error) {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося видалити світ. Спробуйте ще раз.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setWorldToDelete(null);
+    }
   };
 
   const navItems = [
@@ -241,12 +301,28 @@ export default function Sidebar({
                   {worlds.map((world) => (
                     <DropdownMenuItem
                       key={world.id}
-                      onSelect={() => setCurrentWorldId(world.id)}
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        setCurrentWorldId(world.id);
+                      }}
                       className={
                         world.id === currentWorldId ? "bg-purple-700/50" : ""
                       }
                     >
-                      <span>{world.name}</span>
+                      <span className="flex-1">{world.name}</span>
+                      {world.id !== currentWorldId && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="p-1 h-auto hover:bg-red-500/20"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteClick(world);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-400" />
+                        </Button>
+                      )}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
@@ -382,6 +458,30 @@ export default function Sidebar({
           }
         }}
       />
+
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent className="fantasy-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ви впевнені?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ця дія є незворотною. Світ "{worldToDelete?.name}" буде видалено
+              назавжди.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Скасувати</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={confirmDelete}
+            >
+              Видалити
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
