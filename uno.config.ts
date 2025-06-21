@@ -73,6 +73,44 @@ export default defineConfig({
       "bg-[hsla(37,91%,55%,0.3)] text-[var(--fantasy-gold-400)]",
     "danger-dangerous": "bg-[hsla(0,84%,60%,0.3)] text-[hsl(0,84%,70%)]",
   },
+  preflights: [
+    {
+      getCSS: () => `
+        .fantasy-input input:-webkit-autofill,
+        .fantasy-input input:-webkit-autofill:hover,
+        .fantasy-input input:-webkit-autofill:focus,
+        .fantasy-input textarea:-webkit-autofill,
+        .fantasy-input textarea:-webkit-autofill:hover,
+        .fantasy-input textarea:-webkit-autofill:focus,
+        .fantasy-input select:-webkit-autofill,
+        .fantasy-input select:-webkit-autofill:hover,
+        .fantasy-input select:-webkit-autofill:focus {
+          -webkit-text-fill-color: #fff !important;
+          -webkit-box-shadow: 0 0 0px 1000px hsla(215, 28%, 17%, 0.8) inset !important;
+          transition: background-color 5000s ease-in-out 0s !important;
+          background: transparent !important;
+        }
+
+        .fantasy-input,
+        .fantasy-input input,
+        .fantasy-input textarea,
+        .fantasy-input select,
+        .fantasy-input [data-radix-select-value],
+        .fantasy-input .radix-select-value,
+        .fantasy-input span[data-radix-select-value] {
+          color: #fff !important;
+          -webkit-text-fill-color: #fff !important;
+          opacity: 1 !important;
+        }
+
+        .fantasy-input input::placeholder,
+        .fantasy-input textarea::placeholder {
+          color: hsl(240 5% 64.9%) !important;
+          opacity: 1 !important;
+        }
+      `,
+    },
+  ],
   presets: [presetUno(), presetTypography()],
   transformers: [transformerDirectives(), transformerVariantGroup()],
 });

@@ -683,6 +683,7 @@ export default function WorldMap({
   // Map image upload
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   function handleMapDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
@@ -863,4 +864,147 @@ export default function WorldMap({
       </div>
     );
   }
+
+  return (
+    <div className="flex h-full bg-gray-900 text-white">
+      {/* Left Tools Panel */}
+      <Card className="w-1/4 min-w-[250px] max-w-[350px] bg-gray-800/50 border-gray-700/50 flex flex-col">
+        <CardHeader>
+          <CardTitle className="flex items-center text-fantasy-gold-400 font-fantasy">
+            <Compass className="mr-2" />
+            Карта Світу
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex-1 overflow-y-auto space-y-4 scroll-fantasy p-4">
+          <div>
+            <label
+              htmlFor="map-upload"
+              className="fantasy-button w-full text-center cursor-pointer px-4 py-2"
+            >
+              Завантажити карту
+            </label>
+            <input
+              id="map-upload"
+              type="file"
+              className="hidden"
+              onChange={handleMapImageUpload}
+              accept="image/*"
+            />
+          </div>
+
+          {/* Search and Filters */}
+          <div className="space-y-2">
+            <Input
+              type="text"
+              placeholder="Search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent>
+                {markerTypes.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterDanger} onValueChange={setFilterDanger}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by danger level" />
+              </SelectTrigger>
+              <SelectContent>
+                {dangerLevels.map((level) => (
+                  <SelectItem key={level.value} value={level.value}>
+                    {level.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterLore} onValueChange={setFilterLore}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by lore" />
+              </SelectTrigger>
+              <SelectContent>
+                {lore.map((l) => (
+                  <SelectItem key={l.id} value={l.id.toString()}>
+                    {l.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Other tools */}
+        </CardContent>
+      </Card>
+
+      {/* Main Map Area */}
+      <div className="flex-1 relative" ref={mapContainerRef}>
+        {uploading && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="text-center">
+              <p className="text-lg font-semibold">Завантаження карти...</p>
+            </div>
+          </div>
+        )}
+        <TransformWrapper>
+          <TransformComponent
+            wrapperStyle={{ width: "100%", height: "100%" }}
+            contentStyle={{ width: "100%", height: "100%" }}
+          >
+            <div
+              className="relative w-full h-full bg-gray-700 bg-center bg-no-repeat bg-cover"
+              onClick={handleMapClick}
+              onDrop={handleMapDrop}
+              onDragOver={(e) => e.preventDefault()}
+              style={{
+                backgroundImage: currentWorld?.mapImageUrl
+                  ? `url(${currentWorld.mapImageUrl})`
+                  : "none",
+              }}
+            >
+              {/* Markers, regions, routes render here */}
+              {filteredLocations.map((marker) => (
+                <Tooltip key={marker.id}>
+                  <TooltipTrigger asChild>
+                    <div
+                      key={marker.id}
+                      className="absolute"
+                      style={{
+                        left: `${marker.x}%`,
+                        top: `${marker.y}%`,
+                        transform: "translate(-50%, -50%)",
+                      }}
+                      onMouseDown={(e) => handleMarkerMouseDown(e, marker)}
+                      onTouchStart={(e) => handleMarkerTouchStart(e, marker)}
+                    >
+                      <div
+                        className={`text-2xl cursor-pointer transition-transform duration-200 hover:scale-125 ${
+                          selectedMarkers.includes(marker.id)
+                            ? "ring-2 ring-yellow-400 rounded-full"
+                            : ""
+                        }`}
+                        onClick={(e) => handleMarkerSelect(marker, e)}
+                      >
+                        {markerTypes.find((t) => t.value === marker.type)?.icon}
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{marker.name}</p>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+
+              {/* ... other elements ... */}
+            </div>
+          </TransformComponent>
+        </TransformWrapper>
+      </div>
+    </div>
+  );
 }
