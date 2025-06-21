@@ -18,8 +18,7 @@ interface HeaderProps {
 
 export default function Header({ currentWorldId }: HeaderProps) {
   const t = useTranslation();
-  const { muted, setMuted, volume, setVolume /*, nextTrack */ } =
-    useAudioContext();
+  const { muted, setMuted, volume, setVolume, nextTrack } = useAudioContext();
 
   const handleSave = () => {
     // TODO: Implement save functionality
@@ -75,7 +74,7 @@ export default function Header({ currentWorldId }: HeaderProps) {
               <button
                 className="p-2 rounded-full bg-purple-700 hover:bg-yellow-400/20 border-2 border-yellow-400 transition-colors duration-200 shadow-md"
                 aria-label="Наступний трек"
-                onClick={() => alert("Ця функція тимчасово відключена")}
+                onClick={nextTrack}
               >
                 <SkipForward className="h-6 w-6 text-yellow-300" />
               </button>

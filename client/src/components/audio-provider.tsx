@@ -61,7 +61,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
     muted,
     loop: false,
     onEnded: handleNextTrack,
-    autoPlay: !muted, // Autoplay if not muted initially
+    autoPlay: !muted,
   });
 
   const playEffect = (url: string = UI_SOUND_URL) => {
