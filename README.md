@@ -167,7 +167,7 @@ FantasyWorldBuilder2/
 
 - **React 18** - UI фреймворк
 - **TypeScript** - Типізація
-- **Tailwind CSS** - Стилізація
+- **UnoCSS** - Atomic CSS двигун
 - **Radix UI** - Доступні компоненти
 - **React Query** - Отримання даних
 - **React Hook Form** - Управління формами
