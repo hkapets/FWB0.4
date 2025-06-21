@@ -15,6 +15,13 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface EntityFormProps<T extends ZodTypeAny> {
   schema: T;
@@ -149,7 +156,6 @@ export default function EntityForm<T extends ZodTypeAny>({
                             accept="image/*"
                             ref={fileInputRef}
                             onChange={handleImageChange}
-                            className="fantasy-input"
                           />
                         </div>
                       </FormControl>
@@ -193,14 +199,12 @@ export default function EntityForm<T extends ZodTypeAny>({
                         {f.type === "textarea" ? (
                           <Textarea
                             {...field}
-                            className="fantasy-input text-white"
                             maxLength={f.maxLength}
                             placeholder={f.placeholder}
                           />
                         ) : (
                           <Input
                             {...field}
-                            className="fantasy-input text-white"
                             maxLength={f.maxLength}
                             placeholder={f.placeholder}
                           />
@@ -226,7 +230,6 @@ export default function EntityForm<T extends ZodTypeAny>({
                       <FormControl>
                         <Textarea
                           {...field}
-                          className="fantasy-input text-white"
                           maxLength={f.maxLength}
                           placeholder={f.placeholder}
                         />
@@ -249,13 +252,14 @@ export default function EntityForm<T extends ZodTypeAny>({
                         {f.label}
                       </FormLabel>
                       <FormControl>
-                        <select {...field} className="fantasy-input text-white">
+                        <select {...field}>
                           <option value="">{f.placeholder || f.label}</option>
-                          {f.options.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
+                          {f.options &&
+                            f.options.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
                         </select>
                       </FormControl>
                       <FormMessage />
