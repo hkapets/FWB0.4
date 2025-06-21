@@ -11,7 +11,7 @@ import LanguageSelector from "@/components/ui/language-selector";
 import { useTranslation } from "@/lib/i18n";
 import { useAudioContext } from "@/components/audio-provider";
 import GlobalSearch from "@/components/global-search";
-import { Link } from "react-router-dom";
+import { Link } from "wouter";
 
 interface HeaderProps {
   currentWorldId: number | null;
