@@ -310,19 +310,17 @@ export default function Sidebar({
                       }
                     >
                       <span className="flex-1">{world.name}</span>
-                      {world.id !== currentWorldId && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="p-1 h-auto hover:bg-red-500/20"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteClick(world);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-400" />
-                        </Button>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-1 h-auto hover:bg-red-500/20"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClick(world);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-400" />
+                      </Button>
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
