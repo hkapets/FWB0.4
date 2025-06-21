@@ -3,38 +3,58 @@ import { useRef, useEffect, useCallback } from "react";
 export function useAudio({
   src,
   volume = 1,
-  loop = true,
+  loop = false,
   muted = false,
   autoPlay = false,
+  onEnded,
 }: {
   src: string;
   volume?: number;
   loop?: boolean;
   muted?: boolean;
   autoPlay?: boolean;
+  onEnded?: () => void;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Effect for creating/changing the audio source and managing event listeners
   useEffect(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio(src);
-      audioRef.current.loop = loop;
-      audioRef.current.volume = volume;
-      audioRef.current.muted = muted;
-      if (autoPlay) audioRef.current.play();
-    } else {
-      audioRef.current.src = src;
-      audioRef.current.loop = loop;
-      audioRef.current.volume = volume;
-      audioRef.current.muted = muted;
+    const audio = new Audio(src);
+    audioRef.current = audio;
+    audio.crossOrigin = "anonymous";
+    audio.loop = loop;
+    audio.volume = volume;
+    audio.muted = muted;
+
+    if (autoPlay) {
+      audio.play().catch((e) => console.error("Audio autoplay failed:", e));
     }
+
+    const handleEnded = () => onEnded?.();
+    audio.addEventListener("ended", handleEnded);
+
     return () => {
-      audioRef.current?.pause();
+      audio.pause();
+      audio.removeEventListener("ended", handleEnded);
+      audioRef.current = null;
     };
-  }, [src, loop, volume, muted, autoPlay]);
+  }, [src, autoPlay, onEnded]); // Note: loop, volume, muted are not here
+
+  // Separate effects to update properties without restarting the track
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume;
+  }, [volume]);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.muted = muted;
+  }, [muted]);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.loop = loop;
+  }, [loop]);
 
   const play = useCallback(() => {
-    audioRef.current?.play();
+    return audioRef.current?.play();
   }, []);
 
   const pause = useCallback(() => {

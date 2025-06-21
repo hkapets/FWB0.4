@@ -1,12 +1,30 @@
-import React, { createContext, useContext, useState, useMemo } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useMemo,
+  useCallback,
+} from "react";
 import { useAudio } from "@/hooks/use-audio";
 
-// Fantasy background music (замінити на свій файл або URL)
-const MUSIC_URL =
-  "https://cdn.pixabay.com/audio/2022/10/16/audio_12b6b6b6b6.mp3";
-// Fantasy UI sound (замінити на свій файл або URL)
-const UI_SOUND_URL =
-  "https://cdn.pixabay.com/audio/2022/10/16/audio_12b6b6b6b6.mp3";
+const PLAYLIST = [
+  "DoubleTake.mp3",
+  "Elysian.mp3",
+  "Epic Quest.mp3",
+  "Epic Realm.mp3",
+  "Epiphany.mp3",
+  "magic-chime.mp3",
+  "Mystic Realms.mp3",
+  "Mythic Pulse.mp3",
+  "Mythic Realm.mp3",
+  "Mythic Rise.mp3",
+  "Mythic.mp3",
+  "parchment-rustle.mp3",
+  "The Vanguard.mp3",
+  "Valor.mp3",
+].map((song) => `/audio/${song}`);
+
+const UI_SOUND_URL = "/audio/quill-button.mp3";
 
 interface AudioContextProps {
   muted: boolean;
@@ -14,6 +32,7 @@ interface AudioContextProps {
   volume: number;
   setVolume: (v: number) => void;
   playEffect: (url?: string) => void;
+  nextTrack: () => void;
 }
 
 const AudioContext = createContext<AudioContextProps | undefined>(undefined);
@@ -30,36 +49,63 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(1);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
 
-  // Фонова музика
+  const handleNextTrack = useCallback(() => {
+    setCurrentTrackIndex((prevIndex) => (prevIndex + 1) % PLAYLIST.length);
+  }, []);
+
   const music = useAudio({
-    src: MUSIC_URL,
+    src: PLAYLIST[currentTrackIndex],
     volume,
     muted,
-    loop: true,
-    autoPlay: true,
+    loop: false,
+    onEnded: handleNextTrack,
+    autoPlay: !muted, // Autoplay if not muted initially
   });
 
-  // Програвання ефекту (одноразово)
   const playEffect = (url: string = UI_SOUND_URL) => {
     const audio = new Audio(url);
     audio.volume = muted ? 0 : volume;
     audio.play();
   };
 
-  // Автоматично відтворювати/зупиняти музику при mute
   React.useEffect(() => {
-    if (muted) music.pause();
-    else music.play();
-  }, [muted]);
+    const playMusicOnFirstInteraction = () => {
+      if (!muted) {
+        music.play()?.catch(() => {});
+      }
+      window.removeEventListener("click", playMusicOnFirstInteraction);
+      window.removeEventListener("keydown", playMusicOnFirstInteraction);
+    };
+
+    window.addEventListener("click", playMusicOnFirstInteraction);
+    window.addEventListener("keydown", playMusicOnFirstInteraction);
+
+    return () => {
+      window.removeEventListener("click", playMusicOnFirstInteraction);
+      window.removeEventListener("keydown", playMusicOnFirstInteraction);
+    };
+  }, [music, muted]);
 
   React.useEffect(() => {
-    music.setVolume(volume);
-  }, [volume]);
+    if (muted) {
+      music.pause();
+    } else {
+      music.play()?.catch(() => {});
+    }
+  }, [muted, music]);
 
   const value = useMemo(
-    () => ({ muted, setMuted, volume, setVolume, playEffect }),
-    [muted, volume]
+    () => ({
+      muted,
+      setMuted,
+      volume,
+      setVolume,
+      playEffect,
+      nextTrack: handleNextTrack,
+    }),
+    [muted, volume, handleNextTrack]
   );
 
   return (

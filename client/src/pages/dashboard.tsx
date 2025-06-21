@@ -238,7 +238,7 @@ export default function DashboardPage({
   // Якщо немає світу, показуємо привітання
   if (!currentWorldId) {
     return (
-      <div className="min-h-screen relative overflow-hidden">
+      <div className="p-8 relative overflow-hidden">
         {/* Фонове зображення */}
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
@@ -248,85 +248,84 @@ export default function DashboardPage({
           }}
         />
 
-        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 text-center">
-          <div className="max-w-4xl mx-auto">
-            {/* Логотип */}
-            <div className="mb-8">
-              <div className="w-24 h-24 mx-auto bg-gradient-to-br from-fantasy-gold-400 to-fantasy-gold-600 rounded-full flex items-center justify-center shadow-2xl mb-6">
-                <Crown className="text-4xl text-white" />
-              </div>
-              <h1 className="text-5xl md:text-7xl font-fantasy font-bold text-fantasy-gold-400 mb-4">
-                Fantasy World Builder
-              </h1>
-              <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-2xl mx-auto">
-                Створюйте епічні світи, розробляйте персонажів та пишіть історії
-              </p>
-            </div>
+        <div className="relative z-10 flex flex-col items-center justify-center text-center py-12">
+          <div className="w-24 h-24 bg-yellow-500 rounded-full flex items-center justify-center mb-6 ring-4 ring-yellow-400/50 shadow-lg">
+            <Crown className="text-purple-900 text-5xl" />
+          </div>
+          <h1 className="text-5xl font-fantasy font-bold text-yellow-200 tracking-wider">
+            Fantasy World Builder
+          </h1>
+          <p className="mt-4 text-xl text-purple-200 max-w-2xl">
+            Створюйте епічні світи, розробляйте персонажів та пишіть історії
+          </p>
 
-            {/* Опис функцій */}
-            <div className="grid md:grid-cols-3 gap-6 mb-12">
-              <div className="bg-black/20 backdrop-blur-sm rounded-lg p-6 border border-fantasy-purple-500/30">
-                <BookOpen className="w-12 h-12 text-fantasy-purple-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-fantasy-purple-300 mb-2">
+          <div className="grid md:grid-cols-3 gap-8 mt-12 w-full max-w-6xl">
+            {/* Багатий лор */}
+            <div className="fantasy-border p-6 rounded-lg text-left bg-black/30 backdrop-blur-sm">
+              <div className="flex items-center gap-4 mb-4">
+                <BookOpen className="w-8 h-8 text-yellow-400" />
+                <h3 className="text-2xl font-fantasy text-yellow-300">
                   Багатий Лор
                 </h3>
-                <p className="text-gray-400">
-                  Створюйте географію, раси, магію та історію вашого світу
-                </p>
               </div>
-              <div className="bg-black/20 backdrop-blur-sm rounded-lg p-6 border border-fantasy-green-500/30">
-                <Compass className="w-12 h-12 text-fantasy-green-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-fantasy-green-300 mb-2">
+              <p className="text-purple-200">
+                Створюйте географію, раси, магію та історію вашого світу
+              </p>
+            </div>
+            {/* Інтерактивні карти */}
+            <div className="fantasy-border p-6 rounded-lg text-left bg-black/30 backdrop-blur-sm">
+              <div className="flex items-center gap-4 mb-4">
+                <Compass className="w-8 h-8 text-yellow-400" />
+                <h3 className="text-2xl font-fantasy text-yellow-300">
                   Інтерактивні карти
                 </h3>
-                <p className="text-gray-400">
-                  Малюйте карти світу, додавайте маркери та локації
-                </p>
               </div>
-              <div className="bg-black/20 backdrop-blur-sm rounded-lg p-6 border border-fantasy-gold-500/30">
-                <Sword className="w-12 h-12 text-fantasy-gold-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-fantasy-gold-300 mb-2">
+              <p className="text-purple-200">
+                Малюйте карти світу, додавайте маркери та локації
+              </p>
+            </div>
+            {/* Персонажі */}
+            <div className="fantasy-border p-6 rounded-lg text-left bg-black/30 backdrop-blur-sm">
+              <div className="flex items-center gap-4 mb-4">
+                <Sword className="w-8 h-8 text-yellow-400" />
+                <h3 className="text-2xl font-fantasy text-yellow-300">
                   Персонажі та події
                 </h3>
-                <p className="text-gray-400">
-                  Розробляйте персонажів та створюйте хронологію подій
-                </p>
               </div>
-            </div>
-
-            {/* Кнопки дій */}
-            <div className="space-y-4">
-              <Button
-                onClick={() => setIsCreateWorldModalOpen(true)}
-                className="fantasy-button px-8 py-4 text-lg font-semibold"
-                size="lg"
-              >
-                <Plus className="mr-2 h-6 w-6" />
-                Створити новий світ
-              </Button>
-
-              {worlds.length > 0 && (
-                <div className="mt-8">
-                  <p className="text-gray-400 mb-4">
-                    Або виберіть існуючий світ:
-                  </p>
-                  <div className="flex flex-wrap gap-3 justify-center">
-                    {worlds.map((world) => (
-                      <Button
-                        key={world.id}
-                        onClick={() => handleSelectWorld(world.id)}
-                        variant="outline"
-                        className="border-fantasy-purple-500/50 text-fantasy-purple-300 hover:bg-fantasy-purple-500/20"
-                      >
-                        {world.name}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <p className="text-purple-200">
+                Розробляйте персонажів та створюйте хронологію подій
+              </p>
             </div>
           </div>
+
+          <Button
+            size="lg"
+            className="mt-12 fantasy-button px-8 py-6 text-lg"
+            onClick={() => setIsCreateWorldModalOpen(true)}
+          >
+            <Plus className="mr-2 h-6 w-6" />
+            Створити новий світ
+          </Button>
         </div>
+        <CreateWorldModal
+          isOpen={isCreateWorldModalOpen}
+          onClose={() => setIsCreateWorldModalOpen(false)}
+          onSubmit={async (data) => {
+            try {
+              const response = await fetch("/api/worlds", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+              });
+              const world = await response.json();
+              setCurrentWorldId(world.id);
+              refetchWorlds();
+              setIsCreateWorldModalOpen(false);
+            } catch (error) {
+              console.error("Error creating world:", error);
+            }
+          }}
+        />
       </div>
     );
   }
