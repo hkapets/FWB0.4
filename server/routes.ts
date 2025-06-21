@@ -31,6 +31,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.use(expressFileUpload());
 
+  // Handle generic /api/events call
+  app.get("/api/events", (req, res) => {
+    res.json([]);
+  });
+
   // World routes
   app.get("/api/worlds", async (req, res) => {
     try {
