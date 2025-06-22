@@ -9,7 +9,7 @@ import React, {
 import { useAudio } from "@/hooks/use-audio";
 
 // Динамічний список всіх аудіо файлів
-const AUDIO_FILES = [
+const allAudioFiles = [
   "DoubleTake.mp3",
   "Elysian.mp3",
   "Epic Quest.mp3",
@@ -22,7 +22,16 @@ const AUDIO_FILES = [
   "Mythic.mp3",
   "The Vanguard.mp3",
   "Valor.mp3",
-].map((song) => `/audio/${song}`);
+  "Epilogue.mp3",
+  "Heroic Tale.mp3",
+  "Hero's Call.mp3",
+  "Hero's Rise.mp3",
+  "Mythic Paradox.mp3",
+  "Mythic Pulse2.mp3",
+  "Quest.mp3",
+];
+
+const PLAYLIST_FILES = allAudioFiles.map((song) => `/audio/${song}`);
 
 // Звукові ефекти
 const SOUND_EFFECTS = {
@@ -63,20 +72,22 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const currentTrack = AUDIO_FILES[currentTrackIndex];
+  const currentTrack = PLAYLIST_FILES[currentTrackIndex];
 
   const handleNextTrack = useCallback(() => {
-    setCurrentTrackIndex((prevIndex) => (prevIndex + 1) % AUDIO_FILES.length);
+    setCurrentTrackIndex(
+      (prevIndex) => (prevIndex + 1) % PLAYLIST_FILES.length
+    );
   }, []);
 
   const handlePreviousTrack = useCallback(() => {
     setCurrentTrackIndex((prevIndex) =>
-      prevIndex === 0 ? AUDIO_FILES.length - 1 : prevIndex - 1
+      prevIndex === 0 ? PLAYLIST_FILES.length - 1 : prevIndex - 1
     );
   }, []);
 
   const setCurrentTrack = useCallback((track: string) => {
-    const index = AUDIO_FILES.indexOf(track);
+    const index = PLAYLIST_FILES.indexOf(track);
     if (index !== -1) {
       setCurrentTrackIndex(index);
     }
@@ -164,7 +175,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
       nextTrack: handleNextTrack,
       previousTrack: handlePreviousTrack,
       currentTrack,
-      availableTracks: AUDIO_FILES,
+      availableTracks: PLAYLIST_FILES,
       setCurrentTrack,
       isPlaying,
       togglePlay,

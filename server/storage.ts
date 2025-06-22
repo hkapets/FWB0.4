@@ -382,8 +382,17 @@ export class MemStorage implements IStorage {
       id,
       createdAt: now,
       updatedAt: now,
-      description: insertCharacter.description ?? null,
-      level: insertCharacter.level ?? 1,
+      name: insertCharacter.name || { uk: "", en: "", pl: "" },
+      age: insertCharacter.age || null,
+      birthplace: insertCharacter.birthplace || null,
+      race: insertCharacter.race || "",
+      ethnicity: insertCharacter.ethnicity || null,
+      description: insertCharacter.description || null,
+      imageUrl: insertCharacter.imageUrl || null,
+      family: insertCharacter.family || null,
+      relatedCharacters: insertCharacter.relatedCharacters || null,
+      relatedEvents: insertCharacter.relatedEvents || null,
+      skills: insertCharacter.skills || null,
     };
     this.characters.set(id, character);
     return character;
@@ -400,7 +409,18 @@ export class MemStorage implements IStorage {
       ...character,
       ...updateData,
       updatedAt: new Date(),
-      description: updateData.description ?? character.description ?? null,
+      name: updateData.name || character.name || { uk: "", en: "", pl: "" },
+      age: updateData.age ?? character.age,
+      birthplace: updateData.birthplace ?? character.birthplace,
+      race: updateData.race || character.race || "",
+      ethnicity: updateData.ethnicity ?? character.ethnicity,
+      description: updateData.description ?? character.description,
+      imageUrl: updateData.imageUrl ?? character.imageUrl,
+      family: updateData.family ?? character.family,
+      relatedCharacters:
+        updateData.relatedCharacters ?? character.relatedCharacters,
+      relatedEvents: updateData.relatedEvents ?? character.relatedEvents,
+      skills: updateData.skills ?? character.skills,
     };
     this.characters.set(id, updatedCharacter);
     return updatedCharacter;

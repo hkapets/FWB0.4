@@ -51,11 +51,17 @@ export const locations = pgTable("locations", {
 // Characters table
 export const characters = pgTable("characters", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
+  name: json("name").notNull(), // { uk: string, en: string, pl: string }
+  age: integer("age"),
+  birthplace: json("birthplace"), // { uk: string, en: string, pl: string }
   race: text("race").notNull(),
-  class: text("class").notNull(),
-  level: integer("level").notNull().default(1),
-  description: text("description"),
+  ethnicity: json("ethnicity"), // { uk: string, en: string, pl: string }
+  description: json("description"), // { uk: string, en: string, pl: string }
+  imageUrl: text("image_url"),
+  family: json("family"), // { uk: string, en: string, pl: string }
+  relatedCharacters: json("related_characters"), // array of character IDs
+  relatedEvents: json("related_events"), // array of event IDs
+  skills: json("skills"), // { uk: string, en: string, pl: string }
   worldId: integer("world_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

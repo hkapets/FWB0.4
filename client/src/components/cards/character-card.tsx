@@ -7,11 +7,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Users, Star, Edit, Trash2, Eye, Crown, Sword } from "lucide-react";
+import { Users, Edit, Trash2, Eye } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
 import type { Character } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { useI18n } from "@/lib/i18n";
 
 interface CharacterCardProps {
   character: Character;
@@ -37,28 +38,17 @@ const getRaceColor = (race: string): string => {
   return colors[race] || "bg-gray-900/30 text-gray-300 border-gray-500/30";
 };
 
-const getClassColor = (characterClass: string): string => {
-  const colors: Record<string, string> = {
-    Warrior: "bg-red-900/30 text-red-300 border-red-500/30",
-    Wizard: "bg-purple-900/30 text-purple-300 border-purple-500/30",
-    Rogue: "bg-gray-900/30 text-gray-300 border-gray-500/30",
-    Cleric: "bg-yellow-900/30 text-yellow-300 border-yellow-500/30",
-    Ranger: "bg-green-900/30 text-green-300 border-green-500/30",
-    Bard: "bg-pink-900/30 text-pink-300 border-pink-500/30",
-    Paladin: "bg-blue-900/30 text-blue-300 border-blue-500/30",
-    Sorcerer: "bg-purple-900/30 text-purple-300 border-purple-500/30",
-    Warlock: "bg-purple-900/30 text-purple-300 border-purple-500/30",
-    Druid: "bg-green-900/30 text-green-300 border-green-500/30",
-  };
-  return (
-    colors[characterClass] || "bg-gray-900/30 text-gray-300 border-gray-500/30"
-  );
-};
-
-const getLevelIcon = (level: number) => {
-  if (level >= 20) return <Crown className="h-3 w-3" />;
-  if (level >= 10) return <Sword className="h-3 w-3" />;
-  return <Star className="h-3 w-3" />;
+const getMultilangValue = (
+  value: unknown,
+  language: string,
+  fallback: string
+): string => {
+  if (typeof value === "object" && value !== null) {
+    const castedValue = value as Record<string, unknown>;
+    return String(castedValue[language] || castedValue["uk"] || fallback);
+  }
+  if (value) return String(value);
+  return fallback;
 };
 
 export default function CharacterCard({
@@ -68,11 +58,23 @@ export default function CharacterCard({
   onDelete,
   onView,
 }: CharacterCardProps) {
+  const { language } = useI18n();
   const raceColorClass = getRaceColor(character.race);
-  const classColorClass = getClassColor(character.class);
 
   const { data: events = [] } = useQuery<any[]>({ queryKey: ["/api/events"] });
   const relatedEvents = events.filter((e) => e.characterId === character.id);
+
+  const characterName = getMultilangValue(
+    character.name,
+    language,
+    "Без імені"
+  );
+  const characterDescription = getMultilangValue(
+    character.description,
+    language,
+    ""
+  );
+  const ethnicity = getMultilangValue(character.ethnicity, language, "");
 
   if (viewMode === "list") {
     return (
@@ -88,21 +90,20 @@ export default function CharacterCard({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2 mb-1">
                     <h3 className="text-lg font-fantasy font-semibold text-yellow-200 truncate hover:text-yellow-100 transition-colors duration-200">
-                      {character.name}
+                      {characterName}
                     </h3>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center space-x-1 cursor-help">
-                          {getLevelIcon(character.level)}
-                          <span className="text-xs text-gray-400">
-                            Level {character.level}
-                          </span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Рівень персонажа: {character.level}</p>
-                      </TooltipContent>
-                    </Tooltip>
+                    {character.age && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge className="text-xs bg-purple-900/30 text-purple-300 border-purple-500/30">
+                            {character.age} років
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Вік: {character.age} років</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                   </div>
 
                   <div className="flex items-center space-x-2 mb-2">
@@ -118,23 +119,23 @@ export default function CharacterCard({
                         <p>Раса: {character.race}</p>
                       </TooltipContent>
                     </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Badge
-                          className={`text-xs ${classColorClass} border transition-all duration-200 hover:scale-105`}
-                        >
-                          {character.class}
-                        </Badge>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Клас: {character.class}</p>
-                      </TooltipContent>
-                    </Tooltip>
+                    {ethnicity && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge className="text-xs bg-blue-900/30 text-blue-300 border-blue-500/30">
+                            {ethnicity}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Етнічна приналежність: {ethnicity}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                   </div>
 
-                  {character.description && (
+                  {characterDescription && (
                     <p className="text-sm text-gray-400 line-clamp-2">
-                      {character.description}
+                      {characterDescription}
                     </p>
                   )}
 
@@ -231,58 +232,56 @@ export default function CharacterCard({
             </div>
 
             <h3 className="font-fantasy font-semibold text-yellow-200 mb-1 group-hover:text-yellow-100 transition-colors duration-200">
-              {character.name}
+              {characterName}
             </h3>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge
-                  className={`text-xs ${raceColorClass} mb-2 border transition-all duration-200 hover:scale-105`}
-                >
-                  {character.race}
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Раса: {character.race}</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-
-          <div className="space-y-3">
-            <div className="text-center">
+            <div className="flex items-center justify-center space-x-2 mb-2">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Badge
-                    className={`text-xs ${classColorClass} border transition-all duration-200 hover:scale-105`}
+                    className={`text-xs ${raceColorClass} border transition-all duration-200 hover:scale-105`}
                   >
-                    {character.class}
+                    {character.race}
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Клас: {character.class}</p>
+                  <p>Раса: {character.race}</p>
                 </TooltipContent>
               </Tooltip>
+              {character.age && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge className="text-xs bg-purple-900/30 text-purple-300 border-purple-500/30">
+                      {character.age}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Вік: {character.age} років</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </div>
+          </div>
 
-            <div className="text-center">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center justify-center space-x-1 cursor-help">
-                    {getLevelIcon(character.level)}
-                    <span className="text-xs text-gray-400">
-                      Level {character.level}
-                    </span>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Рівень персонажа: {character.level}</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
+          <div className="space-y-3">
+            {ethnicity && (
+              <div className="text-center">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge className="text-xs bg-blue-900/30 text-blue-300 border-blue-500/30">
+                      {ethnicity}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Етнічна приналежність: {ethnicity}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            )}
 
-            {character.description && (
+            {characterDescription && (
               <p className="text-xs text-gray-300 text-center line-clamp-3 group-hover:text-gray-200 transition-colors duration-200">
-                {character.description}
+                {characterDescription}
               </p>
             )}
 

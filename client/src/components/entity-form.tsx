@@ -252,15 +252,16 @@ export default function EntityForm<T extends ZodTypeAny>({
                         {f.label}
                       </FormLabel>
                       <FormControl>
-                        <select {...field}>
-                          <option value="">{f.placeholder || f.label}</option>
-                          {f.options &&
-                            f.options.map((opt) => (
-                              <option key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </option>
-                            ))}
-                        </select>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="fantasy-input">
+                              <SelectValue placeholder={f.placeholder} />
+                            </SelectTrigger>
+                          </FormControl>
+                        </Select>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
