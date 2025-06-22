@@ -1,11 +1,33 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { formatDistanceToNow, format } from "date-fns";
+import { uk, enUS, pl } from "date-fns/locale";
+
+const locales: { [key: string]: Locale } = { uk, en: enUS, pl };
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatTimeAgo(date: Date | string): string {
+export function getMultilingualValue(
+  field: unknown,
+  lang: string,
+  fallback = ""
+): string {
+  if (typeof field === "string") {
+    return field;
+  }
+  if (typeof field === "object" && field !== null) {
+    const typedField = field as Record<string, string>;
+    return typedField[lang] || typedField.uk || typedField.en || fallback;
+  }
+  return fallback;
+}
+
+export function formatTimeAgo(
+  date: string | Date,
+  lang: string = "uk"
+): string {
   const now = new Date();
   const past = new Date(date);
   const diffInMs = now.getTime() - past.getTime();

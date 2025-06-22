@@ -372,6 +372,34 @@ export interface Translations {
     save: string;
     create: string;
   };
+  character: {
+    title: string;
+    subtitle: string;
+    add: string;
+    edit: string;
+    create: string;
+    searchPlaceholder: string;
+    noCharacters: string;
+    noCharactersDesc: string;
+    addFirst: string;
+    name: string;
+    race: string;
+    class: string;
+    level: string;
+    description: string;
+    background: string;
+    stats: string;
+    inventory: string;
+    created: string;
+    updated: string;
+    deleted: string;
+    saveError: string;
+    deleteError: string;
+    selectRace: string;
+    selectClass: string;
+    allRaces: string;
+    allClasses: string;
+  };
 }
 
 export const translations: Record<Language, Translations> = {
@@ -698,6 +726,34 @@ export const translations: Record<Language, Translations> = {
       save: "Зберегти",
       create: "Створити",
     },
+    character: {
+      title: "Опис персонажа",
+      subtitle: "Інформація про персонажа",
+      add: "Додати персонажа",
+      edit: "Редагувати персонажа",
+      create: "Створити персонажа",
+      searchPlaceholder: "Пошук персонажа",
+      noCharacters: "Немає персонажів",
+      noCharactersDesc: "Почніть створювати персонажів",
+      addFirst: "Додайте першого персонажа",
+      name: "Ім'я",
+      race: "Раса",
+      class: "Клас",
+      level: "Рівень",
+      description: "Опис",
+      background: "Фон",
+      stats: "Статистика",
+      inventory: "Інвентар",
+      created: "Створено",
+      updated: "Оновлено",
+      deleted: "Видалено",
+      saveError: "Помилка збереження",
+      deleteError: "Помилка видалення",
+      selectRace: "Виберіть расу",
+      selectClass: "Виберіть клас",
+      allRaces: "Всі раси",
+      allClasses: "Всі класи",
+    },
   },
 
   en: {
@@ -1020,6 +1076,34 @@ export const translations: Record<Language, Translations> = {
       addTag: "Add tag",
       save: "Save",
       create: "Create",
+    },
+    character: {
+      title: "Character Description",
+      subtitle: "Information about the character",
+      add: "Add Character",
+      edit: "Edit Character",
+      create: "Create Character",
+      searchPlaceholder: "Search for a character",
+      noCharacters: "No characters",
+      noCharactersDesc: "Start creating characters",
+      addFirst: "Add Your First Character",
+      name: "Name",
+      race: "Race",
+      class: "Class",
+      level: "Level",
+      description: "Description",
+      background: "Background",
+      stats: "Stats",
+      inventory: "Inventory",
+      created: "Created",
+      updated: "Updated",
+      deleted: "Deleted",
+      saveError: "Save Error",
+      deleteError: "Delete Error",
+      selectRace: "Select Race",
+      selectClass: "Select Class",
+      allRaces: "All Races",
+      allClasses: "All Classes",
     },
   },
 
@@ -1344,6 +1428,34 @@ export const translations: Record<Language, Translations> = {
       addTag: "Dodaj tag",
       save: "Zapisz",
       create: "Stwórz",
+    },
+    character: {
+      title: "Opis postaci",
+      subtitle: "Informacje o postaci",
+      add: "Dodaj postać",
+      edit: "Edytuj postać",
+      create: "Stwórz postać",
+      searchPlaceholder: "Szukaj postaci",
+      noCharacters: "Nie ma postaci",
+      noCharactersDesc: "Zacznij tworzyć postacie",
+      addFirst: "Dodaj swoją pierwszą postać",
+      name: "Imię",
+      race: "Rasa",
+      class: "Klasa",
+      level: "Poziom",
+      description: "Opis",
+      background: "Tło",
+      stats: "Statystyki",
+      inventory: "Ekwipunek",
+      created: "Stworzono",
+      updated: "Zaktualizowano",
+      deleted: "Usunięto",
+      saveError: "Błąd zapisu",
+      deleteError: "Błąd usuwania",
+      selectRace: "Wybierz rasę",
+      selectClass: "Wybierz klasę",
+      allRaces: "Wszystkie rasy",
+      allClasses: "Wszystkie klasy",
     },
   },
 };

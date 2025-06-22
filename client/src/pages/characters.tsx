@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { useTranslation, i18n } from "@/lib/i18n";
+import { useTranslation, useI18n } from "@/lib/i18n";
 import CreateEditRaceModal from "@/components/modals/create-race-modal";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -25,11 +25,12 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import ReactMarkdown from "react-markdown";
 import LoreTree from "@/components/lore-tree";
 import CreateEditLoreModal from "@/components/modals/create-lore-modal";
-import { Character, LoreItem as LoreItemType } from "@shared/schema";
+import { Character, WorldLore as LoreItemType } from "@shared/schema";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import CharacterCard from "@/components/cards/character-card";
 import CreateCharacterModal from "@/components/modals/create-character-modal";
+import { getMultilingualValue } from "@/lib/utils";
 
 type LoreLinkRendererProps = {
   children: React.ReactNode[];
@@ -46,7 +47,7 @@ function LoreLinkRenderer({
 }: LoreLinkRendererProps) {
   const text = (children as any)[0];
   const loreItem = lore?.find(
-    (l) => (l.name as any)[lang] === text || (l.name as any).en === text
+    (l) => getMultilingualValue(l.name, lang) === text
   );
   if (!loreItem) return <span className="text-yellow-400">[[{text}]]</span>;
   return (
@@ -64,12 +65,12 @@ function LoreLinkRenderer({
 }
 
 export default function CharactersPage() {
-  const { t } = useTranslation();
+  const t = useTranslation();
   const [tab, setTab] = useState<
     "characters" | "races" | "classes" | "magic" | "lore"
   >("characters");
   const { toast } = useToast();
-  const lang = i18n.language as "uk" | "en";
+  const { language: lang } = useI18n();
 
   const worldId = 1; // TODO: get from context or props
 
@@ -127,13 +128,17 @@ export default function CharactersPage() {
   const [loreTypeFilter, setLoreTypeFilter] = useState<string>("all");
 
   const fetchCharacters = () => {
+    setCharacters(null); // Show loading state
     fetch(`/api/worlds/${worldId}/characters`)
       .then((res) => res.json())
-      .then(setCharacters);
+      .then(setCharacters)
+      .catch(() => setCharacters([])); // On error, show empty state
   };
 
   useEffect(() => {
-    if (tab === "characters") fetchCharacters();
+    if (tab === "characters") {
+      fetchCharacters();
+    }
     if (tab === "races")
       fetch(`/api/worlds/${worldId}/races`)
         .then((res) => res.json())
@@ -167,16 +172,28 @@ export default function CharactersPage() {
   };
   const confirmDeleteCharacter = async () => {
     if (!characterToDelete) return;
-    await fetch(`/api/characters/${characterToDelete.id}`, {
-      method: "DELETE",
-    });
-    fetchCharacters();
-    toast({
-      title: t("character.deleted"),
-      description: `${(characterToDelete.name as any)[lang]} was deleted.`,
-    });
-    setDeleteCharacterDialogOpen(false);
-    setCharacterToDelete(null);
+    try {
+      await fetch(`/api/characters/${characterToDelete.id}`, {
+        method: "DELETE",
+      });
+      toast({
+        title: t.character.deleted,
+        description: `${getMultilingualValue(
+          characterToDelete.name,
+          lang
+        )} was deleted.`,
+      });
+      fetchCharacters();
+    } catch (error) {
+      toast({
+        title: t.messages.error,
+        description: t.character.deleteError,
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteCharacterDialogOpen(false);
+      setCharacterToDelete(null);
+    }
   };
 
   // Generic Handlers
@@ -199,116 +216,243 @@ export default function CharactersPage() {
     }
   };
 
-  const tabNames: Record<typeof tab, string> = {
-    characters: t("navigation.characters"),
-    races: t("lore.races"),
-    classes: t("lore.classes"),
-    magic: t("lore.magic"),
-    lore: t("navigation.lore"),
+  const handleEditItem = (
+    item: any,
+    type: "races" | "classes" | "magic" | "lore"
+  ) => {
+    if (type === "races") {
+      setEditRace(item);
+      setRaceModalOpen(true);
+    }
+    if (type === "classes") {
+      setEditClass(item);
+      setClassModalOpen(true);
+    }
+    if (type === "magic") {
+      setEditMagic(item);
+      setMagicModalOpen(true);
+    }
+    if (type === "lore") {
+      setEditLore(item);
+      setLoreModalOpen(true);
+    }
   };
 
-  return (
-    <DndProvider backend={HTML5Backend}>
-      <div className="p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-fantasy text-yellow-300">
-            {t("navigation.characters")}
-          </h1>
-          <Button
-            onClick={() => {
-              if (tab === "characters") handleAddCharacter();
-              else handleAddItem(tab);
-            }}
-            className="fantasy-button"
-          >
-            {t("common.add")} {tabNames[tab]}
-          </Button>
-        </div>
+  const handleDeleteItem = (
+    item: any,
+    type: "races" | "classes" | "magic" | "lore"
+  ) => {
+    if (type === "races") {
+      setRaceToDelete(item);
+      setDeleteDialogOpen(true);
+    }
+    if (type === "classes") {
+      setClassToDelete(item);
+      setDeleteClassDialogOpen(true);
+    }
+    if (type === "magic") {
+      setMagicToDelete(item);
+      setDeleteMagicDialogOpen(true);
+    }
+    if (type === "lore") {
+      setLoreToDelete(item);
+      setDeleteLoreDialogOpen(true);
+    }
+  };
 
-        <div className="flex border-b border-purple-800 mb-6">
-          {(Object.keys(tabNames) as (keyof typeof tabNames)[]).map((tKey) => (
-            <button
-              key={tKey}
-              onClick={() => setTab(tKey)}
-              className={`px-4 py-2 text-sm font-medium transition-colors duration-200 ${
-                tab === tKey
-                  ? "border-b-2 border-yellow-400 text-yellow-400"
-                  : "text-gray-400 hover:text-white"
-              }`}
+  const confirmDeleteItem = async (
+    type: "races" | "classes" | "magic" | "lore"
+  ) => {
+    let itemToDelete, endpoint;
+    if (type === "races") {
+      itemToDelete = raceToDelete;
+      endpoint = `/api/races/${itemToDelete.id}`;
+    }
+    if (type === "classes") {
+      itemToDelete = classToDelete;
+      endpoint = `/api/classes/${itemToDelete.id}`;
+    }
+    if (type === "magic") {
+      itemToDelete = magicToDelete;
+      endpoint = `/api/magic/${itemToDelete.id}`;
+    }
+    if (type === "lore") {
+      itemToDelete = loreToDelete;
+      endpoint = `/api/lore/${itemToDelete.id}`;
+    }
+    if (!itemToDelete) return;
+    await fetch(endpoint!, { method: "DELETE" });
+    toast({
+      title: "Видалено",
+      description: `${(itemToDelete.name as any)[lang]} видалено.`,
+    });
+    // refetch
+    // ...
+    setDeleteDialogOpen(false);
+    setDeleteClassDialogOpen(false);
+    setDeleteMagicDialogOpen(false);
+    setDeleteLoreDialogOpen(false);
+  };
+
+  // Lore specific handlers
+  const onLoreReorder = (items: LoreItemType[]) => setLore(items);
+  const onLoreItemSelect = (ids: number[]) => setSelectedLoreIds(ids);
+
+  const filteredLore = useMemo(() => {
+    if (!lore) return [];
+    return lore
+      .filter((item) => {
+        const name = (item.name as string)?.toLowerCase() || "";
+        const desc = (item.description as string)?.toLowerCase() || "";
+        return (
+          name.includes(loreSearch.toLowerCase()) ||
+          desc.includes(loreSearch.toLowerCase())
+        );
+      })
+      .filter((item) => {
+        if (loreFilterImage === "all") return true;
+        return loreFilterImage === "with" ? !!item.imageUrl : !item.imageUrl;
+      })
+      .filter((item) => {
+        if (loreFilterParent === "all") return true;
+        return item.parentId === null;
+      })
+      .filter((item) => {
+        if (loreTypeFilter === "all") return true;
+        return item.type === loreTypeFilter;
+      });
+  }, [lore, loreSearch, loreFilterImage, loreFilterParent, loreTypeFilter]);
+
+  const tabNames: Record<typeof tab, string> = {
+    characters: t.navigation.characters,
+    races: t.lore.races,
+    classes: t.lore.classes,
+    magic: t.lore.magic,
+    lore: t.navigation.lore,
+  };
+
+  if (!t.character) {
+    return <div>Loading translations...</div>;
+  }
+
+  return (
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="flex flex-wrap items-center justify-between mb-6 gap-4">
+        <div className="flex items-center gap-2">
+          {Object.keys(tabNames).map((tabKey) => (
+            <Button
+              key={tabKey}
+              variant={tab === tabKey ? "default" : "outline"}
+              onClick={() => setTab(tabKey as any)}
+              className="capitalize"
             >
-              {tabNames[tKey]}
-            </button>
+              {tabNames[tabKey as keyof typeof tabNames]}
+            </Button>
           ))}
         </div>
-
         {tab === "characters" && (
-          <div>
-            {characters === null ? (
-              <div className="text-center py-20">{t("common.loading")}</div>
-            ) : characters.length === 0 ? (
-              <div className="text-center py-20">
-                <h2 className="text-xl font-semibold text-white mb-2">
-                  {t("character.noCharacters")}
-                </h2>
-                <p className="text-gray-400 mb-6">
-                  {t("character.noCharactersDesc")}
-                </p>
-                <Button onClick={handleAddCharacter} className="fantasy-button">
-                  {t("character.add")}
-                </Button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {characters.map((character) => (
-                  <CharacterCard
-                    key={character.id}
-                    character={character}
-                    onEdit={() => handleEditCharacter(character)}
-                    onDelete={() => handleDeleteCharacter(character)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+          <Button onClick={handleAddCharacter} className="fantasy-button">
+            {t.character.add}
+          </Button>
         )}
-
-        {/* Other tabs can be implemented here... */}
       </div>
 
-      {characterModalOpen && (
-        <CreateCharacterModal
-          isOpen={characterModalOpen}
-          onClose={() => {
-            setCharacterModalOpen(false);
-            setEditCharacter(null);
-          }}
-          worldId={worldId}
-          character={editCharacter}
-          onSuccess={fetchCharacters}
-        />
+      {tab === "characters" && (
+        <div className="animate-fadein">
+          {characters === null ? (
+            <div className="text-center py-16 text-gray-400">
+              Loading characters...
+            </div>
+          ) : characters.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {characters.map((char) => (
+                <CharacterCard
+                  key={char.id}
+                  character={char}
+                  onEdit={() => handleEditCharacter(char)}
+                  onDelete={() => handleDeleteCharacter(char)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 flex flex-col items-center">
+              <h3 className="text-2xl font-fantasy text-yellow-300">
+                {t.character.noCharacters}
+              </h3>
+              <p className="text-gray-400 mt-2 mb-6 max-w-md">
+                {t.character.noCharactersDesc}
+              </p>
+              <Button onClick={handleAddCharacter} size="lg">
+                {t.character.addFirst}
+              </Button>
+            </div>
+          )}
+        </div>
       )}
 
+      {tab === "races" && (
+        <div>
+          <pre>{JSON.stringify(races, null, 2)}</pre>
+        </div>
+      )}
+      {tab === "classes" && (
+        <div>
+          <pre>{JSON.stringify(classes, null, 2)}</pre>
+        </div>
+      )}
+      {tab === "magic" && (
+        <div>
+          <pre>{JSON.stringify(magic, null, 2)}</pre>
+        </div>
+      )}
+      {tab === "lore" && (
+        <DndProvider backend={HTML5Backend}>
+          <LoreTree
+            items={filteredLore}
+            onReorder={onLoreReorder}
+            onItemSelect={onLoreItemSelect}
+            selectedIds={selectedLoreIds}
+            onEdit={(item) => handleEditItem(item, "lore")}
+            onDelete={(item) => handleDeleteItem(item, "lore")}
+          />
+        </DndProvider>
+      )}
+
+      <CreateCharacterModal
+        isOpen={characterModalOpen}
+        onClose={() => setCharacterModalOpen(false)}
+        character={editCharacter}
+        worldId={worldId}
+        onSuccess={() => {
+          setCharacterModalOpen(false);
+          fetchCharacters();
+        }}
+      />
       <AlertDialog
         open={deleteCharacterDialogOpen}
         onOpenChange={setDeleteCharacterDialogOpen}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("common.confirmDelete")}</AlertDialogTitle>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
           </AlertDialogHeader>
-          <div>
-            {t("common.confirmDeleteMessage", {
-              item: (characterToDelete?.name as any)?.[lang],
-            })}
+          <div className="text-gray-300">
+            This action cannot be undone. This will permanently delete the
+            character{" "}
+            <span className="font-bold text-yellow-300">
+              {characterToDelete &&
+                getMultilingualValue(characterToDelete.name, lang)}
+            </span>
+            .
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDeleteCharacter}>
-              {t("common.continue")}
+              Continue
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </DndProvider>
+    </div>
   );
 }
