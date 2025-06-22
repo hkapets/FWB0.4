@@ -1,45 +1,96 @@
 {
-  "actions": {
-    "add": "Додати",
-    "edit": "Редагувати",
-    "delete": "Видалити",
-    "loading": "Завантаження"
+  "languages": {
+    "ukrainian": "Українська",
+    "english": "English",
+    "polish": "Polski"
   },
-  "forms": {
-    "level": "Рівень",
-    "name": "Ім'я",
-    "description": "Опис",
-    "race": "Раса",
-    "class": "Клас",
-    "cancel": "Скасувати",
+  "common": {
     "save": "Зберегти",
-    "create": "Створити"
-  },
-  "messages": {
+    "cancel": "Скасувати",
+    "delete": "Видалити",
+    "edit": "Редагувати",
+    "create": "Створити",
+    "search": "Пошук",
+    "loading": "Завантаження...",
     "error": "Помилка",
-    "errorDesc": "Сталася неочікувана помилка."
+    "success": "Успішно",
+    "confirm": "Підтвердити",
+    "back": "Назад",
+    "next": "Далі",
+    "previous": "Попередній",
+    "close": "Закрити",
+    "open": "Відкрити",
+    "add": "Додати",
+    "remove": "Видалити",
+    "update": "Оновити",
+    "export": "Експорт",
+    "import": "Імпорт"
   },
-  "characters": {
+  "navigation": {
+    "dashboard": "Панель керування",
+    "worlds": "Світи",
+    "characters": "Персонажі",
+    "locations": "Локації",
+    "creatures": "Істоти",
+    "lore": "Лор",
+    "notes": "Нотатки",
+    "timeline": "Часові рамки",
+    "relations": "Відносини",
+    "scenarios": "Сценарії",
+    "settings": "Налаштування",
+    "worldMap": "Карта світу"
+  },
+  "lore": {
+    "races": "Раси",
+    "classes": "Класи",
+    "magic": "Магія",
+    "artifacts": "Артефакти",
+    "events": "Події",
+    "geography": "Географія",
+    "history": "Історія",
+    "politics": "Політика",
+    "religion": "Релігія",
+    "writing": "Писемність",
+    "mythology": "Міфологія"
+  },
+  "world": {
+    "create": "Створити світ",
+    "edit": "Редагувати світ",
+    "name": "Назва світу",
+    "description": "Опис",
+    "genre": "Жанр",
+    "template": "Шаблон",
+    "settings": "Налаштування світу",
+    "export": "Експорт світу",
+    "import": "Імпорт світу"
+  },
+  "character": {
     "title": "Персонажі",
     "subtitle": "Керуйте персонажами вашої історії",
     "add": "Додати персонажа",
-    "editCharacter": "Редагувати персонажа",
-    "addCharacter": "Додати нового персонажа",
+    "edit": "Редагувати персонажа",
+    "create": "Створити персонажа",
     "searchPlaceholder": "Пошук персонажів...",
     "noCharacters": "Персонажів не знайдено",
     "noCharactersDesc": "Створіть свого першого персонажа, щоб почати.",
     "addFirst": "Додати першого персонажа",
-    "selectRace": "Оберіть расу",
-    "selectClass": "Оберіть клас",
-    "allRaces": "Усі раси",
-    "allClasses": "Усі класи"
-  },
-  "character": {
+    "name": "Ім'я персонажа",
+    "race": "Раса",
+    "class": "Клас",
+    "level": "Рівень",
+    "description": "Опис",
+    "background": "Передісторія",
+    "stats": "Характеристики",
+    "inventory": "Інвентар",
     "created": "Персонажа створено",
     "updated": "Персонажа оновлено",
     "deleted": "Персонажа видалено",
     "saveError": "Не вдалося зберегти персонажа.",
-    "deleteError": "Не вдалося видалити персонажа."
+    "deleteError": "Не вдалося видалити персонажа.",
+    "selectRace": "Оберіть расу",
+    "selectClass": "Оберіть клас",
+    "allRaces": "Усі раси",
+    "allClasses": "Усі класи"
   },
   "characterRaces": {
     "human": "Людина",
@@ -78,5 +129,47 @@
     "scholar": "Вчений",
     "noble": "Шляхтич",
     "peasant": "Селянин"
+  },
+  "location": {
+    "create": "Створити локацію",
+    "edit": "Редагувати локацію",
+    "name": "Назва локації",
+    "type": "Тип",
+    "description": "Опис",
+    "climate": "Клімат",
+    "terrain": "Територія",
+    "population": "Населення",
+    "culture": "Культура"
+  },
+  "creature": {
+    "create": "Створити істоту",
+    "edit": "Редагувати істоту",
+    "name": "Назва істоти",
+    "type": "Тип",
+    "description": "Опис",
+    "habitat": "Середовище проживання",
+    "behavior": "Поведінка",
+    "abilities": "Здібності",
+    "danger": "Небезпека"
+  },
+  "audio": {
+    "title": "Аудіо",
+    "currentTrack": "Поточний трек:",
+    "selectTrack": "Виберіть трек:",
+    "volume": "Гучність:",
+    "mute": "Вимкнути звук",
+    "unmute": "Увімкнути звук",
+    "play": "Грати",
+    "pause": "Пауза",
+    "next": "Наступний",
+    "previous": "Попередній"
+  },
+  "danger": {
+    "safe": "Безпечно",
+    "protected": "Захищено",
+    "dangerous": "Небезпечно"
+  },
+  "messages": {
+    "errorDesc": "Сталася неочікувана помилка."
   }
 }

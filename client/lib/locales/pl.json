@@ -1,0 +1,118 @@
+{
+  "languages": {
+    "ukrainian": "Українська",
+    "english": "English",
+    "polish": "Polski"
+  },
+  "common": {
+    "save": "Zapisz",
+    "cancel": "Anuluj",
+    "delete": "Usuń",
+    "edit": "Edytuj",
+    "create": "Utwórz",
+    "search": "Szukaj",
+    "loading": "Ładowanie...",
+    "error": "Błąd",
+    "success": "Sukces",
+    "confirm": "Potwierdź",
+    "back": "Wstecz",
+    "next": "Dalej",
+    "previous": "Poprzedni",
+    "close": "Zamknij",
+    "open": "Otwórz",
+    "add": "Dodaj",
+    "remove": "Usuń",
+    "update": "Aktualizuj",
+    "export": "Eksportuj",
+    "import": "Importuj"
+  },
+  "navigation": {
+    "dashboard": "Panel główny",
+    "worlds": "Światy",
+    "characters": "Postacie",
+    "locations": "Lokalizacje",
+    "creatures": "Stworzenia",
+    "lore": "Lore",
+    "notes": "Notatki",
+    "timeline": "Oś czasu",
+    "relations": "Relacje",
+    "scenarios": "Scenariusze",
+    "settings": "Ustawienia",
+    "worldMap": "Mapa świata"
+  },
+  "lore": {
+    "races": "Rasy",
+    "classes": "Klasy",
+    "magic": "Magia",
+    "artifacts": "Artefakty",
+    "events": "Wydarzenia",
+    "geography": "Geografia",
+    "history": "Historia",
+    "politics": "Polityka",
+    "religion": "Religia",
+    "writing": "Pismo",
+    "mythology": "Mitologia"
+  },
+  "world": {
+    "create": "Utwórz świat",
+    "edit": "Edytuj świat",
+    "name": "Nazwa świata",
+    "description": "Opis",
+    "genre": "Gatunek",
+    "template": "Szablon",
+    "settings": "Ustawienia świata",
+    "export": "Eksportuj świat",
+    "import": "Importuj świat"
+  },
+  "character": {
+    "create": "Utwórz postać",
+    "edit": "Edytuj postać",
+    "name": "Nazwa postaci",
+    "race": "Rasa",
+    "class": "Klasa",
+    "level": "Poziom",
+    "description": "Opis",
+    "background": "Tło",
+    "stats": "Statystyki",
+    "inventory": "Ekwipunek"
+  },
+  "location": {
+    "create": "Utwórz lokalizację",
+    "edit": "Edytuj lokalizację",
+    "name": "Nazwa lokalizacja",
+    "type": "Typ",
+    "description": "Opis",
+    "climate": "Klimat",
+    "terrain": "Teren",
+    "population": "Populacja",
+    "culture": "Kultura"
+  },
+  "creature": {
+    "create": "Utwórz stworzenie",
+    "edit": "Edytuj stworzenie",
+    "name": "Nazwa stworzenia",
+    "type": "Typ",
+    "description": "Opis",
+    "habitat": "Siedlisko",
+    "behavior": "Zachowanie",
+    "abilities": "Zdolności",
+    "danger": "Niebezpieczeństwo"
+  },
+  "audio": {
+    "title": "Audio",
+    "currentTrack": "Aktualny utwór:",
+    "selectTrack": "Wybierz utwór:",
+    "volume": "Głośność:",
+    "mute": "Wycisz",
+    "unmute": "Włącz dźwięk",
+    "play": "Odtwarzaj",
+    "pause": "Wstrzymaj",
+    "next": "Następny",
+    "previous": "Poprzedni"
+  },
+  "danger": {
+    "safe": "Bezpieczne",
+    "protected": "Chronione",
+    "dangerous": "Niebezpieczne"
+  }
+}

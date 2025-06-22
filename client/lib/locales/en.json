@@ -1,45 +1,96 @@
 {
-  "actions": {
-    "add": "Add",
-    "edit": "Edit",
-    "delete": "Delete",
-    "loading": "Loading"
+  "languages": {
+    "ukrainian": "Українська",
+    "english": "English",
+    "polish": "Polski"
   },
-  "forms": {
-    "level": "Level",
-    "name": "Name",
-    "description": "Description",
-    "race": "Race",
-    "class": "Class",
-    "cancel": "Cancel",
+  "common": {
     "save": "Save",
-    "create": "Create"
-  },
-  "messages": {
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "loading": "Loading...",
     "error": "Error",
-    "errorDesc": "An unexpected error occurred."
+    "success": "Success",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "close": "Close",
+    "open": "Open",
+    "add": "Add",
+    "remove": "Remove",
+    "update": "Update",
+    "export": "Export",
+    "import": "Import"
   },
-  "characters": {
+  "navigation": {
+    "dashboard": "Dashboard",
+    "worlds": "Worlds",
+    "characters": "Characters",
+    "locations": "Locations",
+    "creatures": "Creatures",
+    "lore": "Lore",
+    "notes": "Notes",
+    "timeline": "Timeline",
+    "relations": "Relations",
+    "scenarios": "Scenarios",
+    "settings": "Settings",
+    "worldMap": "World Map"
+  },
+  "lore": {
+    "races": "Races",
+    "classes": "Classes",
+    "magic": "Magic",
+    "artifacts": "Artifacts",
+    "events": "Events",
+    "geography": "Geography",
+    "history": "History",
+    "politics": "Politics",
+    "religion": "Religion",
+    "writing": "Writing",
+    "mythology": "Mythology"
+  },
+  "world": {
+    "create": "Create World",
+    "edit": "Edit World",
+    "name": "World Name",
+    "description": "Description",
+    "genre": "Genre",
+    "template": "Template",
+    "settings": "World Settings",
+    "export": "Export World",
+    "import": "Import World"
+  },
+  "character": {
     "title": "Characters",
     "subtitle": "Manage your story's characters",
     "add": "Add Character",
-    "editCharacter": "Edit Character",
-    "addCharacter": "Add New Character",
+    "edit": "Edit Character",
+    "create": "Create Character",
     "searchPlaceholder": "Search characters...",
     "noCharacters": "No Characters Found",
     "noCharactersDesc": "Create your first character to begin.",
     "addFirst": "Add First Character",
-    "selectRace": "Select Race",
-    "selectClass": "Select Class",
-    "allRaces": "All Races",
-    "allClasses": "All Classes"
-  },
-  "character": {
+    "name": "Character Name",
+    "race": "Race",
+    "class": "Class",
+    "level": "Level",
+    "description": "Description",
+    "background": "Background",
+    "stats": "Stats",
+    "inventory": "Inventory",
     "created": "Character Created",
     "updated": "Character Updated",
     "deleted": "Character Deleted",
     "saveError": "Failed to save character.",
-    "deleteError": "Failed to delete character."
+    "deleteError": "Failed to delete character.",
+    "selectRace": "Select Race",
+    "selectClass": "Select Class",
+    "allRaces": "All Races",
+    "allClasses": "All Classes"
   },
   "characterRaces": {
     "human": "Human",
@@ -78,5 +129,47 @@
     "scholar": "Scholar",
     "noble": "Noble",
     "peasant": "Peasant"
+  },
+  "location": {
+    "create": "Create Location",
+    "edit": "Edit Location",
+    "name": "Location Name",
+    "type": "Type",
+    "description": "Description",
+    "climate": "Climate",
+    "terrain": "Terrain",
+    "population": "Population",
+    "culture": "Culture"
+  },
+  "creature": {
+    "create": "Create Creature",
+    "edit": "Edit Creature",
+    "name": "Creature Name",
+    "type": "Type",
+    "description": "Description",
+    "habitat": "Habitat",
+    "behavior": "Behavior",
+    "abilities": "Abilities",
+    "danger": "Danger"
+  },
+  "audio": {
+    "title": "Audio",
+    "currentTrack": "Current track:",
+    "selectTrack": "Select track:",
+    "volume": "Volume:",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "play": "Play",
+    "pause": "Pause",
+    "next": "Next",
+    "previous": "Previous"
+  },
+  "danger": {
+    "safe": "Safe",
+    "protected": "Protected",
+    "dangerous": "Dangerous"
+  },
+  "messages": {
+    "errorDesc": "An unexpected error occurred."
   }
 }

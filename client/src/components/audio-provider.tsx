@@ -4,35 +4,46 @@ import React, {
   useState,
   useMemo,
   useCallback,
+  useEffect,
 } from "react";
 import { useAudio } from "@/hooks/use-audio";
 
-const PLAYLIST = [
+// Динамічний список всіх аудіо файлів
+const AUDIO_FILES = [
   "DoubleTake.mp3",
   "Elysian.mp3",
   "Epic Quest.mp3",
   "Epic Realm.mp3",
   "Epiphany.mp3",
-  "magic-chime.mp3",
   "Mystic Realms.mp3",
   "Mythic Pulse.mp3",
   "Mythic Realm.mp3",
   "Mythic Rise.mp3",
   "Mythic.mp3",
-  "parchment-rustle.mp3",
   "The Vanguard.mp3",
   "Valor.mp3",
 ].map((song) => `/audio/${song}`);
 
-const UI_SOUND_URL = "/audio/quill-button.mp3";
+// Звукові ефекти
+const SOUND_EFFECTS = {
+  magicChime: "/audio/magic-chime.wav",
+  quillButton: "/audio/quill-button.wav",
+  parchmentRustle: "/audio/parchment-rustle.wav",
+};
 
 interface AudioContextProps {
   muted: boolean;
   setMuted: (m: boolean) => void;
   volume: number;
   setVolume: (v: number) => void;
-  playEffect: (url?: string) => void;
+  playEffect: (effect: keyof typeof SOUND_EFFECTS) => void;
   nextTrack: () => void;
+  previousTrack: () => void;
+  currentTrack: string;
+  availableTracks: string[];
+  setCurrentTrack: (track: string) => void;
+  isPlaying: boolean;
+  togglePlay: () => void;
 }
 
 const AudioContext = createContext<AudioContextProps | undefined>(undefined);
@@ -48,32 +59,69 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [muted, setMuted] = useState(false);
-  const [volume, setVolume] = useState(1);
+  const [volume, setVolume] = useState(0.7);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const currentTrack = AUDIO_FILES[currentTrackIndex];
 
   const handleNextTrack = useCallback(() => {
-    setCurrentTrackIndex((prevIndex) => (prevIndex + 1) % PLAYLIST.length);
+    setCurrentTrackIndex((prevIndex) => (prevIndex + 1) % AUDIO_FILES.length);
+  }, []);
+
+  const handlePreviousTrack = useCallback(() => {
+    setCurrentTrackIndex((prevIndex) =>
+      prevIndex === 0 ? AUDIO_FILES.length - 1 : prevIndex - 1
+    );
+  }, []);
+
+  const setCurrentTrack = useCallback((track: string) => {
+    const index = AUDIO_FILES.indexOf(track);
+    if (index !== -1) {
+      setCurrentTrackIndex(index);
+    }
   }, []);
 
   const music = useAudio({
-    src: PLAYLIST[currentTrackIndex],
+    src: currentTrack,
     volume,
     muted,
     loop: false,
     onEnded: handleNextTrack,
-    autoPlay: !muted,
+    autoPlay: false,
   });
 
-  const playEffect = (url: string = UI_SOUND_URL) => {
-    const audio = new Audio(url);
-    audio.volume = muted ? 0 : volume;
-    audio.play();
-  };
+  const togglePlay = useCallback(() => {
+    if (isPlaying) {
+      music.pause();
+      setIsPlaying(false);
+    } else {
+      music
+        .play()
+        ?.then(() => setIsPlaying(true))
+        .catch(() => {});
+    }
+  }, [isPlaying, music]);
 
-  React.useEffect(() => {
+  const playEffect = useCallback(
+    (effect: keyof typeof SOUND_EFFECTS) => {
+      if (muted) return;
+
+      const audio = new Audio(SOUND_EFFECTS[effect]);
+      audio.volume = volume;
+      audio.play().catch(() => {});
+    },
+    [muted, volume]
+  );
+
+  // Автоматичне відтворення після першої взаємодії
+  useEffect(() => {
     const playMusicOnFirstInteraction = () => {
-      if (!muted) {
-        music.play()?.catch(() => {});
+      if (!muted && !isPlaying) {
+        music
+          .play()
+          ?.then(() => setIsPlaying(true))
+          .catch(() => {});
       }
       window.removeEventListener("click", playMusicOnFirstInteraction);
       window.removeEventListener("keydown", playMusicOnFirstInteraction);
@@ -86,15 +134,25 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
       window.removeEventListener("click", playMusicOnFirstInteraction);
       window.removeEventListener("keydown", playMusicOnFirstInteraction);
     };
-  }, [music, muted]);
+  }, [music, muted, isPlaying]);
 
-  React.useEffect(() => {
+  // Синхронізація стану відтворення
+  useEffect(() => {
     if (muted) {
       music.pause();
-    } else {
-      music.play()?.catch(() => {});
+      setIsPlaying(false);
     }
   }, [muted, music]);
+
+  // Оновлення треку при зміні індексу
+  useEffect(() => {
+    if (isPlaying && !muted) {
+      music
+        .play()
+        ?.then(() => setIsPlaying(true))
+        .catch(() => {});
+    }
+  }, [currentTrackIndex, music, isPlaying, muted]);
 
   const value = useMemo(
     () => ({
@@ -104,8 +162,24 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({
       setVolume,
       playEffect,
       nextTrack: handleNextTrack,
+      previousTrack: handlePreviousTrack,
+      currentTrack,
+      availableTracks: AUDIO_FILES,
+      setCurrentTrack,
+      isPlaying,
+      togglePlay,
     }),
-    [muted, volume, handleNextTrack]
+    [
+      muted,
+      volume,
+      playEffect,
+      handleNextTrack,
+      handlePreviousTrack,
+      currentTrack,
+      setCurrentTrack,
+      isPlaying,
+      togglePlay,
+    ]
   );
 
   return (
