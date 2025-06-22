@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow, format, type Locale } from "date-fns";
 import { uk, enUS, pl } from "date-fns/locale";
 
 const locales: { [key: string]: Locale } = { uk, en: enUS, pl };

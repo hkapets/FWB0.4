@@ -335,6 +335,13 @@ export interface Translations {
     magic: string;
     artifacts: string;
     events: string;
+    races: string;
+    classes: string;
+    writing: string;
+    politics: string;
+    history: string;
+    mythology: string;
+    religion: string;
   };
 
   mapTypes: {
@@ -694,6 +701,13 @@ export const translations: Record<Language, Translations> = {
       magic: "Магія",
       artifacts: "Артефакти",
       events: "Події",
+      races: "Раси",
+      classes: "Класи",
+      writing: "Писання",
+      politics: "Політика",
+      history: "Історія",
+      mythology: "Міфологія",
+      religion: "Релігія",
     },
     mapTypes: {
       city: "Місто",
@@ -1045,6 +1059,13 @@ export const translations: Record<Language, Translations> = {
       magic: "Magic",
       artifacts: "Artifacts",
       events: "Events",
+      races: "Races",
+      classes: "Classes",
+      writing: "Writing",
+      politics: "Politics",
+      history: "History",
+      mythology: "Mythology",
+      religion: "Religion",
     },
     mapTypes: {
       city: "City",
@@ -1397,6 +1418,13 @@ export const translations: Record<Language, Translations> = {
       magic: "Magia",
       artifacts: "Artefakty",
       events: "Wydarzenia",
+      races: "Rasy",
+      classes: "Klasy",
+      writing: "Pisanie",
+      politics: "Polityka",
+      history: "Historia",
+      mythology: "Mityka",
+      religion: "Religia",
     },
     mapTypes: {
       city: "Miasto",
