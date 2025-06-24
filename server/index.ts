@@ -59,7 +59,15 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  if (app.get("env") !== "development") {
+  // In development, redirect to Vite dev server for non-API routes
+  if (process.env.NODE_ENV !== "production") {
+    app.get('*', (req, res) => {
+      if (!req.path.startsWith('/api')) {
+        res.redirect(`http://localhost:5173${req.path}`);
+      }
+    });
+  } else {
+    // In production, serve static files
     const distPath = path.resolve(import.meta.dirname, "public");
     if (!fs.existsSync(distPath)) {
       throw new Error(
@@ -72,8 +80,8 @@ app.use((req, res, next) => {
     });
   }
 
-  // API server will run on port 3001
-  const port = process.env.PORT || 3001;
+  // API server will run on port 5000 for Replit compatibility
+  const port = process.env.PORT || 5000;
   server.listen(port, "0.0.0.0", () => {
     log(`API server listening on port ${port}`);
   });
