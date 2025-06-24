@@ -124,7 +124,31 @@ The application is configured for deployment on Replit with autoscaling:
 ## Changelog
 
 - June 24, 2025. Initial setup
+- December 30, 2024. Project migration completed - PostgreSQL database configured, server fixed for Replit compatibility, application running successfully
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Project Vision Updates
+
+Based on user's detailed vision document:
+
+**Target Platform**: Electron desktop application (offline-first)
+**Languages**: Ukrainian (primary), English, Polish
+**Key Features**:
+- Dashboard with fantasy background when no world selected
+- Audio controls with user's background music
+- Expandable sidebar sections (Lore, Characters, World Map, Timeline, etc.)
+- Adaptive modals with fantasy theme
+- Global search and filtering
+- Export/import functionality
+- Relationship mapping between elements
+- Timeline with horizontal scrolling
+- Hand-drawn world maps with markers
+
+**Architecture Notes**:
+- Remove Replit-specific files/references for Electron migration
+- Maintain existing multilingual support
+- Keep current fantasy theme and audio system
+- Preserve world management and lore systems
