@@ -42,15 +42,16 @@
   },
   "lore": {
     "races": "Раси",
-    "classes": "Класи",
+    "classes": "Класи", 
     "magic": "Магія",
     "artifacts": "Артефакти",
     "events": "Події",
     "geography": "Географія",
     "history": "Історія",
-    "politics": "Політика",
-    "religion": "Релігія",
     "writing": "Писемність",
+    "politics": "Політика",
+    "bestiary": "Бестіарій",
+    "religion": "Релігія",
     "mythology": "Міфологія"
   },
   "world": {
