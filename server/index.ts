@@ -73,8 +73,8 @@ app.use((req, res, next) => {
   }
 
   // API server will run on port 3001
-  const port = 3001;
-  server.listen(port, () => {
+  const port = process.env.PORT || 3001;
+  server.listen(port, "0.0.0.0", () => {
     log(`API server listening on port ${port}`);
   });
 })();
