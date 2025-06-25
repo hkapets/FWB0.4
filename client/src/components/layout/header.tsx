@@ -72,33 +72,37 @@ export default function Header({ currentWorldId }: HeaderProps) {
   };
 
   return (
-    <header className="fixed top-0 left-0 w-full h-16 flex items-center px-6 bg-gradient-to-r from-purple-900 via-gray-900 to-purple-800 shadow-lg z-50 fantasy-border">
-      <div className="w-full max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center w-full">
-          <Link href="/" className="flex items-center space-x-4">
-            <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
-              <Crown className="text-purple-900 text-xl" />
+    <header className="fixed top-0 left-0 w-full h-18 flex items-center px-6 bg-gradient-to-r from-purple-900/95 via-gray-900/95 to-purple-800/95 backdrop-blur-md shadow-2xl z-50 fantasy-border border-b border-yellow-400/30">
+      <div className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center w-full py-3">
+          <Link href="/" className="flex items-center space-x-4 group">
+            <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center ring-2 ring-yellow-400/30 shadow-lg group-hover:ring-yellow-300/50 transition-all duration-300">
+              <Crown className="text-purple-900 text-2xl" />
             </div>
-            <h1 className="text-2xl lg:text-3xl font-fantasy font-bold text-yellow-200">
+            <h1 className="text-2xl lg:text-3xl font-fantasy font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-500">
               Fantasy World Builder
             </h1>
           </Link>
           <div className="flex items-center gap-4">
             <GlobalSearch />
-            <Button
-              className="fantasy-button px-3 py-2 text-sm text-white font-medium whitespace-nowrap"
-              onClick={handleSave}
-              disabled={!currentWorldId}
-            >
-              {t.header.saveProject}
-            </Button>
-            <Button
-              className="fantasy-button px-3 py-2 text-sm text-white font-medium whitespace-nowrap"
-              onClick={handleExport}
-              disabled={!currentWorldId}
-            >
-              {t.header.export}
-            </Button>
+            <div className="hidden md:flex items-center gap-3">
+              <Button
+                className="fantasy-button px-4 py-2 text-sm font-medium"
+                onClick={handleSave}
+                disabled={!currentWorldId}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Зберегти
+              </Button>
+              <Button
+                className="fantasy-button px-4 py-2 text-sm font-medium"
+                onClick={handleExport}
+                disabled={!currentWorldId}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Експорт
+              </Button>
+            </div>
             <LanguageSelector />
             <div className="relative flex items-center gap-2">
               <Popover open={isAudioOpen} onOpenChange={setIsAudioOpen}>
@@ -106,38 +110,47 @@ export default function Header({ currentWorldId }: HeaderProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="fantasy-button text-white hover:text-gold-300"
+                    className="fantasy-button text-white hover:text-yellow-300 relative"
                   >
                     <Music className="h-5 w-5" />
+                    {isPlaying && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                    )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 fantasy-border bg-gradient-to-br from-purple-900/90 to-purple-800/90 backdrop-blur-md border-purple-600/50 p-4">
-                  <div className="space-y-4">
+                <PopoverContent className="w-96 fantasy-border bg-gradient-to-br from-purple-900/95 to-purple-800/95 backdrop-blur-xl border-yellow-400/30 p-6 shadow-2xl">
+                  <div className="space-y-6">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-fantasy text-gold-400">
-                        Аудіо
+                      <h3 className="text-xl font-fantasy text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-500">
+                        Аудіо система
                       </h3>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setMuted(!muted)}
-                        className="text-white hover:text-gold-300"
+                        className="text-white hover:text-yellow-300 p-2"
                       >
                         {muted ? (
-                          <VolumeX className="h-4 w-4" />
+                          <VolumeX className="h-5 w-5" />
                         ) : (
-                          <Volume2 className="h-4 w-4" />
+                          <Volume2 className="h-5 w-5" />
                         )}
                       </Button>
                     </div>
 
-                    <div className="text-center">
-                      <p className="text-sm text-gray-300 mb-1">
+                    <div className="text-center bg-gradient-to-r from-purple-800/30 to-purple-700/30 rounded-lg p-4 border border-purple-600/20">
+                      <p className="text-sm text-purple-200 mb-2">
                         Поточний трек:
                       </p>
-                      <p className="text-white font-medium truncate">
+                      <p className="text-yellow-100 font-medium truncate text-lg">
                         {getCurrentTrackName()}
                       </p>
+                      <div className="flex items-center justify-center mt-2">
+                        <div className={`w-2 h-2 rounded-full mr-2 ${isPlaying ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></div>
+                        <span className="text-xs text-purple-300">
+                          {isPlaying ? 'Відтворення' : 'Пауза'}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -169,26 +182,26 @@ export default function Header({ currentWorldId }: HeaderProps) {
                       </Select>
                     </div>
 
-                    <div className="flex items-center justify-center space-x-2">
+                    <div className="flex items-center justify-center space-x-4 bg-gradient-to-r from-gray-800/30 to-gray-700/30 rounded-lg p-3">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={previousTrack}
-                        className="text-white hover:text-gold-300"
+                        className="text-white hover:text-yellow-300 hover:bg-yellow-400/10 rounded-full p-2"
                       >
-                        <SkipBack className="h-4 w-4" />
+                        <SkipBack className="h-5 w-5" />
                       </Button>
 
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="lg"
                         onClick={togglePlay}
-                        className="text-white hover:text-gold-300"
+                        className="text-white hover:text-yellow-300 hover:bg-yellow-400/20 rounded-full p-3 ring-2 ring-yellow-400/30 hover:ring-yellow-300/50 transition-all"
                       >
                         {isPlaying ? (
-                          <Pause className="h-5 w-5" />
+                          <Pause className="h-6 w-6" />
                         ) : (
-                          <Play className="h-5 w-5" />
+                          <Play className="h-6 w-6 ml-1" />
                         )}
                       </Button>
 
@@ -196,17 +209,22 @@ export default function Header({ currentWorldId }: HeaderProps) {
                         variant="ghost"
                         size="sm"
                         onClick={nextTrack}
-                        className="text-white hover:text-gold-300"
+                        className="text-white hover:text-yellow-300 hover:bg-yellow-400/10 rounded-full p-2"
                       >
-                        <SkipForward className="h-4 w-4" />
+                        <SkipForward className="h-5 w-5" />
                       </Button>
                     </div>
 
                     {!muted && (
-                      <div className="space-y-2">
-                        <label className="text-sm text-gray-300">
-                          Гучність:
-                        </label>
+                      <div className="space-y-3 bg-gradient-to-r from-gray-800/20 to-gray-700/20 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm text-purple-200 font-medium">
+                            Гучність:
+                          </label>
+                          <span className="text-sm text-yellow-300 font-mono">
+                            {Math.round(volume * 100)}%
+                          </span>
+                        </div>
                         <Slider
                           value={[volume * 100]}
                           onValueChange={([value]) => setVolume(value / 100)}
@@ -214,9 +232,6 @@ export default function Header({ currentWorldId }: HeaderProps) {
                           step={1}
                           className="w-full"
                         />
-                        <div className="text-center text-sm text-gray-400">
-                          {Math.round(volume * 100)}%
-                        </div>
                       </div>
                     )}
                   </div>
