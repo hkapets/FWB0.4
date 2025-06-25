@@ -161,7 +161,7 @@ export default function CreateCreatureModal({
       <DialogContent className="max-w-3xl w-full mx-4">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-yellow-200 flex items-center gap-2">
-            🐉 {t.dashboard.addCreature}
+            🐉 Додати істоту
           </DialogTitle>
           <DialogDescription className="text-gray-300 text-sm">
             Додайте нову істоту до бестіарію вашого світу

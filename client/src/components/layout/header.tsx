@@ -16,6 +16,8 @@ import LanguageSelector from "@/components/ui/language-selector";
 import { useTranslation } from "@/lib/i18n";
 import { useAudioContext } from "@/components/audio-provider";
 import GlobalSearch from "@/components/global-search";
+import { AudioControls } from "./audio-controls";
+import { LanguageSwitcher } from "./language-switcher";
 import { Link } from "wouter";
 import { Slider } from "@/components/ui/slider";
 import {

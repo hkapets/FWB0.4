@@ -242,10 +242,15 @@ export default function DashboardPage({
       <div className="p-8 relative overflow-hidden">
         {/* Фонове зображення */}
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30"
           style={{
-            backgroundImage:
-              'url(\'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"%3E%3Cdefs%3E%3CradialGradient id="a" cx="50%25" cy="50%25" r="50%25"%3E%3Cstop offset="0%25" stop-color="%23c084fc" stop-opacity="0.3"/%3E%3Cstop offset="100%25" stop-color="%231e1b4b" stop-opacity="0.8"/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width="1200" height="800" fill="url(%23a)"/%3E%3C/svg%3E\')',
+            backgroundImage: `linear-gradient(135deg, 
+              rgba(147, 51, 234, 0.1) 0%, 
+              rgba(79, 70, 229, 0.2) 25%, 
+              rgba(139, 69, 19, 0.1) 50%, 
+              rgba(75, 85, 99, 0.2) 75%, 
+              rgba(31, 41, 55, 0.3) 100%), 
+            url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"%3E%3Cdefs%3E%3Cfilter id="noise"%3E%3CfeTurbulence baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/%3E%3C/filter%3E%3C/defs%3E%3Crect width="1200" height="800" fill="%23371B58" filter="url(%23noise)" opacity="0.4"/%3E%3C/svg%3E')`
           }}
         />
 
@@ -576,6 +581,7 @@ export default function DashboardPage({
           </div>
         </DialogContent>
       </Dialog>
+    </div>
     </div>
   );
 }

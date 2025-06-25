@@ -17,6 +17,7 @@ import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
+import { ExpandableSidebar } from "@/components/layout/expandable-sidebar";
 // Підрозділи лору
 import Geography from "@/pages/lore/geography";
 import Bestiary from "@/pages/lore/bestiary";
@@ -40,10 +41,7 @@ function App() {
             <Header currentWorldId={currentWorldId} />
             <div className="flex h-screen pt-16">
               {currentWorldId !== null && (
-                <Sidebar
-                  currentWorldId={currentWorldId}
-                  setCurrentWorldId={setCurrentWorldId}
-                />
+                <ExpandableSidebar currentWorldId={currentWorldId} />
               )}
               <main
                 className={`overflow-y-auto scroll-fantasy ${
