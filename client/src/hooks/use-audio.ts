@@ -254,26 +254,3 @@ export function useAudio() {
     playContextSound
   };
 }
-
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.loop = loop;
-  }, [loop]);
-
-  const play = useCallback(() => {
-    return audioRef.current?.play();
-  }, []);
-
-  const pause = useCallback(() => {
-    audioRef.current?.pause();
-  }, []);
-
-  const setVolume = useCallback((v: number) => {
-    if (audioRef.current) audioRef.current.volume = v;
-  }, []);
-
-  const setMuted = useCallback((m: boolean) => {
-    if (audioRef.current) audioRef.current.muted = m;
-  }, []);
-
-  return { play, pause, setVolume, setMuted, audio: audioRef.current };
-}
