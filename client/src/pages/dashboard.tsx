@@ -44,11 +44,13 @@ import {
 interface DashboardProps {
   currentWorldId: number | null;
   setCurrentWorldId: (id: number | null) => void;
+  trackAction?: (action: string, context?: string, metadata?: any) => void;
 }
 
 export default function DashboardPage({
   currentWorldId,
   setCurrentWorldId,
+  trackAction,
 }: DashboardProps) {
   const t = useTranslation();
   const [isCreateWorldModalOpen, setIsCreateWorldModalOpen] = useState(false);

@@ -35,6 +35,12 @@ import { AudioProvider } from "@/components/audio-provider";
 
 function App() {
   const [currentWorldId, setCurrentWorldId] = useState<number | null>(null);
+  
+  // Mock behavior tracker for compatibility
+  const trackAction = (action: string, context?: string, metadata?: any) => {
+    // Placeholder implementation
+    console.debug('Track action:', action, context, metadata);
+  };
 
   return (
     <AudioProvider>
@@ -68,6 +74,7 @@ function App() {
                       <Dashboard
                         currentWorldId={currentWorldId}
                         setCurrentWorldId={setCurrentWorldId}
+                        trackAction={trackAction}
                       />
                     )}
                   />
