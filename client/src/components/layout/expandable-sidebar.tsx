@@ -17,7 +17,9 @@ import {
   FileText,
   Drama,
   Share2,
-  Settings
+  Settings,
+  Church,
+  Shield
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -69,9 +71,15 @@ export function ExpandableSidebar({ currentWorldId }: { currentWorldId: number |
         },
         {
           id: "mythology",
-          label: "Міфологія і релігія",
-          icon: <Wand2 className="w-4 h-4" />,
+          label: "Міфологія",
+          icon: <Crown className="w-4 h-4" />,
           href: "/lore/mythology"
+        },
+        {
+          id: "religion",
+          label: "Релігія",
+          icon: <Church className="w-4 h-4" />,
+          href: "/lore/religion"
         },
         {
           id: "races",
@@ -92,8 +100,14 @@ export function ExpandableSidebar({ currentWorldId }: { currentWorldId: number |
           href: "/lore/writing"
         },
         {
+          id: "politics",
+          label: "Політика",
+          icon: <Shield className="w-4 h-4" />,
+          href: "/lore/politics"
+        },
+        {
           id: "history",
-          label: "Історія і політика",
+          label: "Історія",
           icon: <ScrollText className="w-4 h-4" />,
           href: "/lore/history"
         }

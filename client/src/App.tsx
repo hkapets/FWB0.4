@@ -100,6 +100,8 @@ function App() {
                       <History currentWorldId={currentWorldId} />
                     )}
                   />
+                  <Route path="/lore/mythology" component={Mythology} />
+                  <Route path="/lore/religion" component={Religion} />
                   <Route
                     path="/world-map"
                     component={() => (
