@@ -19,7 +19,10 @@ import {
   Share2,
   Settings,
   Church,
-  Shield
+  Shield,
+  Package,
+  StickyNote,
+  Sword
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";

@@ -47,7 +47,7 @@ interface DashboardProps {
   trackAction?: (action: string, context?: string, metadata?: any) => void;
 }
 
-export default function DashboardPage({
+export default function Dashboard({
   currentWorldId,
   setCurrentWorldId,
   trackAction,

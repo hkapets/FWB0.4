@@ -14,6 +14,7 @@ import Timeline from "@/pages/timeline";
 import Notes from "@/pages/notes";
 import Scenarios from "@/pages/scenarios";
 import Settings from "@/pages/settings";
+import PluginManagerPage from "@/pages/plugin-manager";
 import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
@@ -120,6 +121,7 @@ function App() {
                   <Route path="/timeline" component={Timeline} />
                   <Route path="/notes" component={Notes} />
                   <Route path="/scenarios" component={Scenarios} />
+                  <Route path="/plugins" component={PluginManagerPage} />
                   <Route path="/settings" component={Settings} />
                   <Route component={NotFound} />
                 </Switch>

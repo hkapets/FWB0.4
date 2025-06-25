@@ -1344,6 +1344,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 12.1 Plugin System API
+  app.get("/api/plugins", async (req, res) => {
+    try {
+      const { pluginManager } = await import("./plugin-system.js");
+      const plugins = pluginManager.getActivePlugins();
+      res.json(plugins);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/plugins/install", async (req, res) => {
+    try {
+      const { pluginCode, manifest } = req.body;
+      const { pluginManager } = await import("./plugin-system.js");
+      
+      const success = await pluginManager.loadPlugin(pluginCode, manifest);
+      
+      if (success) {
+        res.json({ success: true, message: "Plugin installed successfully" });
+      } else {
+        res.status(400).json({ error: "Failed to install plugin" });
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/plugins/:pluginId", async (req, res) => {
+    try {
+      const { pluginId } = req.params;
+      const { pluginManager } = await import("./plugin-system.js");
+      
+      const success = await pluginManager.unloadPlugin(pluginId);
+      
+      if (success) {
+        res.json({ success: true, message: "Plugin uninstalled successfully" });
+      } else {
+        res.status(404).json({ error: "Plugin not found" });
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/plugins/:pluginId/trigger", async (req, res) => {
+    try {
+      const { pluginId } = req.params;
+      const { hook, args } = req.body;
+      const { pluginManager } = await import("./plugin-system.js");
+      
+      await pluginManager.triggerHook(hook, ...args);
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
