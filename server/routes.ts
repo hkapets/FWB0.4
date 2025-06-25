@@ -1096,6 +1096,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 10.1 D&D статблоки API
+  app.post("/api/rpg/generate-statblock", async (req, res) => {
+    try {
+      const { name, type, level } = req.body;
+      const statblock = rpgService.generateDnD5eStatblock(name, type, level);
+      res.json(statblock);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to generate statblock" });
+    }
+  });
+
+  app.post("/api/rpg/statblocks", async (req, res) => {
+    try {
+      const statblockData = req.body;
+      const [statblock] = await db.insert(statblocks).values(statblockData).returning();
+      res.json(statblock);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save statblock" });
+    }
+  });
+
+  // 10.2 Encounter builder API  
+  app.post("/api/rpg/encounter-difficulty", async (req, res) => {
+    try {
+      const { creatures, partyLevel, partySize } = req.body;
+      const difficulty = rpgService.calculateEncounterDifficulty(creatures, partyLevel, partySize);
+      res.json(difficulty);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to calculate encounter difficulty" });
+    }
+  });
+
+  app.post("/api/rpg/generate-treasure", async (req, res) => {
+    try {
+      const { challengeRating, type } = req.body;
+      const treasure = rpgService.generateTreasure(challengeRating, type);
+      res.json(treasure);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to generate treasure" });
+    }
+  });
+
+  // 10.3 Dice roller API
+  app.post("/api/rpg/roll-dice", async (req, res) => {
+    try {
+      const { formula, context } = req.body;
+      const result = rpgService.rollDice(formula, context);
+      
+      // Зберегти в історію
+      await db.insert(rollHistory).values({
+        formula: result.formula,
+        result: result.result,
+        details: JSON.stringify({ rolls: result.rolls }),
+        context: result.context,
+      });
+      
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to roll dice" });
+    }
+  });
+
+  app.get("/api/rpg/roll-history", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const history = await db
+        .select()
+        .from(rollHistory)
+        .orderBy(desc(rollHistory.timestamp))
+        .limit(limit);
+      
+      res.json(history.map(roll => ({
+        ...roll,
+        rolls: JSON.parse(roll.details || '{"rolls": []}').rolls
+      })));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get roll history" });
+    }
+  });
+
+  // 10.4 Dice macros API
+  app.get("/api/rpg/dice-macros", async (req, res) => {
+    try {
+      const macros = await db
+        .select()
+        .from(diceMacros)
+        .where(eq(diceMacros.userId, 1))
+        .orderBy(diceMacros.name);
+      
+      res.json(macros);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get dice macros" });
+    }
+  });
+
+  app.post("/api/rpg/dice-macros", async (req, res) => {
+    try {
+      const macroData = { ...req.body, userId: 1 };
+      const [macro] = await db.insert(diceMacros).values(macroData).returning();
+      res.json(macro);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save dice macro" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
