@@ -218,9 +218,6 @@ export default function SettingsPage() {
     </div>
   );
 }
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Audio & Notifications */}
           <Card className="fantasy-border">

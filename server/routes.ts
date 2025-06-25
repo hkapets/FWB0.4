@@ -997,6 +997,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI service routes
+  app.post("/api/ai/generate-names", async (req, res) => {
+    try {
+      const { aiService } = await import("./ai-service.js");
+      const names = await aiService.generateNames(req.body);
+      res.json(names);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ai/generate-description", async (req, res) => {
+    try {
+      const { aiService } = await import("./ai-service.js");
+      const description = await aiService.generateDescription(req.body);
+      res.send(description);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ai/generate-timeline", async (req, res) => {
+    try {
+      const { aiService } = await import("./ai-service.js");
+      const { worldId, timelineName, context, count } = req.body;
+      const events = await aiService.generateTimelineEvents(context, timelineName, count);
+      res.json(events);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ai/suggest-connections", async (req, res) => {
+    try {
+      const { aiService } = await import("./ai-service.js");
+      const { worldId } = req.body;
+      
+      const [characters, locations, creatures, artifacts, events] = await Promise.all([
+        storage.getCharacters(worldId),
+        storage.getLocations(worldId),
+        storage.getCreatures(worldId),
+        storage.getWorldArtifacts(worldId),
+        storage.getEvents(worldId)
+      ]);
+
+      const worldData = { characters, locations, creatures, artifacts, events };
+      const connections = await aiService.suggestConnections(worldData);
+      res.json(connections);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Analytics routes
+  app.get("/api/worlds/:worldId/analytics", async (req, res) => {
+    try {
+      const { analyticsService } = await import("./analytics-service.js");
+      const worldId = parseInt(req.params.worldId);
+      
+      const [world, characters, locations, creatures, artifacts, races, classes, events, lore] = await Promise.all([
+        storage.getWorld(worldId),
+        storage.getCharacters(worldId),
+        storage.getLocations(worldId),
+        storage.getCreatures(worldId),
+        storage.getWorldArtifacts(worldId),
+        storage.getWorldRaces(worldId),
+        storage.getWorldClasses(worldId),
+        storage.getEvents(worldId),
+        storage.getWorldLore(worldId)
+      ]);
+
+      const worldData = { world, characters, locations, creatures, artifacts, races, classes, events, lore };
+      const analytics = await analyticsService.analyzeWorld(worldData);
+      res.json(analytics);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/worlds/:worldId/heatmap", async (req, res) => {
+    try {
+      const { analyticsService } = await import("./analytics-service.js");
+      const worldId = parseInt(req.params.worldId);
+      
+      const [characters, locations, creatures, events] = await Promise.all([
+        storage.getCharacters(worldId),
+        storage.getLocations(worldId),
+        storage.getCreatures(worldId),
+        storage.getEvents(worldId)
+      ]);
+
+      const worldData = { characters, locations, creatures, events };
+      const heatmap = analyticsService.generateHeatmap(worldData);
+      res.json(heatmap);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
