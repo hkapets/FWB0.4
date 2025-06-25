@@ -39,7 +39,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "../components/ui/tooltip";
-import { Lock } from "lucide-react";
+import { Lock, Clock, Calendar, MapPin, User, Sword, Sparkles } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import CreateTimelineEventModal from "@/components/modals/create-timeline-event-modal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -61,6 +61,166 @@ const EVENT_TYPES = [
   { value: "founding", label: "Заснування" },
   { value: "custom", label: "Custom" },
 ];
+
+// Горизонтальний компонент події
+function HorizontalTimelineEvent({ 
+  event, 
+  index, 
+  totalEvents, 
+  moveEvent, 
+  onEdit, 
+  characters, 
+  locations, 
+  artifacts, 
+  typeColors, 
+  selected, 
+  onSelect 
+}: any) {
+  const [{ isDragging }, drag] = useDrag({
+    type: 'event',
+    item: { index },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  const [, drop] = useDrop({
+    accept: 'event',
+    hover: (item: { index: number }) => {
+      if (item.index !== index) {
+        moveEvent(item.index, index);
+        item.index = index;
+      }
+    },
+  });
+
+  // Розташування над/під лінією (парні/непарні)
+  const isAbove = index % 2 === 0;
+  const leftPosition = (index / (totalEvents - 1)) * 90; // 90% від ширини контейнера
+  
+  const getEventIcon = (type: string) => {
+    switch (type) {
+      case 'war': return <Sword className="w-4 h-4" />;
+      case 'discovery': return <Sparkles className="w-4 h-4" />;
+      case 'birth': case 'death': return <User className="w-4 h-4" />;
+      case 'founding': return <MapPin className="w-4 h-4" />;
+      default: return <Calendar className="w-4 h-4" />;
+    }
+  };
+
+  const getTypeColor = (type: string) => {
+    const colors: Record<string, string> = {
+      war: "from-red-600 to-red-800",
+      discovery: "from-blue-600 to-blue-800", 
+      birth: "from-green-600 to-green-800",
+      death: "from-gray-600 to-gray-800",
+      founding: "from-purple-600 to-purple-800",
+      default: "from-yellow-600 to-yellow-800"
+    };
+    return colors[type] || colors.default;
+  };
+
+  return (
+    <div
+      ref={(node) => drag(drop(node))}
+      className={`absolute cursor-pointer transition-all duration-300 ${isDragging ? 'opacity-50 scale-95' : 'hover:scale-105'}`}
+      style={{
+        left: `${leftPosition}%`,
+        top: isAbove ? '20%' : '60%',
+        transform: 'translateX(-50%)',
+      }}
+    >
+      {/* Вертикальна лінія до головної лінії */}
+      <div 
+        className="absolute w-0.5 bg-yellow-400/60"
+        style={{
+          height: '60px',
+          left: '50%',
+          top: isAbove ? '100%' : '-60px',
+          transform: 'translateX(-50%)',
+        }}
+      />
+      
+      {/* Точка на головній лінії */}
+      <div 
+        className="absolute w-4 h-4 bg-yellow-400 rounded-full shadow-lg border-2 border-yellow-300"
+        style={{
+          left: '50%',
+          top: isAbove ? 'calc(100% + 58px)' : '-62px',
+          transform: 'translateX(-50%)',
+        }}
+      />
+
+      {/* Картка події */}
+      <div 
+        className={`
+          relative w-72 p-4 rounded-lg shadow-xl backdrop-blur-sm border 
+          bg-gradient-to-br ${getTypeColor(event.type)} 
+          ${selected ? 'ring-2 ring-yellow-400' : ''}
+          hover:shadow-2xl transition-all duration-300
+        `}
+        onClick={() => onEdit(event)}
+      >
+        {/* Чекбокс вибору */}
+        <div className="absolute -top-2 -right-2">
+          <Checkbox 
+            checked={selected}
+            onCheckedChange={onSelect}
+            className="bg-white/90"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+
+        {/* Заголовок події */}
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+            {getEventIcon(event.type)}
+          </div>
+          <h3 className="font-bold text-white text-lg truncate">{event.name}</h3>
+        </div>
+
+        {/* Дата */}
+        <div className="text-white/90 text-sm mb-2 flex items-center gap-1">
+          <Calendar className="w-3 h-3" />
+          {event.date || 'Невідома дата'}
+        </div>
+
+        {/* Опис */}
+        {event.description && (
+          <p className="text-white/80 text-sm line-clamp-3 mb-3">
+            {event.description}
+          </p>
+        )}
+
+        {/* Додаткова інформація */}
+        <div className="flex items-center justify-between text-xs">
+          <span className="bg-white/20 px-2 py-1 rounded-full text-white">
+            {EVENT_TYPES.find(t => t.value === event.type)?.label || event.type}
+          </span>
+          
+          {/* Іконки зв'язків */}
+          <div className="flex gap-1">
+            {event.characterId && <User className="w-3 h-3 text-white/70" />}
+            {event.locationId && <MapPin className="w-3 h-3 text-white/70" />}
+            {event.artifactId && <Sword className="w-3 h-3 text-white/70" />}
+          </div>
+        </div>
+
+        {/* Drag handle */}
+        <div className="absolute top-2 left-2 text-white/50 cursor-move">
+          <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+            <circle cx="5" cy="6" r="1" />
+            <circle cx="5" cy="10" r="1" />
+            <circle cx="5" cy="14" r="1" />
+            <circle cx="15" cy="6" r="1" />
+            <circle cx="15" cy="10" r="1" />
+            <circle cx="15" cy="14" r="1" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function TimelinePage() {
   const t = useTranslation();
@@ -407,16 +567,31 @@ export default function TimelinePage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto py-8">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-6">
+    <div className="w-full py-8 px-4">
+      {/* Заголовок та навігація таймлайнів */}
+      <div className="max-w-7xl mx-auto mb-8">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-4xl font-fantasy font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-500 mb-2">
+              Хронологія світу
+            </h1>
+            <p className="text-purple-200">
+              Горизонтальна лінія часу подій вашого фентезійного світу
+            </p>
+          </div>
+          <Button onClick={openCreate} className="fantasy-button">
+            Додати подію
+          </Button>
+        </div>
+
         <div className="flex items-center gap-2 flex-wrap">
           {timelines.map((tl) => (
             <button
               key={tl.id}
-              className={`px-3 py-1 rounded-full text-sm font-semibold transition-colors duration-150 ${
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
                 selectedTimelineId === tl.id
-                  ? "bg-yellow-500 text-black"
-                  : "bg-black/40 text-yellow-200 hover:bg-yellow-900/40"
+                  ? "bg-gradient-to-r from-yellow-500 to-yellow-400 text-purple-900 shadow-lg"
+                  : "bg-purple-900/40 text-yellow-200 hover:bg-purple-800/60 border border-yellow-400/30"
               }`}
               onClick={() => setSelectedTimelineId(tl.id)}
             >
@@ -475,23 +650,19 @@ export default function TimelinePage() {
               e.preventDefault();
               createTimeline();
             }}
-            className="inline-flex gap-1"
+            className="inline-flex gap-2"
           >
             <input
-              className="px-2 py-1 rounded text-black"
+              className="px-3 py-2 rounded-lg bg-purple-900/40 border border-yellow-400/30 text-yellow-100 placeholder:text-yellow-400/70"
               value={timelineName}
               onChange={(e) => setTimelineName(e.target.value)}
               placeholder="Нова лінія часу"
             />
-            <Button size="sm" type="submit">
+            <Button size="sm" type="submit" className="fantasy-button">
               +
             </Button>
           </form>
         </div>
-      </div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Хронологія світу</h1>
-        <Button onClick={openCreate}>Додати подію</Button>
       </div>
       {/* Масова панель дій */}
       {selectedEventIds.length > 0 && (
@@ -635,27 +806,65 @@ export default function TimelinePage() {
         )}
       </div>
       <DndProvider backend={HTML5Backend}>
-        <div
+        {/* Горизонтальний таймлайн */}
+        <div 
           ref={timelineRef}
-          className="border-l-2 border-yellow-400 pl-6 relative overflow-x-auto max-w-full min-w-[320px] md:min-w-[480px] pb-8"
+          className="relative w-full overflow-x-auto bg-gradient-to-r from-purple-900/20 via-gray-900/20 to-purple-800/20 rounded-xl p-8 fantasy-border"
+          style={{ minHeight: '400px' }}
         >
+          {/* Головна горизонтальна лінія */}
+          <div className="absolute top-1/2 left-8 right-8 h-1 bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-400 rounded-full shadow-lg transform -translate-y-1/2">
+            {/* Decorative elements */}
+            <div className="absolute -left-2 top-1/2 w-4 h-4 bg-yellow-400 rounded-full transform -translate-y-1/2 shadow-lg"></div>
+            <div className="absolute -right-2 top-1/2 w-4 h-4 bg-yellow-400 rounded-full transform -translate-y-1/2 shadow-lg"></div>
+          </div>
+
+          {/* Події розташовані горизонтально */}
+          <div className="relative" style={{ minWidth: `${Math.max(localEvents.length * 300, 800)}px`, height: '300px' }}>
+            {localEvents.length === 0 ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-gray-400">
+                <div className="w-24 h-24 bg-purple-500/10 rounded-full flex items-center justify-center mb-4">
+                  <Clock className="w-12 h-12 text-purple-400/50" />
+                </div>
+                <div className="text-xl mb-2 text-purple-200">
+                  У цій лінії часу ще немає жодної події
+                </div>
+                <div className="mb-4 text-sm text-purple-300/70">
+                  Створіть першу подію, щоб розпочати хронологію світу!
+                </div>
+                <Button onClick={openCreate} className="fantasy-button">
+                  Додати першу подію
+                </Button>
+              </div>
+            ) : (
+              localEvents.map((event, idx) => (
+                <HorizontalTimelineEvent
+                  key={event.id}
+                  event={event}
+                  index={idx}
+                  totalEvents={localEvents.length}
+                  moveEvent={moveEvent}
+                  onEdit={openEdit}
+                  characters={characters}
+                  locations={locations}
+                  artifacts={artifacts}
+                  typeColors={typeColors}
+                  selected={selectedEventIds.includes(String(event.id))}
+                  onSelect={() => toggleSelectEvent(String(event.id))}
+                />
+              ))
+            )}
+          </div>
+
+          {/* Undo/Redo кнопки */}
           {localEvents.length > 1 && (
-            <div className="flex items-center gap-2 mb-4 text-xs text-yellow-300 bg-yellow-900/20 px-3 py-2 rounded">
-              <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-                <circle cx="5" cy="6" r="1.5" fill="#eab308" />
-                <circle cx="5" cy="10" r="1.5" fill="#eab308" />
-                <circle cx="5" cy="14" r="1.5" fill="#eab308" />
-                <circle cx="15" cy="6" r="1.5" fill="#eab308" />
-                <circle cx="15" cy="10" r="1.5" fill="#eab308" />
-                <circle cx="15" cy="14" r="1.5" fill="#eab308" />
-              </svg>
-              Перетягуйте події за drag handle для зміни порядку
+            <div className="absolute top-4 right-4 flex gap-2">
               <Button
                 size="sm"
                 variant="outline"
-                className="ml-4"
                 onClick={undoReorder}
                 disabled={history.length === 0}
+                className="bg-purple-900/60 border-yellow-400/30 text-white"
               >
                 Undo
               </Button>
@@ -664,50 +873,20 @@ export default function TimelinePage() {
                 variant="outline"
                 onClick={redoReorder}
                 disabled={future.length === 0}
+                className="bg-purple-900/60 border-yellow-400/30 text-white"
               >
                 Redo
               </Button>
             </div>
           )}
-          {localEvents.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center text-gray-400">
-              <img
-                src="/empty-timeline.svg"
-                alt="Порожньо"
-                className="w-32 h-32 mb-4 opacity-70"
-              />
-              <div className="text-lg mb-2">
-                У цій лінії часу ще немає жодної події
-              </div>
-              <div className="mb-4 text-sm text-gray-500">
-                Створіть першу подію, щоб розпочати хронологію світу!
-              </div>
-              <Button onClick={openCreate} size="lg" className="mt-2">
-                Додати першу подію
+
+          {/* Кнопка збереження порядку */}
+          {localEvents.length > 1 && (
+            <div className="absolute bottom-4 right-4">
+              <Button onClick={saveOrder} className="fantasy-button">
+                Зберегти порядок
               </Button>
             </div>
-          ) : (
-            localEvents.map((event, idx) => (
-              <TimelineEventCard
-                key={event.id}
-                event={event}
-                index={idx}
-                moveEvent={moveEvent}
-                onEdit={openEdit}
-                characters={characters}
-                locations={locations}
-                artifacts={artifacts}
-                typeColors={typeColors}
-                selected={selectedEventIds.includes(String(event.id))}
-                onSelect={() => toggleSelectEvent(String(event.id))}
-                alwaysShowDragHandle
-              />
-            ))
-          )}
-          {localEvents.length > 1 && (
-            <Button className="mt-2" onClick={saveOrder} variant="outline">
-              Зберегти порядок
-            </Button>
           )}
         </div>
       </DndProvider>
