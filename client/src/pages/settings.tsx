@@ -112,72 +112,112 @@ export default function SettingsPage() {
     }
   };
 
-  const handleResetData = () => {
-    toast({
-      title: "Reset Confirmation",
-      description: "This action would permanently delete all world data.",
-      variant: "destructive",
-    });
-  };
-
   return (
     <div className="p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-fantasy font-bold text-yellow-200 mb-2 flex items-center">
-            <SettingsIcon className="mr-3" />
-            Settings
-          </h1>
-          <p className="text-lg text-gray-300">
-            Customize your Fantasy World Builder experience
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Appearance Settings */}
-          <Card className="fantasy-border">
-            <CardHeader>
-              <CardTitle className="text-yellow-200 font-fantasy">
-                Appearance
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  {isDarkMode ? (
-                    <Moon className="h-4 w-4" />
-                  ) : (
-                    <Sun className="h-4 w-4" />
-                  )}
-                  <div>
-                    <Label>Dark Mode</Label>
-                    <p className="text-sm text-gray-400">
-                      Use dark theme for the interface
-                    </p>
-                  </div>
-                </div>
-                <Switch checked={isDarkMode} onCheckedChange={setIsDarkMode} />
-              </div>
-
-              <Separator />
-
-              <div className="space-y-3">
-                <Label>Fantasy Theme</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="p-3 rounded-lg bg-purple-900/30 border border-purple-600 cursor-pointer">
-                    <div className="w-full h-4 bg-gradient-to-r from-purple-600 to-purple-800 rounded mb-2"></div>
-                    <p className="text-xs text-center">Purple (Active)</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-green-900/30 border border-green-600 cursor-pointer opacity-50">
-                    <div className="w-full h-4 bg-gradient-to-r from-green-600 to-green-800 rounded mb-2"></div>
-                    <p className="text-xs text-center">Forest</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-blue-900/30 border border-blue-600 cursor-pointer opacity-50">
-                    <div className="w-full h-4 bg-gradient-to-r from-blue-600 to-blue-800 rounded mb-2"></div>
-                    <p className="text-xs text-center">Ocean</p>
-                  </div>
-                </div>
+      <h1 className="text-3xl font-fantasy font-bold text-fantasy-gold-400 mb-6">
+        {t.navigation.settings}
+      </h1>
+      
+      <div className="space-y-6">
+        {/* Експорт/Імпорт */}
+        <Card className="fantasy-border bg-black/20 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-fantasy-gold-300 flex items-center gap-2">
+              <Download className="w-5 h-5" />
+              Експорт та Імпорт
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h4 className="text-yellow-200 font-semibold mb-2">Експорт світу</h4>
+              <p className="text-gray-400 text-sm mb-3">
+                Експортуйте весь світ у файл JSON для резервного копіювання або перенесення
+              </p>
+              <Button 
+                onClick={handleExportWorld}
+                disabled={isExporting}
+                className="fantasy-button"
+              >
+                {isExporting ? (
+                  <>Експортую...</>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-2" />
+                    Експортувати світ
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            <div>
+              <h4 className="text-yellow-200 font-semibold mb-2">Імпорт світу</h4>
+              <p className="text-gray-400 text-sm mb-3">
+                Імпортуйте світ з файлу JSON (увага: це замінить поточні дані)
+              </p>
+              <Button
+                onClick={handleImportWorld}
+                disabled={isImporting}
+                className="fantasy-button"
+              >
+                {isImporting ? (
+                  <>Імпортую...</>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Вибрати файл
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Інформація про застосунок */}
+        <Card className="fantasy-border bg-black/20 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-fantasy-gold-300 flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Про застосунок
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-gray-400">Версія:</span>
+              <span className="text-yellow-200">{appVersion}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">Платформа:</span>
+              <span className="text-yellow-200">
+                {isElectron ? 'Desktop' : 'Web'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-400">База даних:</span>
+              <span className="text-yellow-200">
+                {isElectron ? 'SQLite (локальна)' : 'PostgreSQL'}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Загальні налаштування */}
+        <Card className="fantasy-border bg-black/20 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-fantasy-gold-300 flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Загальні налаштування
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-400">
+              Додаткові налаштування застосунку будуть додані в майбутніх версіях.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
               </div>
             </CardContent>
           </Card>
