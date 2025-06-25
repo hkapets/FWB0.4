@@ -104,6 +104,47 @@
   box-shadow: 0 4px 12px hsl(45, 70%, 50%, 0.3);
 }
 
+/* Audio slider enhanced styling */
+.slider {
+  background: linear-gradient(90deg, var(--fantasy-gold-400) 0%, var(--fantasy-purple-600) 100%);
+  border-radius: 6px;
+  height: 6px;
+}
+
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  height: 18px;
+  width: 18px;
+  background: linear-gradient(135deg, var(--fantasy-gold-400), var(--fantasy-gold-500));
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid var(--fantasy-purple-800);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--fantasy-gold-400);
+  transition: all 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  background: linear-gradient(135deg, var(--fantasy-gold-300), var(--fantasy-gold-400));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 0 2px var(--fantasy-gold-300);
+  transform: scale(1.1);
+}
+
+.slider::-moz-range-thumb {
+  height: 18px;
+  width: 18px;
+  background: linear-gradient(135deg, var(--fantasy-gold-400), var(--fantasy-gold-500));
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid var(--fantasy-purple-800);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+  background: linear-gradient(135deg, var(--fantasy-gold-300), var(--fantasy-gold-400));
+  transform: scale(1.1);
+}
+
   --fantasy-green-50: hsl(151, 81%, 95%);
   --fantasy-green-100: hsl(149, 80%, 90%);
   --fantasy-green-200: hsl(152, 76%, 80%);

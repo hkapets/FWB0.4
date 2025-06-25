@@ -582,6 +582,5 @@ export default function DashboardPage({
         </DialogContent>
       </Dialog>
     </div>
-    </div>
   );
 }

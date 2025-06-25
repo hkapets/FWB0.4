@@ -30,6 +30,7 @@ import Politics from "@/pages/lore/politics";
 import History from "@/pages/lore/history";
 import { AudioProvider } from "@/components/audio-provider";
 
+
 function App() {
   const [currentWorldId, setCurrentWorldId] = useState<number | null>(null);
 
