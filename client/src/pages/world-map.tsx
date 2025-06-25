@@ -851,14 +851,16 @@ export default function WorldMap({
 
   if (!currentWorld) {
     return (
-      <div className="p-6">
-        <div className="text-center py-12">
-          <Map className="w-24 h-24 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-fantasy font-bold text-yellow-200 mb-2">
-            No World Selected
+      <div className="w-full min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/30 to-gray-800 flex items-center justify-center">
+        <div className="text-center p-8 bg-purple-900/40 backdrop-blur-sm rounded-xl border border-yellow-400/20">
+          <div className="w-24 h-24 bg-yellow-400/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Map className="w-12 h-12 text-yellow-400/60" />
+          </div>
+          <h2 className="text-3xl font-fantasy font-bold text-yellow-200 mb-2">
+            Світ не обраний
           </h2>
-          <p className="text-gray-300">
-            Please select or create a world to view the map.
+          <p className="text-purple-300">
+            Оберіть або створіть світ для перегляду карти
           </p>
         </div>
       </div>
@@ -973,34 +975,42 @@ export default function WorldMap({
                   <TooltipTrigger asChild>
                     <div
                       key={marker.id}
-                      className="absolute"
+                      className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110 ${
+                        selectedMarkers.includes(Number(marker.id))
+                          ? "ring-2 ring-blue-400"
+                          : ""
+                      }`}
                       style={{
-                        left: `${marker.x}%`,
-                        top: `${marker.y}%`,
-                        transform: "translate(-50%, -50%)",
+                        left: `${((marker.x || 400) / 800) * 100}%`,
+                        top: `${((marker.y || 300) / 600) * 100}%`,
                       }}
                       onMouseDown={(e) => handleMarkerMouseDown(e, marker)}
-                      onTouchStart={(e) => handleMarkerTouchStart(e, marker)}
+                      onClick={(e) => handleMarkerSelect(marker, e)}
+                      onDoubleClick={() => handleEditMarker(marker)}
                     >
                       <div
-                        className={`text-2xl cursor-pointer transition-transform duration-200 hover:scale-125 ${
-                          selectedMarkers.includes(marker.id)
-                            ? "ring-2 ring-yellow-400 rounded-full"
-                            : ""
-                        }`}
-                        onClick={(e) => handleMarkerSelect(marker, e)}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-lg ${
+                          markerTypes.find((t) => t.value === marker.type)?.color ||
+                          "text-white"
+                        } bg-gray-800 border-2 border-gray-600 shadow-lg`}
                       >
-                        {markerTypes.find((t) => t.value === marker.type)?.icon}
+                        {markerTypes.find((t) => t.value === marker.type)?.icon ||
+                          "📍"}
                       </div>
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{marker.name}</p>
+                    <div className="max-w-xs">
+                      <p className="font-semibold">{marker.name}</p>
+                      {marker.description && (
+                        <p className="text-sm text-gray-300">
+                          {marker.description}
+                        </p>
+                      )}
+                    </div>
                   </TooltipContent>
                 </Tooltip>
               ))}
-
-              {/* ... other elements ... */}
             </div>
           </TransformComponent>
         </TransformWrapper>
