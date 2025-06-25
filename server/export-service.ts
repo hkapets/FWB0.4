@@ -1,5 +1,5 @@
-import { db } from "./storage";
-import { worlds, characters, locations, creatures, events, artifacts, races, magicSystems } from "@shared/schema";
+import { storage } from "./storage";
+import { worlds, characters, locations, creatures, events, worldRaces, worldMagicTypes } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 export interface ExportData {
@@ -27,14 +27,14 @@ export class ExportService {
         racesData,
         magicSystemsData
       ] = await Promise.all([
-        db.select().from(worlds).where(eq(worlds.id, worldId)).then(r => r[0]),
-        db.select().from(characters).where(eq(characters.worldId, worldId)),
-        db.select().from(locations).where(eq(locations.worldId, worldId)),
-        db.select().from(creatures).where(eq(creatures.worldId, worldId)),
-        db.select().from(events).where(eq(events.worldId, worldId)),
-        db.select().from(artifacts).where(eq(artifacts.worldId, worldId)),
-        db.select().from(races).where(eq(races.worldId, worldId)),
-        db.select().from(magicSystems).where(eq(magicSystems.worldId, worldId))
+        storage.getWorld(worldId),
+        storage.getCharacters(worldId),
+        storage.getLocations(worldId),
+        storage.getCreatures(worldId),
+        storage.getEvents(worldId),
+        storage.getWorldArtifacts(worldId),
+        storage.getWorldRaces(worldId),
+        storage.getWorldMagicTypes(worldId)
       ]);
 
       return {

@@ -1,4 +1,3 @@
-// Ensure proper typing
 interface OllamaResponse {
   response: string;
   done: boolean;
@@ -24,11 +23,6 @@ export interface ConnectionSuggestion {
   entities: string[];
   description: string;
   strength: number; // 1-10
-}
-
-interface OllamaResponse {
-  response: string;
-  done: boolean;
 }
 
 const OLLAMA_BASE_URL = 'http://localhost:11434';

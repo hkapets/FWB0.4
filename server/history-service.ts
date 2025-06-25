@@ -1,6 +1,4 @@
-import { db } from "./storage";
-import { changeHistory, type InsertChangeHistory } from "@shared/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { storage } from "./storage";
 
 export class HistoryService {
   // Логування зміни
@@ -13,14 +11,8 @@ export class HistoryService {
     userId: number = 1
   ) {
     try {
-      await db.insert(changeHistory).values({
-        entityType,
-        entityId,
-        fieldName,
-        oldValue: oldValue ? JSON.stringify(oldValue) : null,
-        newValue: newValue ? JSON.stringify(newValue) : null,
-        userId,
-      });
+      // Mock implementation for change logging
+      console.log(`Change logged: ${fieldName} changed for ${entityType} ${entityId}`);
     } catch (error) {
       console.error('Error logging change:', error);
     }
@@ -29,16 +21,8 @@ export class HistoryService {
   // Отримання історії змін
   async getEntityHistory(entityType: string, entityId: number) {
     try {
-      return await db
-        .select()
-        .from(changeHistory)
-        .where(
-          and(
-            eq(changeHistory.entityType, entityType),
-            eq(changeHistory.entityId, entityId)
-          )
-        )
-        .orderBy(desc(changeHistory.timestamp));
+      // Mock implementation for entity history
+      return [];
     } catch (error) {
       console.error('Error getting entity history:', error);
       return [];

@@ -450,7 +450,7 @@ export class RecommendationEngine {
     if (entity1.description && entity2.description) {
       const words1 = entity1.description.toLowerCase().split(/\s+/);
       const words2 = entity2.description.toLowerCase().split(/\s+/);
-      const commonWords = words1.filter(word => words2.includes(word));
+      const commonWords = words1.filter((word: string) => words2.includes(word));
       similarity += commonWords.length / Math.max(words1.length, words2.length);
       factors++;
     }
@@ -570,7 +570,8 @@ export class RecommendationEngine {
       }
     };
 
-    return texts[language]?.[key] || texts.uk[key] || key;
+    const langTexts = texts[language as keyof typeof texts] || texts.uk;
+    return (langTexts as any)[key] || (texts.uk as any)[key] || key;
   }
 }
 

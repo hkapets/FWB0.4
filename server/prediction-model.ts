@@ -388,7 +388,7 @@ export class PredictionModel {
       declining: 0.9
     };
     
-    return currentQuality * multipliers[trajectory];
+    return currentQuality * (multipliers[trajectory as keyof typeof multipliers] || multipliers.stable);
   }
 
   private identifyRiskFactors(worldData: any, analysis: any): string[] {

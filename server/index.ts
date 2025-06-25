@@ -68,7 +68,7 @@ app.use((req, res, next) => {
     });
   } else {
     // In production, serve static files
-    const distPath = path.resolve(import.meta.dirname, "public");
+    const distPath = path.resolve(process.cwd(), "public");
     if (!fs.existsSync(distPath)) {
       throw new Error(
         `Could not find the build directory: ${distPath}, make sure to build the client first`
@@ -80,8 +80,8 @@ app.use((req, res, next) => {
     });
   }
 
-  // Port configuration for deployment
-  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 80;
+  // Port configuration for deployment - single port for Autoscale
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
   server.listen(port, "0.0.0.0", () => {
     log(`API server listening on port ${port}`);
   });

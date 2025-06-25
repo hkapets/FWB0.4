@@ -67,7 +67,7 @@ export class RPGService {
       fey: { str: 8, dex: 16, con: 10, int: 14, wis: 15, cha: 16 },
       dragon: { str: 18, dex: 12, con: 16, int: 14, wis: 13, cha: 15 }
     };
-    return stats[type] || stats.humanoid;
+    return stats[type as keyof typeof stats] || stats.humanoid;
   }
 
   private calculateHP(con: number, level: number, type: string): number {
@@ -91,7 +91,7 @@ export class RPGService {
       fey: "35 ft, fly 60 ft",
       dragon: "40 ft, fly 80 ft"
     };
-    return speeds[type] || "30 ft";
+    return speeds[type as keyof typeof speeds] || "30 ft";
   }
 
   private calculateChallengeRating(level: number, type: string): string {
@@ -166,7 +166,7 @@ export class RPGService {
       5: { easy: 250, medium: 500, hard: 750, deadly: 1100 }
     };
     
-    const threshold = baseThresholds[Math.min(level, 5)] || baseThresholds[5];
+    const threshold = baseThresholds[Math.min(level, 5) as keyof typeof baseThresholds] || baseThresholds[5];
     return {
       easy: threshold.easy * partySize,
       medium: threshold.medium * partySize,
@@ -191,13 +191,13 @@ export class RPGService {
 
       for (const part of parsed.parts) {
         if (part.type === 'dice') {
-          for (let i = 0; i < part.count; i++) {
-            const roll = random.integer(1, part.sides);
+          for (let i = 0; i < (part.count || 1); i++) {
+            const roll = random.integer(1, part.sides || 6);
             rolls.push(roll);
             total += roll;
           }
         } else if (part.type === 'modifier') {
-          total += part.value;
+          total += part.value || 0;
         }
       }
 
