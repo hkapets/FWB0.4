@@ -84,7 +84,7 @@ export default function Header({ currentWorldId }: HeaderProps) {
             </h1>
           </Link>
           <div className="flex items-center gap-4">
-            <GlobalSearch />
+            <GlobalSearch worldId={1} />
             <div className="hidden md:flex items-center gap-3">
               <Button
                 className="fantasy-button px-4 py-2 text-sm font-medium"

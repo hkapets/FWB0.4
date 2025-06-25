@@ -18,6 +18,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/input";
 
 export default function NotesPage() {
   const t = useTranslation();
@@ -27,6 +28,8 @@ export default function NotesPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<any | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTag, setSelectedTag] = useState("");
   const { toast } = useToast();
   const worldId = 1; // TODO: get from context or props
 

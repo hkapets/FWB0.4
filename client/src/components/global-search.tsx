@@ -1,44 +1,138 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Search, ArrowRight } from "lucide-react";
-
-const MOCK_DATA = [
-  { type: "character", name: "Ельрік", description: "Маг з Альдора" },
-  { type: "location", name: "Темний ліс", description: "Містичний ліс" },
-  {
-    type: "lore",
-    name: "Артефакт: Меч Світла",
-    description: "Легендарний меч",
-  },
-  { type: "event", name: "Битва при Долині", description: "Велика битва" },
-  { type: "note", name: "План подорожі", description: "Зустрітися з гідом" },
-  {
-    type: "scenario",
-    name: "Втеча з фортеці",
-    description: "Сценарій для гри",
-  },
-];
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 
 const TYPE_LABELS: Record<string, string> = {
   character: "Персонажі",
   location: "Локації",
-  lore: "Лор",
   event: "Події",
+  artifact: "Артефакти",
+  race: "Раси",
+  creature: "Істоти",
   note: "Нотатки",
   scenario: "Сценарії",
 };
 
-export default function GlobalSearch() {
+interface SearchableItem {
+  id: number;
+  type: string;
+  name: string;
+  description: string;
+  route: string;
+}
+
+export default function GlobalSearch({ worldId }: { worldId?: number }) {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
+  
+  // Завантажуємо дані з усіх розділів
+  const { data: characters = [] } = useQuery({
+    queryKey: ["/api/worlds", worldId, "characters"],
+    enabled: !!worldId,
+  });
+  
+  const { data: locations = [] } = useQuery({
+    queryKey: ["/api/worlds", worldId, "locations"],
+    enabled: !!worldId,
+  });
+  
+  const { data: events = [] } = useQuery({
+    queryKey: ["/api/worlds", worldId, "events"],
+    enabled: !!worldId,
+  });
+  
+  const { data: artifacts = [] } = useQuery({
+    queryKey: ["/api/worlds", worldId, "artifacts"],
+    enabled: !!worldId,
+  });
+  
+  const { data: races = [] } = useQuery({
+    queryKey: ["/api/worlds", worldId, "races"],
+    enabled: !!worldId,
+  });
+  
+  const { data: creatures = [] } = useQuery({
+    queryKey: ["/api/worlds", worldId, "creatures"],
+    enabled: !!worldId,
+  });
 
-  const results =
-    query.length > 1
-      ? MOCK_DATA.filter(
-          (item) =>
-            item.name.toLowerCase().includes(query.toLowerCase()) ||
-            item.description.toLowerCase().includes(query.toLowerCase())
-        )
-      : [];
+  // Об'єднуємо всі дані для пошуку
+  const searchableData = useMemo((): SearchableItem[] => {
+    const items: SearchableItem[] = [];
+    
+    characters.forEach((char: any) => {
+      items.push({
+        id: char.id,
+        type: "character",
+        name: char.name?.uk || char.name || "Персонаж",
+        description: char.description?.uk || char.description || "",
+        route: "/characters"
+      });
+    });
+    
+    locations.forEach((loc: any) => {
+      items.push({
+        id: loc.id,
+        type: "location",
+        name: loc.name?.uk || loc.name || "Локація",
+        description: loc.description?.uk || loc.description || "",
+        route: "/lore/geography"
+      });
+    });
+    
+    events.forEach((event: any) => {
+      items.push({
+        id: event.id,
+        type: "event",
+        name: event.name?.uk || event.name || "Подія",
+        description: event.description?.uk || event.description || "",
+        route: "/timeline"
+      });
+    });
+    
+    artifacts.forEach((art: any) => {
+      items.push({
+        id: art.id,
+        type: "artifact",
+        name: art.name?.uk || art.name || "Артефакт",
+        description: art.description?.uk || art.description || "",
+        route: "/lore/artifacts"
+      });
+    });
+    
+    races.forEach((race: any) => {
+      items.push({
+        id: race.id,
+        type: "race",
+        name: race.name?.uk || race.name || "Раса",
+        description: race.description?.uk || race.description || "",
+        route: "/lore/races"
+      });
+    });
+    
+    creatures.forEach((creature: any) => {
+      items.push({
+        id: creature.id,
+        type: "creature",
+        name: creature.name?.uk || creature.name || "Істота",
+        description: creature.description?.uk || creature.description || "",
+        route: "/lore/bestiary"
+      });
+    });
+    
+    return items;
+  }, [characters, locations, events, artifacts, races, creatures]);
+
+  const results = useMemo(() => {
+    if (query.length < 2) return [];
+    
+    const queryLower = query.toLowerCase();
+    return searchableData.filter(item =>
+      item.name.toLowerCase().includes(queryLower) ||
+      item.description.toLowerCase().includes(queryLower)
+    ).slice(0, 20); // Обмежуємо результати
+  }, [query, searchableData]);
 
   // Групування результатів за типом
   const grouped = results.reduce<Record<string, typeof results>>(
@@ -88,10 +182,11 @@ export default function GlobalSearch() {
                     {TYPE_LABELS[type]} ({items.length})
                   </div>
                   {items.map((item, idx) => (
-                    <div
-                      key={item.name + idx}
-                      className="px-5 py-4 hover:bg-gradient-to-r hover:from-yellow-400/10 hover:to-purple-600/10 cursor-pointer transition-all duration-200 border-b border-yellow-900/10 last:border-b-0 group"
-                      onMouseDown={() => alert(`Перейти до: ${item.name}`)}
+                    <Link
+                      key={item.id + "-" + item.type}
+                      href={item.route}
+                      className="block px-5 py-4 hover:bg-gradient-to-r hover:from-yellow-400/10 hover:to-purple-600/10 cursor-pointer transition-all duration-200 border-b border-yellow-900/10 last:border-b-0 group"
+                      onClick={() => setQuery("")}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
@@ -104,7 +199,7 @@ export default function GlobalSearch() {
                         </div>
                         <ArrowRight className="h-4 w-4 text-yellow-400/50 group-hover:text-yellow-300 ml-3 flex-shrink-0" />
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               ))}
