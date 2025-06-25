@@ -239,6 +239,9 @@ export default function Settings() {
                 <p className="text-gray-400 text-sm">
                   Автоматична перевірка на суперечності
                 </p>
+                <div className="mt-2">
+                  <span className="text-xs text-green-300">✓ Етап 8 завершено</span>
+                </div>
               </div>
             </div>
           </CardContent>
