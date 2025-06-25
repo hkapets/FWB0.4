@@ -1,51 +1,115 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
-import {
-  Settings as SettingsIcon,
-  Save,
-  Download,
-  Upload,
-  Trash2,
-  Moon,
-  Sun,
-  Volume2,
-  Bell,
-} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAudioContext } from "@/components/audio-provider";
+import { Download, Upload, Settings } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
+import { useElectron, fileUtils } from "@/lib/electron-helpers";
 
-export default function Settings() {
+export default function SettingsPage() {
+  const t = useTranslation();
   const { toast } = useToast();
-  const { muted, setMuted, volume, setVolume } = useAudioContext();
-  const [isDarkMode, setIsDarkMode] = useState(true);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [autoSave, setAutoSave] = useState(true);
-  const [autoSaveMinutes, setAutoSaveMinutes] = useState(5);
+  const { isElectron, getVersion } = useElectron();
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [appVersion, setAppVersion] = useState('');
+  const worldId = 1; // TODO: отримати з контексту
 
-  const handleSaveSettings = () => {
-    toast({
-      title: "Settings Saved",
-      description: "Your preferences have been saved successfully.",
+  useEffect(() => {
+    // Отримуємо версію застосунку
+    getVersion().then(version => {
+      setAppVersion(version);
     });
+  }, []);
+
+  const handleExportWorld = async () => {
+    setIsExporting(true);
+    try {
+      // Збираємо всі дані світу
+      const responses = await Promise.all([
+        fetch(`/api/worlds/${worldId}`),
+        fetch(`/api/worlds/${worldId}/characters`),
+        fetch(`/api/worlds/${worldId}/locations`),
+        fetch(`/api/worlds/${worldId}/creatures`),
+        fetch(`/api/worlds/${worldId}/events`),
+        fetch(`/api/worlds/${worldId}/artifacts`),
+        fetch(`/api/worlds/${worldId}/races`),
+        fetch(`/api/worlds/${worldId}/classes`),
+        fetch(`/api/worlds/${worldId}/magic_types`),
+        fetch(`/api/worlds/${worldId}/lore`),
+      ]);
+      
+      const [
+        world,
+        characters,
+        locations,
+        creatures,
+        events,
+        artifacts,
+        races,
+        classes,
+        magic,
+        lore,
+      ] = await Promise.all(responses.map(r => r.json()));
+      
+      const exportData = {
+        version: "1.0",
+        exportedAt: new Date().toISOString(),
+        platform: isElectron ? "desktop" : "web",
+        world,
+        characters,
+        locations,
+        creatures,
+        events,
+        artifacts,
+        races,
+        classes,
+        magic,
+        lore,
+      };
+      
+      const success = await fileUtils.exportWorldToFile(exportData, world.name || 'world');
+      
+      if (success) {
+        toast({
+          title: "Експорт завершено",
+          description: "Світ успішно експортовано",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Помилка експорту",
+        description: "Не вдалося експортувати світ",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
-
-  const handleExportData = () => {
-    toast({
-      title: "Export Started",
-      description: "Your world data is being prepared for download.",
-    });
-  };
-
-  const handleImportData = () => {
-    toast({
-      title: "Import Feature",
-      description: "Data import functionality coming soon.",
-    });
+  
+  const handleImportWorld = async () => {
+    setIsImporting(true);
+    try {
+      const importData = await fileUtils.importWorldFromFile();
+      
+      if (importData) {
+        // Тут буде логіка імпорту світу
+        console.log("Import data:", importData);
+        
+        toast({
+          title: "Імпорт готується",
+          description: "Функція імпорту світу буде додана незабаром",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Помилка імпорту",
+        description: "Не вдалося імпортувати світ",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const handleResetData = () => {

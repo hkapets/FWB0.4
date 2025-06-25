@@ -128,6 +128,20 @@ The application is configured for deployment on Replit with autoscaling:
 
 ## Recent Changes
 
+- June 25, 2025: Completed Stage 6 - Electron Desktop Migration
+  - ✅ Installed Electron and related dependencies (electron, electron-builder, better-sqlite3)
+  - ✅ Created main Electron process (electron/main.js) with native menus and window management
+  - ✅ Implemented secure preload script (electron/preload.js) for safe IPC communication
+  - ✅ Built SQLite storage layer (electron-db/sqlite-storage.js) for offline data persistence
+  - ✅ Created Electron-specific Express server (server/electron-server.js) with full API compatibility
+  - ✅ Added Electron helper utilities (client/src/lib/electron-helpers.ts) for seamless integration
+  - ✅ Enhanced settings page with platform detection and native file dialogs
+  - ✅ Configured build system for cross-platform desktop application packaging
+  - ✅ Added development and production scripts for Electron workflow
+  - ✅ Implemented automatic database migration and schema creation
+  - ✅ Added native menu with Ukrainian localization and keyboard shortcuts
+  - ✅ Created comprehensive documentation (README-ELECTRON.md) for desktop version
+
 - June 25, 2025: Completed all missing lore system sections
   - ✅ Created mythology modal (CreateMythologyModal) with comprehensive deity/legend management
   - ✅ Created religion modal (CreateReligionModal) with detailed religious system features
