@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SectionLinker } from "./integration-helpers";
 
 interface EntityFormProps<T extends ZodTypeAny> {
   schema: T;
@@ -318,7 +319,33 @@ export default function EntityForm<T extends ZodTypeAny>({
             );
           })}
           {children}
-          <div className="flex gap-2 justify-end pt-2">
+          
+          {/* Add section linking for compatible entities */}
+          {fields.some(f => f.name === 'relatedCharacters' || f.name === 'relatedLocations') && (
+            <div className="space-y-4 pt-4 border-t border-yellow-600/20">
+              <h4 className="text-lg font-bold text-yellow-200">Пов'язані елементи</h4>
+              {fields.find(f => f.name === 'relatedCharacters') && (
+                <SectionLinker
+                  sectionType="characters"
+                  selectedIds={[]}
+                  onSelectionChange={() => {}}
+                  worldId={1}
+                  placeholder="Пов'язати з персонажами..."
+                />
+              )}
+              {fields.find(f => f.name === 'relatedLocations') && (
+                <SectionLinker
+                  sectionType="locations"
+                  selectedIds={[]}
+                  onSelectionChange={() => {}}
+                  worldId={1}
+                  placeholder="Пов'язати з локаціями..."
+                />
+              )}
+            </div>
+          )}
+          
+          <div className="flex gap-2 justify-end pt-4">
             <Button type="button" variant="outline" onClick={onCancel}>
               {cancelLabel || t.forms.cancel}
             </Button>

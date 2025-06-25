@@ -118,13 +118,13 @@ export default function CreateWorldModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="fantasy-border max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto scroll-fantasy">
+      <DialogContent className="max-w-2xl w-full mx-4">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
-            {t.actions.add} Світ
+          <DialogTitle className="text-2xl font-bold text-yellow-200 flex items-center gap-2">
+            ✨ {t.navigation.createWorld}
           </DialogTitle>
-          <DialogDescription className="hidden">
-            Create a new world here.
+          <DialogDescription className="text-gray-300 text-sm">
+            Створіть новий фентезійний світ для ваших пригод
           </DialogDescription>
         </DialogHeader>
         <div className="mb-4">

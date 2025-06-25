@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import CreateMagicModal from "@/components/modals/create-magic-modal";
+import { CrossReferences } from "@/components/integration-helpers";
 import { apiRequest } from "@/lib/queryClient";
 import {
   AlertDialog,

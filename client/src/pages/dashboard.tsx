@@ -28,6 +28,7 @@ import { useTranslation } from "@/lib/i18n";
 import type { World, Location, Character } from "@shared/schema";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { QuickNavigation, WorldStatistics } from "@/components/integration-helpers";
 import {
   worldTemplates,
   WorldTemplate,
@@ -508,6 +509,12 @@ export default function DashboardPage({
           </CardContent>
         </Card>
       </div>
+
+      {/* Quick Navigation */}
+      <QuickNavigation currentWorldId={currentWorldId} />
+
+      {/* World Statistics */}
+      {currentWorldId && <WorldStatistics worldId={currentWorldId} />}
 
       {/* Модалки */}
       <CreateWorldModal

@@ -158,12 +158,14 @@ export default function CreateCreatureModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="fantasy-border max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl w-full mx-4">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
-            <Crown className="mr-2" />
-            {t.dashboard.addCreature}
+          <DialogTitle className="text-2xl font-bold text-yellow-200 flex items-center gap-2">
+            🐉 {t.dashboard.addCreature}
           </DialogTitle>
+          <DialogDescription className="text-gray-300 text-sm">
+            Додайте нову істоту до бестіарію вашого світу
+          </DialogDescription>
         </DialogHeader>
         <EntityForm
           schema={creatureSchema}

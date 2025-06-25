@@ -215,12 +215,15 @@ export default function CreateCharacterModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="fantasy-border max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl w-full mx-4">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
-            <Users className="mr-2" />
+          <DialogTitle className="text-2xl font-bold text-yellow-200 flex items-center gap-2">
+            <Users className="w-6 h-6" />
             {character ? "Редагувати персонажа" : "Створити персонажа"}
           </DialogTitle>
+          <DialogDescription className="text-gray-300 text-sm">
+            {character ? "Змініть інформацію про персонажа" : "Створіть нового персонажа для вашого світу"}
+          </DialogDescription>
         </DialogHeader>
         <EntityForm
           schema={createCharacterSchema}

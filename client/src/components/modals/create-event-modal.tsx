@@ -64,11 +64,14 @@ export default function CreateEventModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="fantasy-border max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl w-full mx-4">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-fantasy font-bold text-yellow-200 flex items-center">
-            {t.actions.add} Подія
+          <DialogTitle className="text-2xl font-bold text-yellow-200 flex items-center gap-2">
+            📜 {t.actions.add} Подія
           </DialogTitle>
+          <DialogDescription className="text-gray-300 text-sm">
+            Додайте нову історичну подію до вашого світу
+          </DialogDescription>
         </DialogHeader>
         <EntityForm
           schema={eventSchema}

@@ -7,6 +7,7 @@ import { Plus, Users, Search } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import CreateRaceModal from "@/components/modals/create-race-modal";
+import { CrossReferences } from "@/components/integration-helpers";
 
 interface RacesPageProps {
   currentWorldId?: number | null;
