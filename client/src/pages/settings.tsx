@@ -204,6 +204,46 @@ export default function Settings() {
           </CardContent>
         </Card>
 
+        {/* Етап 8: Нові інструменти */}
+        <Card className="fantasy-border lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-fantasy-gold-300 font-fantasy">
+              Інструменти світобудування
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-purple-900/20 border border-purple-600/30 rounded">
+                <h3 className="font-semibold text-purple-200 mb-2">Історія змін</h3>
+                <p className="text-gray-400 text-sm">
+                  Відстежування всіх редагувань з можливістю відкату
+                </p>
+              </div>
+              
+              <div className="p-4 bg-blue-900/20 border border-blue-600/30 rounded">
+                <h3 className="font-semibold text-blue-200 mb-2">Система нотаток</h3>
+                <p className="text-gray-400 text-sm">
+                  Зберігайте ідеї та завдання для розвитку світу
+                </p>
+              </div>
+              
+              <div className="p-4 bg-green-900/20 border border-green-600/30 rounded">
+                <h3 className="font-semibold text-green-200 mb-2">Експорт документів</h3>
+                <p className="text-gray-400 text-sm">
+                  PDF та DOCX файли для друку та обміну
+                </p>
+              </div>
+              
+              <div className="p-4 bg-yellow-900/20 border border-yellow-600/30 rounded">
+                <h3 className="font-semibold text-yellow-200 mb-2">Валідація світу</h3>
+                <p className="text-gray-400 text-sm">
+                  Автоматична перевірка на суперечності
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Data Management */}
         <Card className="fantasy-border lg:col-span-2">
           <CardHeader>
