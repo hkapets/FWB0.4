@@ -80,8 +80,8 @@ app.use((req, res, next) => {
     });
   }
 
-  // API server will run on port 3001 for development compatibility
-  const port = process.env.PORT || 3001;
+  // Port configuration for deployment
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 80;
   server.listen(port, "0.0.0.0", () => {
     log(`API server listening on port ${port}`);
   });

@@ -1347,7 +1347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 12.1 Plugin System API
   app.get("/api/plugins", async (req, res) => {
     try {
-      const { pluginManager } = await import("./plugin-system.js");
+      const { pluginManager } = await import("./plugin-system.js") as { pluginManager: PluginManager };
       const plugins = pluginManager.getActivePlugins();
       res.json(plugins);
     } catch (error: any) {
@@ -1358,7 +1358,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/plugins/install", async (req, res) => {
     try {
       const { pluginCode, manifest } = req.body;
-      const { pluginManager } = await import("./plugin-system.js");
+      const { pluginManager } = await import("./plugin-system.js") as { pluginManager: PluginManager };
       
       const success = await pluginManager.loadPlugin(pluginCode, manifest);
       
@@ -1375,7 +1375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/plugins/:pluginId", async (req, res) => {
     try {
       const { pluginId } = req.params;
-      const { pluginManager } = await import("./plugin-system.js");
+      const { pluginManager } = await import("./plugin-system.js") as { pluginManager: PluginManager };
       
       const success = await pluginManager.unloadPlugin(pluginId);
       
@@ -1393,9 +1393,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { pluginId } = req.params;
       const { hook, args } = req.body;
-      const { pluginManager } = await import("./plugin-system.js");
+      const { pluginManager } = await import("./plugin-system.js") as { pluginManager: PluginManager };
       
-      await pluginManager.triggerHook(hook, ...args);
+      await pluginManager.triggerHook(hook, ...(args || []));
       
       res.json({ success: true });
     } catch (error: any) {

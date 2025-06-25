@@ -313,3 +313,5 @@ export type Scenario = {
   icon?: string;
   worldId: string | number;
 };
+
+// All tables are already exported above individually

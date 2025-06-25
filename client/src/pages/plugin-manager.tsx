@@ -1,14 +1,11 @@
 import PluginManager from '@/components/plugins/plugin-manager';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '@/lib/i18n';
 
 export default function PluginManagerPage() {
-  const { i18n } = useTranslation();
+  const t = useTranslation();
 
   const getLanguageCode = (): 'uk' | 'pl' | 'en' => {
-    const lang = i18n.language;
-    if (lang.startsWith('uk')) return 'uk';
-    if (lang.startsWith('pl')) return 'pl';
-    return 'en';
+    return 'uk';
   };
 
   return (

@@ -342,8 +342,9 @@ export class PluginManager {
 
   private executePluginCode(code: string, sandbox: any, manifest: any): Plugin | null {
     try {
-      // Simple code execution (in real implementation, use vm2 or similar)
-      const func = new Function('api', 'manifest', `
+      // Create a safe execution environment
+      const func = new Function('api', 'manifest', 'console', `
+        "use strict";
         ${code}
         if (typeof plugin !== 'undefined') {
           return plugin;
@@ -351,8 +352,8 @@ export class PluginManager {
         return null;
       `);
       
-      return func(sandbox.api, manifest);
-    } catch (error) {
+      return func(sandbox.api, manifest, sandbox.console);
+    } catch (error: any) {
       console.error('Plugin execution error:', error);
       return null;
     }

@@ -1,3 +1,9 @@
+// Ensure proper typing
+interface OllamaResponse {
+  response: string;
+  done: boolean;
+}
+
 export interface NameGeneratorRequest {
   type: 'character' | 'location' | 'artifact' | 'organization';
   race?: string;
