@@ -139,7 +139,7 @@ The application is configured for deployment on Replit with autoscaling:
   - ✅ Header integration with AI Assistant and Analytics buttons
   - ✅ All API routes implemented and tested
   - ✅ Fixed compilation errors and Ukrainian text apostrophe issues
-  - ⚠️ Ready for deployment but needs OPENAI_API_KEY configuration
+  - ⚠️ Ready for deployment with local Ollama AI integration
   - ⚠️ Port conflict issue (server trying to use occupied port 5000)
 
 - June 25, 2025: Completed Stage 6 - Electron Desktop Migration

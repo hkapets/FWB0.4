@@ -20,6 +20,7 @@ export default function ConnectionAnalyzer({ worldId }: ConnectionAnalyzerProps)
   const { toast } = useToast();
   const [suggestions, setSuggestions] = useState<ConnectionSuggestion[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showOllamaGuide, setShowOllamaGuide] = useState(false);
 
   const analyzeSuggestions = async () => {
     setIsAnalyzing(true);
@@ -39,12 +40,16 @@ export default function ConnectionAnalyzer({ worldId }: ConnectionAnalyzerProps)
         title: 'Аналіз завершено',
         description: `Знайдено ${connections.length} пропозицій для звязків`,
       });
-    } catch (error) {
-      toast({
-        title: 'Помилка аналізу',
-        description: 'Не вдалося проаналізувати звязки. Перевірте налаштування API.',
-        variant: 'destructive',
-      });
+    } catch (error: any) {
+      if (error.message === 'OLLAMA_NOT_RUNNING') {
+        setShowOllamaGuide(true);
+      } else {
+        toast({
+          title: 'Помилка аналізу',
+          description: 'Не вдалося проаналізувати звязки. Перевірте підключення до Ollama.',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -165,6 +170,11 @@ export default function ConnectionAnalyzer({ worldId }: ConnectionAnalyzerProps)
           </div>
         )}
       </CardContent>
+      
+      <OllamaSetupGuide 
+        isOpen={showOllamaGuide}
+        onClose={() => setShowOllamaGuide(false)}
+      />
     </Card>
   );
 }

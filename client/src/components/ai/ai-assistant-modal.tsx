@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Wand2, Sparkles, Users, MapPin, Sword, Scroll, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import OllamaSetupGuide from '@/components/ollama-setup-guide';
 
 interface AIAssistantModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export default function AIAssistantModal({ isOpen, onClose, worldId }: AIAssista
   const [activeTab, setActiveTab] = useState('names');
   const [isGenerating, setIsGenerating] = useState(false);
   const [results, setResults] = useState<GeneratedResult[]>([]);
+  const [showOllamaGuide, setShowOllamaGuide] = useState(false);
 
   // Name Generator State
   const [nameParams, setNameParams] = useState({
@@ -69,12 +71,16 @@ export default function AIAssistantModal({ isOpen, onClose, worldId }: AIAssista
         title: 'Імена згенеровано',
         description: `Створено ${names.length} нових імен`,
       });
-    } catch (error) {
-      toast({
-        title: 'Помилка',
-        description: 'Не вдалося згенерувати імена. Перевірте налаштування API.',
-        variant: 'destructive',
-      });
+    } catch (error: any) {
+      if (error.message === 'OLLAMA_NOT_RUNNING') {
+        setShowOllamaGuide(true);
+      } else {
+        toast({
+          title: 'Помилка генерації',
+          description: 'Не вдалося згенерувати імена. Перевірте підключення до Ollama.',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -110,12 +116,16 @@ export default function AIAssistantModal({ isOpen, onClose, worldId }: AIAssista
         title: 'Опис згенеровано',
         description: 'Створено детальний опис',
       });
-    } catch (error) {
-      toast({
-        title: 'Помилка',
-        description: 'Не вдалося згенерувати опис. Перевірте налаштування API.',
-        variant: 'destructive',
-      });
+    } catch (error: any) {
+      if (error.message === 'OLLAMA_NOT_RUNNING') {
+        setShowOllamaGuide(true);
+      } else {
+        toast({
+          title: 'Помилка генерації',
+          description: 'Не вдалося згенерувати опис. Перевірте підключення до Ollama.',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -151,12 +161,16 @@ export default function AIAssistantModal({ isOpen, onClose, worldId }: AIAssista
         title: 'Події згенеровано',
         description: `Створено ${events.length} історичних подій`,
       });
-    } catch (error) {
-      toast({
-        title: 'Помилка',
-        description: 'Не вдалося згенерувати події. Перевірте налаштування API.',
-        variant: 'destructive',
-      });
+    } catch (error: any) {
+      if (error.message === 'OLLAMA_NOT_RUNNING') {
+        setShowOllamaGuide(true);
+      } else {
+        toast({
+          title: 'Помилка генерації',
+          description: 'Не вдалося згенерувати події. Перевірте підключення до Ollama.',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -501,6 +515,11 @@ export default function AIAssistantModal({ isOpen, onClose, worldId }: AIAssista
           </div>
         </div>
       </DialogContent>
+      
+      <OllamaSetupGuide 
+        isOpen={showOllamaGuide}
+        onClose={() => setShowOllamaGuide(false)}
+      />
     </Dialog>
   );
 }

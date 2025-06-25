@@ -1,8 +1,3 @@
-import OpenAI from "openai";
-
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 export interface NameGeneratorRequest {
   type: 'character' | 'location' | 'artifact' | 'organization';
   race?: string;
@@ -25,86 +20,130 @@ export interface ConnectionSuggestion {
   strength: number; // 1-10
 }
 
+interface OllamaResponse {
+  response: string;
+  done: boolean;
+}
+
+const OLLAMA_BASE_URL = 'http://localhost:11434';
+const MODEL_NAME = 'mistral';
+
+async function callOllama(prompt: string, systemPrompt?: string): Promise<string> {
+  try {
+    const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: MODEL_NAME,
+        prompt: systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt,
+        stream: false,
+        options: {
+          temperature: 0.8,
+          top_p: 0.9,
+        }
+      }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('OLLAMA_NOT_RUNNING');
+      }
+      throw new Error(`Ollama API error: ${response.status}`);
+    }
+
+    const data: OllamaResponse = await response.json();
+    return data.response.trim();
+  } catch (error: any) {
+    if (error.code === 'ECONNREFUSED' || error.message === 'OLLAMA_NOT_RUNNING') {
+      throw new Error('OLLAMA_NOT_RUNNING');
+    }
+    throw error;
+  }
+}
+
+function extractJsonFromResponse(response: string): any {
+  try {
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    return JSON.parse(response);
+  } catch (error) {
+    console.warn('Failed to parse JSON from Ollama response:', response);
+    return { fallback: true, content: response };
+  }
+}
+
 export class AIService {
   async generateNames(request: NameGeneratorRequest): Promise<string[]> {
-    const prompt = this.buildNamePrompt(request);
-    
     try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are a fantasy name generator. Generate authentic, immersive fantasy names that fit the requested criteria. Respond with JSON format: { \"names\": [\"name1\", \"name2\", ...] }"
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.8,
-      });
-
-      const result = JSON.parse(response.choices[0].message.content || '{"names":[]}');
+      const prompt = this.buildNamePrompt(request);
+      const systemPrompt = "You are a fantasy name generator. Generate creative and authentic names that fit the requested theme and culture. Always respond with valid JSON in format: {\"names\": [\"name1\", \"name2\", ...]}";
+      
+      const response = await callOllama(prompt, systemPrompt);
+      const result = extractJsonFromResponse(response);
+      
+      if (result.fallback) {
+        const names = result.content.split('\n')
+          .filter((line: string) => line.trim().length > 0)
+          .map((line: string) => line.replace(/^[-*•]\s*/, '').trim())
+          .slice(0, request.count || 5);
+        return names;
+      }
+      
       return result.names || [];
-    } catch (error) {
-      console.error('AI name generation error:', error);
+    } catch (error: any) {
+      console.error('Error generating names:', error);
+      if (error.message === 'OLLAMA_NOT_RUNNING') {
+        throw new Error('OLLAMA_NOT_RUNNING');
+      }
       throw new Error('Failed to generate names');
     }
   }
 
   async generateDescription(request: DescriptionGeneratorRequest): Promise<string> {
-    const prompt = this.buildDescriptionPrompt(request);
-    
     try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are a fantasy world building assistant. Create immersive, detailed descriptions that enhance the fantasy world. Write in a style that fits tabletop RPGs and fantasy literature."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-      });
-
-      return response.choices[0].message.content || '';
-    } catch (error) {
-      console.error('AI description generation error:', error);
+      const prompt = this.buildDescriptionPrompt(request);
+      const systemPrompt = "You are a fantasy world builder. Create vivid, immersive descriptions that bring fantasy elements to life. Always respond with valid JSON in format: {\"description\": \"your description here\"}";
+      
+      const response = await callOllama(prompt, systemPrompt);
+      const result = extractJsonFromResponse(response);
+      
+      if (result.fallback) {
+        return result.content;
+      }
+      
+      return result.description || '';
+    } catch (error: any) {
+      console.error('Error generating description:', error);
+      if (error.message === 'OLLAMA_NOT_RUNNING') {
+        throw new Error('OLLAMA_NOT_RUNNING');
+      }
       throw new Error('Failed to generate description');
     }
   }
 
   async suggestConnections(worldData: any): Promise<ConnectionSuggestion[]> {
-    const prompt = this.buildConnectionPrompt(worldData);
-    
     try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are a world building analyst. Analyze fantasy world elements and suggest meaningful connections, relationships, and story hooks. Respond with JSON format: { \"connections\": [{\"type\": \"relationship\", \"entities\": [\"entity1\", \"entity2\"], \"description\": \"connection description\", \"strength\": 5}] }"
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.6,
-      });
-
-      const result = JSON.parse(response.choices[0].message.content || '{"connections":[]}');
+      const prompt = this.buildConnectionPrompt(worldData);
+      const systemPrompt = "You are a fantasy world analyst. Analyze world elements and suggest meaningful connections that would enhance storytelling. Always respond with valid JSON in format: {\"connections\": [{\"type\": \"relationship\", \"entities\": [\"entity1\", \"entity2\"], \"description\": \"connection description\", \"strength\": 7}]}";
+      
+      const response = await callOllama(prompt, systemPrompt);
+      const result = extractJsonFromResponse(response);
+      
+      if (result.fallback) {
+        return [];
+      }
+      
       return result.connections || [];
-    } catch (error) {
-      console.error('AI connection analysis error:', error);
-      throw new Error('Failed to analyze connections');
+    } catch (error: any) {
+      console.error('Error suggesting connections:', error);
+      if (error.message === 'OLLAMA_NOT_RUNNING') {
+        throw new Error('OLLAMA_NOT_RUNNING');
+      }
+      throw new Error('Failed to suggest connections');
     }
   }
 
@@ -122,102 +161,64 @@ Create events that:
 Return JSON: { "events": [{"name": "Event Name", "description": "Event description", "date": "Year/Era", "importance": 3, "type": "war|discovery|founding|disaster|political"}] }`;
 
     try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "You are a fantasy historian. Generate compelling historical events that enrich fantasy worlds and provide story opportunities."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.7,
-      });
-
-      const result = JSON.parse(response.choices[0].message.content || '{"events":[]}');
+      const systemPrompt = "You are a fantasy historian. Generate compelling historical events that enrich fantasy worlds and provide story opportunities. Always respond with valid JSON.";
+      const response = await callOllama(prompt, systemPrompt);
+      const result = extractJsonFromResponse(response);
+      
+      if (result.fallback) {
+        return [];
+      }
+      
       return result.events || [];
-    } catch (error) {
-      console.error('AI timeline generation error:', error);
+    } catch (error: any) {
+      console.error('Error generating timeline events:', error);
+      if (error.message === 'OLLAMA_NOT_RUNNING') {
+        throw new Error('OLLAMA_NOT_RUNNING');
+      }
       throw new Error('Failed to generate timeline events');
     }
   }
 
   private buildNamePrompt(request: NameGeneratorRequest): string {
-    let prompt = `Generate ${request.count || 5} fantasy ${request.type} names`;
+    const { type, race, culture, theme, count = 5 } = request;
     
-    if (request.race) prompt += ` for ${request.race} race`;
-    if (request.culture) prompt += ` with ${request.culture} cultural influences`;
-    if (request.theme) prompt += ` with ${request.theme} theme`;
+    let prompt = `Generate ${count} fantasy names for ${type}s.`;
     
-    switch (request.type) {
-      case 'character':
-        prompt += '. Names should sound authentic and memorable for fantasy RPG characters.';
-        break;
-      case 'location':
-        prompt += '. Names should evoke the feeling of mysterious, ancient or majestic places.';
-        break;
-      case 'artifact':
-        prompt += '. Names should sound powerful, ancient, and hint at magical properties.';
-        break;
-      case 'organization':
-        prompt += '. Names should convey purpose, authority, or mystique appropriate for fantasy guilds/orders.';
-        break;
-    }
+    if (race) prompt += ` Race: ${race}.`;
+    if (culture) prompt += ` Culture: ${culture}.`;
+    if (theme) prompt += ` Theme: ${theme}.`;
+    
+    prompt += ` Return as JSON with "names" array.`;
     
     return prompt;
   }
 
   private buildDescriptionPrompt(request: DescriptionGeneratorRequest): string {
-    let prompt = `Create a ${request.style || 'detailed'} description for the ${request.type} named "${request.name}"`;
+    const { name, type, context, style = 'detailed' } = request;
     
-    if (request.context) {
-      prompt += ` in the context of: ${request.context}`;
-    }
+    let prompt = `Create a ${style} description for ${type} named "${name}".`;
     
-    switch (request.type) {
-      case 'character':
-        prompt += '. Include appearance, personality traits, background, and motivations.';
-        break;
-      case 'location':
-        prompt += '. Include geography, atmosphere, notable features, and what makes it special.';
-        break;
-      case 'artifact':
-        prompt += '. Include appearance, magical properties, history, and significance.';
-        break;
-      case 'creature':
-        prompt += '. Include appearance, behavior, habitat, and abilities.';
-        break;
-      case 'event':
-        prompt += '. Include what happened, key figures involved, and lasting consequences.';
-        break;
-    }
+    if (context) prompt += ` Context: ${context}.`;
     
-    prompt += ' Write in an engaging, immersive style suitable for fantasy world building.';
+    prompt += ` Return as JSON with "description" field.`;
+    
     return prompt;
   }
 
   private buildConnectionPrompt(worldData: any): string {
-    const characters = worldData.characters?.map((c: any) => c.name?.uk || c.name?.en || c.name) || [];
-    const locations = worldData.locations?.map((l: any) => l.name?.uk || l.name?.en || l.name) || [];
-    const organizations = worldData.organizations || [];
-    
-    return `Analyze this fantasy world and suggest meaningful connections:
+    let prompt = `Analyze this fantasy world data and suggest meaningful connections between elements:
 
-Characters: ${characters.slice(0, 10).join(', ')}
-Locations: ${locations.slice(0, 10).join(', ')}
-Organizations: ${organizations.slice(0, 5).join(', ')}
+${JSON.stringify(worldData, null, 2)}
 
-Suggest 3-5 interesting connections such as:
-- Character relationships (allies, rivals, family)
-- Historical events connecting characters and locations
-- Hidden connections that create story opportunities
-- Political or economic relationships
+Suggest connections that would:
+- Enhance storytelling potential
+- Create interesting relationships
+- Add depth to the world
+- Provide adventure hooks
 
-Focus on connections that would enhance storytelling and world depth.`;
+Return JSON with "connections" array containing type, entities, description, and strength (1-10).`;
+
+    return prompt;
   }
 }
 
