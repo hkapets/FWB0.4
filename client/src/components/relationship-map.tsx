@@ -120,7 +120,7 @@ export default function RelationshipMap({ worldId }: RelationshipMapProps) {
 
       setNodes([...characterNodes, ...locationNodes]);
 
-      // Завантажуємо зв'язки (поки що заглушка)
+      // Завантажуємо звязки (поки що заглушка)
       setRelationships([]);
     } catch (error) {
       console.error('Error loading relationship data:', error);
@@ -179,7 +179,7 @@ export default function RelationshipMap({ worldId }: RelationshipMapProps) {
 
   const createRelationship = async () => {
     try {
-      // Тут буде API запит для створення зв'язку
+      // Тут буде API запит для створення звязку
       const newRelationship: Relationship = {
         id: `rel-${Date.now()}`,
         ...formData,
@@ -206,7 +206,7 @@ export default function RelationshipMap({ worldId }: RelationshipMapProps) {
       <div className="flex items-center justify-between p-4 border-b border-yellow-500/20">
         <div className="flex items-center gap-4">
           <h2 className="text-xl font-fantasy text-fantasy-gold-300">
-            Карта зв'язків
+            Карта звязків
           </h2>
           <div className="flex items-center gap-2">
             <Button
@@ -236,7 +236,7 @@ export default function RelationshipMap({ worldId }: RelationshipMapProps) {
           className="fantasy-button"
         >
           <Plus className="mr-2 h-4 w-4" />
-          Додати зв'язок
+          Додати звя'язок
         </Button>
       </div>
 
@@ -379,7 +379,7 @@ export default function RelationshipMap({ worldId }: RelationshipMapProps) {
         <DialogContent className="fantasy-modal">
           <DialogHeader>
             <DialogTitle className="text-fantasy-gold-300 font-fantasy">
-              Створити зв'язок
+              Створити звя'язок
             </DialogTitle>
           </DialogHeader>
           
@@ -428,7 +428,7 @@ export default function RelationshipMap({ worldId }: RelationshipMapProps) {
 
             <div>
               <label className="text-sm font-medium text-gray-300 mb-2 block">
-                Тип зв'язку
+                Тип звязку
               </label>
               <Select value={formData.type} onValueChange={(value: any) => 
                 setFormData(prev => ({ ...prev, type: value }))
@@ -448,7 +448,7 @@ export default function RelationshipMap({ worldId }: RelationshipMapProps) {
 
             <div>
               <label className="text-sm font-medium text-gray-300 mb-2 block">
-                Сила зв'язку: {formData.strength}
+                Сила звя'язку: {formData.strength}
               </label>
               <input
                 type="range"
@@ -467,7 +467,7 @@ export default function RelationshipMap({ worldId }: RelationshipMapProps) {
               <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Опишіть характер зв'язку..."
+                placeholder="Опишіть характер звя'язку..."
                 className="fantasy-input"
               />
             </div>
@@ -481,7 +481,7 @@ export default function RelationshipMap({ worldId }: RelationshipMapProps) {
                 className="rounded"
               />
               <label htmlFor="isDirectional" className="text-sm text-gray-300">
-                Односпрямований зв'язок
+                Односпрямований звя'язок
               </label>
             </div>
           </div>

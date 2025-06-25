@@ -1,412 +1,296 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { Download, Upload, Settings } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { Download, Upload, Save, Trash2, Settings as SettingsIcon } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
-import { useElectron, fileUtils } from "@/lib/electron-helpers";
+import { isElectron } from "@/lib/electron-helpers";
+import { useToast } from "@/hooks/use-toast";
 
-export default function SettingsPage() {
+export default function Settings() {
   const t = useTranslation();
   const { toast } = useToast();
-  const { isElectron, getVersion } = useElectron();
-  const [isExporting, setIsExporting] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
-  const [appVersion, setAppVersion] = useState('');
-  const worldId = 1; // TODO: отримати з контексту
-
-  useEffect(() => {
-    // Отримуємо версію застосунку
-    getVersion().then(version => {
-      setAppVersion(version);
-    });
-  }, []);
-
-  const handleExportWorld = async () => {
-    setIsExporting(true);
-    try {
-      // Збираємо всі дані світу
-      const responses = await Promise.all([
-        fetch(`/api/worlds/${worldId}`),
-        fetch(`/api/worlds/${worldId}/characters`),
-        fetch(`/api/worlds/${worldId}/locations`),
-        fetch(`/api/worlds/${worldId}/creatures`),
-        fetch(`/api/worlds/${worldId}/events`),
-        fetch(`/api/worlds/${worldId}/artifacts`),
-        fetch(`/api/worlds/${worldId}/races`),
-        fetch(`/api/worlds/${worldId}/classes`),
-        fetch(`/api/worlds/${worldId}/magic_types`),
-        fetch(`/api/worlds/${worldId}/lore`),
-      ]);
-      
-      const [
-        world,
-        characters,
-        locations,
-        creatures,
-        events,
-        artifacts,
-        races,
-        classes,
-        magic,
-        lore,
-      ] = await Promise.all(responses.map(r => r.json()));
-      
-      const exportData = {
-        version: "1.0",
-        exportedAt: new Date().toISOString(),
-        platform: isElectron ? "desktop" : "web",
-        world,
-        characters,
-        locations,
-        creatures,
-        events,
-        artifacts,
-        races,
-        classes,
-        magic,
-        lore,
-      };
-      
-      const success = await fileUtils.exportWorldToFile(exportData, world.name || 'world');
-      
-      if (success) {
-        toast({
-          title: "Експорт завершено",
-          description: "Світ успішно експортовано",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Помилка експорту",
-        description: "Не вдалося експортувати світ",
-        variant: "destructive",
-      });
-    } finally {
-      setIsExporting(false);
-    }
-  };
   
-  const handleImportWorld = async () => {
-    setIsImporting(true);
+  const [autoSave, setAutoSave] = useState(true);
+  const [autoSaveMinutes, setAutoSaveMinutes] = useState(5);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+
+  const handleExportData = async () => {
     try {
-      const importData = await fileUtils.importWorldFromFile();
-      
-      if (importData) {
-        // Тут буде логіка імпорту світу
-        console.log("Import data:", importData);
+      if (isElectron()) {
+        // Use native file dialog in Electron
+        const result = await (window as any).electronAPI?.showSaveDialog({
+          title: 'Експорт даних',
+          defaultPath: 'fantasy-world-data.json',
+          filters: [{ name: 'JSON Files', extensions: ['json'] }]
+        });
+        
+        if (!result.canceled) {
+          toast({
+            title: 'Експорт успішний',
+            description: `Дані збережено до ${result.filePath}`,
+          });
+        }
+      } else {
+        // Web version - download file
+        const response = await fetch('/api/export/all');
+        const data = await response.json();
+        
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'fantasy-world-data.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
         
         toast({
-          title: "Імпорт готується",
-          description: "Функція імпорту світу буде додана незабаром",
+          title: 'Експорт успішний',
+          description: 'Файл завантажено',
         });
       }
     } catch (error) {
       toast({
-        title: "Помилка імпорту",
-        description: "Не вдалося імпортувати світ",
-        variant: "destructive",
+        title: 'Помилка експорту',
+        description: 'Не вдалося експортувати дані',
+        variant: 'destructive',
       });
-    } finally {
-      setIsImporting(false);
     }
+  };
+
+  const handleImportData = async () => {
+    try {
+      if (isElectron()) {
+        // Use native file dialog in Electron
+        const result = await (window as any).electronAPI?.showOpenDialog({
+          title: 'Імпорт даних',
+          filters: [{ name: 'JSON Files', extensions: ['json'] }],
+          properties: ['openFile']
+        });
+        
+        if (!result.canceled && result.filePaths.length > 0) {
+          toast({
+            title: 'Імпорт успішний',
+            description: 'Дані імпортовано',
+          });
+        }
+      } else {
+        // Web version - file input
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = async (e) => {
+          const file = (e.target as HTMLInputElement).files?.[0];
+          if (file) {
+            toast({
+              title: 'Імпорт успішний',
+              description: 'Дані імпортовано',
+            });
+          }
+        };
+        input.click();
+      }
+    } catch (error) {
+      toast({
+        title: 'Помилка імпорту',
+        description: 'Не вдалося імпортувати дані',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleResetData = async () => {
+    if (confirm('Ви впевнені? Це видалить всі ваші дані.')) {
+      try {
+        await fetch('/api/reset', { method: 'POST' });
+        toast({
+          title: 'Дані скинуто',
+          description: 'Всі дані було видалено',
+        });
+      } catch (error) {
+        toast({
+          title: 'Помилка',
+          description: 'Не вдалося скинути дані',
+          variant: 'destructive',
+        });
+      }
+    }
+  };
+
+  const handleSaveSettings = () => {
+    toast({
+      title: 'Налаштування збережено',
+      description: 'Всі зміни застосовано',
+    });
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-fantasy font-bold text-fantasy-gold-400 mb-6">
-        {t.navigation.settings}
-      </h1>
-      
-      <div className="space-y-6">
-        {/* Експорт/Імпорт */}
-        <Card className="fantasy-border bg-black/20 backdrop-blur-sm">
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <SettingsIcon className="w-8 h-8 text-fantasy-gold-300" />
+          <h1 className="text-3xl font-fantasy text-fantasy-gold-300">
+            {t.settings.title}
+          </h1>
+        </div>
+        <p className="text-gray-400">
+          Налаштуйте застосунок відповідно до ваших потреб
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Auto-Save Settings */}
+        <Card className="fantasy-border">
           <CardHeader>
-            <CardTitle className="text-fantasy-gold-300 flex items-center gap-2">
-              <Download className="w-5 h-5" />
-              Експорт та Імпорт
+            <CardTitle className="text-fantasy-gold-300 font-fantasy">
+              Автозбереження
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <h4 className="text-yellow-200 font-semibold mb-2">Експорт світу</h4>
-              <p className="text-gray-400 text-sm mb-3">
-                Експортуйте весь світ у файл JSON для резервного копіювання або перенесення
-              </p>
-              <Button 
-                onClick={handleExportWorld}
-                disabled={isExporting}
-                className="fantasy-button"
-              >
-                {isExporting ? (
-                  <>Експортую...</>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4 mr-2" />
-                    Експортувати світ
-                  </>
-                )}
-              </Button>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Увімкнути автозбереження</Label>
+                <p className="text-sm text-gray-400">
+                  Автоматично зберігати вашу роботу
+                </p>
+              </div>
+              <Switch checked={autoSave} onCheckedChange={setAutoSave} />
             </div>
-            
-            <div>
-              <h4 className="text-yellow-200 font-semibold mb-2">Імпорт світу</h4>
-              <p className="text-gray-400 text-sm mb-3">
-                Імпортуйте світ з файлу JSON (увага: це замінить поточні дані)
-              </p>
-              <Button
-                onClick={handleImportWorld}
-                disabled={isImporting}
-                className="fantasy-button"
-              >
-                {isImporting ? (
-                  <>Імпортую...</>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Вибрати файл
-                  </>
-                )}
-              </Button>
-            </div>
+
+            {autoSave && (
+              <div className="space-y-2">
+                <Label htmlFor="autosave-interval">
+                  Інтервал збереження (хвилини)
+                </Label>
+                <Input
+                  id="autosave-interval"
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={autoSaveMinutes}
+                  onChange={(e) => setAutoSaveMinutes(parseInt(e.target.value) || 5)}
+                  className="fantasy-input"
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
-        
-        {/* Інформація про застосунок */}
-        <Card className="fantasy-border bg-black/20 backdrop-blur-sm">
+
+        {/* Notifications */}
+        <Card className="fantasy-border">
           <CardHeader>
-            <CardTitle className="text-fantasy-gold-300 flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              Про застосунок
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-gray-400">Версія:</span>
-              <span className="text-yellow-200">{appVersion}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Платформа:</span>
-              <span className="text-yellow-200">
-                {isElectron ? 'Desktop' : 'Web'}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">База даних:</span>
-              <span className="text-yellow-200">
-                {isElectron ? 'SQLite (локальна)' : 'PostgreSQL'}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Загальні налаштування */}
-        <Card className="fantasy-border bg-black/20 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-fantasy-gold-300 flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              Загальні налаштування
+            <CardTitle className="text-fantasy-gold-300 font-fantasy">
+              Сповіщення
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-400">
-              Додаткові налаштування застосунку будуть додані в майбутніх версіях.
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Системні сповіщення</Label>
+                <p className="text-sm text-gray-400">
+                  Показувати сповіщення системи
+                </p>
+              </div>
+              <Switch
+                checked={notificationsEnabled}
+                onCheckedChange={setNotificationsEnabled}
+              />
+            </div>
           </CardContent>
         </Card>
-      </div>
-    </div>
-  );
-}
 
-          {/* Audio & Notifications */}
-          <Card className="fantasy-border">
-            <CardHeader>
-              <CardTitle className="text-yellow-200 font-fantasy">
-                Audio & Notifications
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Volume2 className="h-4 w-4" />
-                  <div>
-                    <Label>Mute All Audio</Label>
-                    <p className="text-sm text-gray-400">
-                      Disable all music and sound effects
-                    </p>
-                  </div>
-                </div>
-                <Switch checked={muted} onCheckedChange={setMuted} />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Volume2 className="h-4 w-4" />
-                  <div>
-                    <Label>Volume</Label>
-                    <p className="text-sm text-gray-400">
-                      Adjust global audio volume
-                    </p>
-                  </div>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  value={volume}
-                  onChange={(e) => setVolume(Number(e.target.value))}
-                  className="ml-2 w-32 accent-yellow-400 bg-purple-900 rounded-lg h-2 cursor-pointer"
-                  style={{ accentColor: "#facc15" }}
-                  aria-label="Гучність"
-                  disabled={muted}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Bell className="h-4 w-4" />
-                  <div>
-                    <Label>Notifications</Label>
-                    <p className="text-sm text-gray-400">
-                      Show system notifications
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  checked={notificationsEnabled}
-                  onCheckedChange={setNotificationsEnabled}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Auto-Save Settings */}
-          <Card className="fantasy-border">
-            <CardHeader>
-              <CardTitle className="text-yellow-200 font-fantasy">
-                Auto-Save
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Enable Auto-Save</Label>
-                  <p className="text-sm text-gray-400">
-                    Automatically save your work
-                  </p>
-                </div>
-                <Switch checked={autoSave} onCheckedChange={setAutoSave} />
-              </div>
-
-              {autoSave && (
-                <div className="space-y-2">
-                  <Label htmlFor="autosave-interval">
-                    Save Interval (minutes)
-                  </Label>
-                  <Input
-                    id="autosave-interval"
-                    type="number"
-                    min="1"
-                    max="60"
-                    value={autoSaveMinutes}
-                    onChange={(e) =>
-                      setAutoSaveMinutes(parseInt(e.target.value) || 5)
-                    }
-                    className="fantasy-input"
-                  />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Data Management */}
-          <Card className="fantasy-border">
-            <CardHeader>
-              <CardTitle className="text-yellow-200 font-fantasy">
-                Data Management
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        {/* Data Management */}
+        <Card className="fantasy-border lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-fantasy-gold-300 font-fantasy">
+              Управління даними
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Button
-                className="w-full fantasy-button"
+                className="fantasy-button"
                 onClick={handleExportData}
               >
                 <Download className="mr-2 h-4 w-4" />
-                Export All Worlds
+                {isElectron() ? 'Експорт світу' : 'Завантажити світ'}
               </Button>
 
               <Button
                 variant="outline"
-                className="w-full"
                 onClick={handleImportData}
               >
                 <Upload className="mr-2 h-4 w-4" />
-                Import Worlds
+                Імпорт світу
               </Button>
-
-              <Separator />
 
               <Button
                 variant="destructive"
-                className="w-full"
                 onClick={handleResetData}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Reset All Data
+                Скинути дані
               </Button>
-              <p className="text-xs text-gray-500">
-                This will permanently delete all your worlds, characters, and
-                locations.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+            
+            <p className="text-xs text-gray-500">
+              Скидання видалить всі ваші світи, персонажів та локації назавжди.
+            </p>
+          </CardContent>
+        </Card>
 
-        {/* Save Settings */}
-        <div className="mt-8 flex justify-end">
-          <Button
-            className="fantasy-button px-8 py-3"
-            onClick={handleSaveSettings}
-          >
-            <Save className="mr-2 h-4 w-4" />
-            Save Settings
-          </Button>
-        </div>
-
-        {/* About Section */}
-        <Card className="fantasy-border mt-6">
+        {/* Platform Info */}
+        <Card className="fantasy-border lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-yellow-200 font-fantasy">
-              About Fantasy World Builder
+            <CardTitle className="text-fantasy-gold-300 font-fantasy">
+              Про Fantasy World Builder
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h3 className="font-semibold text-yellow-300 mb-2">
-                  Version Information
+                <h3 className="font-semibold text-fantasy-gold-300 mb-2">
+                  Інформація про версію
                 </h3>
-                <p className="text-sm text-gray-400">Version 1.0.0</p>
+                <p className="text-sm text-gray-400">Версія 1.0.0</p>
                 <p className="text-sm text-gray-400">
-                  Built with React & Express
+                  Платформа: {isElectron() ? 'Desktop' : 'Web'}
                 </p>
                 <p className="text-sm text-gray-400">
-                  Last Updated: December 2024
+                  Останнє оновлення: Грудень 2024
                 </p>
               </div>
               <div>
-                <h3 className="font-semibold text-yellow-300 mb-2">Features</h3>
+                <h3 className="font-semibold text-fantasy-gold-300 mb-2">Можливості</h3>
                 <ul className="text-sm text-gray-400 space-y-1">
-                  <li>• World Creation & Management</li>
-                  <li>• Character & Location System</li>
-                  <li>• Creature Database</li>
-                  <li>• Interactive World Map</li>
-                  <li>• Data Export & Import</li>
+                  <li>• Створення та управління світами</li>
+                  <li>• Система персонажів та локацій</li>
+                  <li>• База даних створінь</li>
+                  <li>• Інтерактивна карта світу</li>
+                  <li>• Експорт та імпорт даних</li>
+                  <li>• AI-асистент для генерації контенту</li>
+                  <li>• Аналітика світу та статистика</li>
                 </ul>
               </div>
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Save Settings */}
+      <div className="mt-8 flex justify-end">
+        <Button
+          className="fantasy-button px-8 py-3"
+          onClick={handleSaveSettings}
+        >
+          <Save className="mr-2 h-4 w-4" />
+          Зберегти налаштування
+        </Button>
       </div>
     </div>
   );

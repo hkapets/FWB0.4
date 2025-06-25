@@ -131,7 +131,7 @@ export default function WorldHeatmap({ worldId }: WorldHeatmapProps) {
                         {region.entities} елементів
                       </div>
                       <div className="text-gray-400 text-xs">
-                        {region.connections} зв'язків
+                        {region.connections} звя'язків
                       </div>
                     </div>
                   </div>

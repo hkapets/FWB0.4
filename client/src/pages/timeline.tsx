@@ -198,7 +198,7 @@ function HorizontalTimelineEvent({
             {EVENT_TYPES.find(t => t.value === event.type)?.label || event.type}
           </span>
           
-          {/* Іконки зв'язків */}
+          {/* Іконки звя'язків */}
           <div className="flex gap-1">
             {event.characterId && <User className="w-3 h-3 text-white/70" />}
             {event.locationId && <MapPin className="w-3 h-3 text-white/70" />}

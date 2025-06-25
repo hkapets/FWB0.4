@@ -152,7 +152,7 @@ export default function WorldAnalyticsModal({ isOpen, onClose, worldId }: WorldA
 
                 <Card className="fantasy-border bg-black/20">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-fantasy-gold-300 text-sm">Зв'язки</CardTitle>
+                    <CardTitle className="text-fantasy-gold-300 text-sm">Звязки</CardTitle>
                     <Target className="h-4 w-4 text-purple-400" />
                   </CardHeader>
                   <CardContent>
@@ -348,7 +348,7 @@ export default function WorldAnalyticsModal({ isOpen, onClose, worldId }: WorldA
 
             <TabsContent value="connections" className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
-                {/* Імпортуємо компонент аналізатора зв'язків */}
+                {/* Імпортуємо компонент аналізатора звя'язків */}
                 <div className="space-y-4">
                   <ConnectionAnalyzer worldId={worldId} />
                   <WorldHeatmap worldId={worldId} />
@@ -360,7 +360,7 @@ export default function WorldAnalyticsModal({ isOpen, onClose, worldId }: WorldA
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Найбільш зв'язані елементи */}
+                    {/* Найбільш звя'язані елементи */}
                     <div>
                       <h4 className="text-fantasy-gold-300 font-semibold mb-3">Найактивніші елементи</h4>
                       <div className="space-y-2">
@@ -449,7 +449,7 @@ export default function WorldAnalyticsModal({ isOpen, onClose, worldId }: WorldA
                   </CardContent>
                 </Card>
 
-                {/* Пропозиції зв'язків */}
+                {/* Пропозиції звязків */}
                 <Card className="fantasy-border bg-black/20 lg:col-span-2">
                   <CardHeader>
                     <CardTitle className="text-fantasy-gold-300 flex items-center gap-2">
@@ -459,7 +459,7 @@ export default function WorldAnalyticsModal({ isOpen, onClose, worldId }: WorldA
                   </CardHeader>
                   <CardContent>
                     {analytics.gaps.missingConnections.length === 0 ? (
-                      <p className="text-gray-400 text-sm">Зв'язки між елементами добре розроблені!</p>
+                      <p className="text-gray-400 text-sm">Звязки між елементами добре розроблені!</p>
                     ) : (
                       <div className="space-y-3">
                         {analytics.gaps.missingConnections.map((connection, index) => (

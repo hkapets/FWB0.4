@@ -23,7 +23,7 @@ export default function RelationsPage() {
           Зв'язки
         </h1>
         <p className="text-gray-400 mt-2">
-          Керуйте зв'язками між персонажами та створюйте родинні дерева
+          Керуйте звя'язками між персонажами та створюйте родинні дерева
         </p>
       </div>
 
@@ -31,7 +31,7 @@ export default function RelationsPage() {
         <TabsList className="grid w-full grid-cols-3 fantasy-border">
           <TabsTrigger value="map" className="fantasy-tab">
             <MapPin className="mr-2 h-4 w-4" />
-            Карта зв'язків
+            Карта звя'язків
           </TabsTrigger>
           <TabsTrigger value="family" className="fantasy-tab">
             <TreePine className="mr-2 h-4 w-4" />

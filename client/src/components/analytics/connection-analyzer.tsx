@@ -85,7 +85,7 @@ export default function ConnectionAnalyzer({ worldId }: ConnectionAnalyzerProps)
       <CardHeader>
         <CardTitle className="text-fantasy-gold-300 flex items-center gap-2">
           <Network className="w-5 h-5" />
-          Аналізатор зв'язків
+          Аналізатор звя'язків
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
