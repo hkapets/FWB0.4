@@ -28,6 +28,8 @@ import Races from "@/pages/lore/races";
 import Writing from "@/pages/lore/writing";
 import Politics from "@/pages/lore/politics";
 import History from "@/pages/lore/history";
+import Mythology from "@/pages/lore/mythology";
+import Religion from "@/pages/lore/religion";
 import { AudioProvider } from "@/components/audio-provider";
 
 

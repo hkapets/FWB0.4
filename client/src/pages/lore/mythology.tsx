@@ -1,407 +1,369 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, List, Grid, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useTranslation } from "@/lib/i18n";
+import { Plus, Search, Filter, Grid, List, Crown, Sparkles, Shield, Sword } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import CreateMythologyModal from "@/components/modals/create-mythology-modal";
-import { apiRequest } from "@/lib/queryClient";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
-} from "@/components/ui/alert-dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { SortableList } from "@/components/ui/sortable-list";
-import { FilterBar } from "@/components/ui/filter-bar";
-import { BulkActions } from "@/components/ui/bulk-actions";
-import { filterData } from "@/lib/filter-utils";
-import { createMythologyBulkActions } from "@/lib/bulk-actions-utils";
-import type { WorldLore } from "@shared/schema";
 
-// Фільтри для міфології
-const createMythologyFilters = () => [
-  {
-    key: "type",
-    label: "Тип",
-    type: "select" as const,
-    options: [
-      { value: "creation", label: "Створення світу" },
-      { value: "hero", label: "Героїчний міф" },
-      { value: "trickster", label: "Міф про обманщика" },
-      { value: "flood", label: "Потоп" },
-      { value: "apocalypse", label: "Апокаліпсис" },
-      { value: "love", label: "Любовний міф" },
-    ],
-  },
-  {
-    key: "culture",
-    label: "Культура",
-    type: "select" as const,
-    options: [
-      { value: "northern", label: "Північна" },
-      { value: "southern", label: "Південна" },
-      { value: "eastern", label: "Східна" },
-      { value: "western", label: "Західна" },
-      { value: "ancient", label: "Антична" },
-      { value: "modern", label: "Сучасна" },
-    ],
-  },
-];
+interface MythologyEntity {
+  id: number;
+  name: { uk: string; en: string };
+  type: "pantheon" | "deity" | "spirit" | "legend" | "creation_myth" | "prophecy" | "ritual" | "sacred_place";
+  description: { uk: string; en: string };
+  domain?: string;
+  power_level?: "minor" | "major" | "supreme";
+  alignment?: "good" | "neutral" | "evil" | "chaotic" | "lawful";
+  symbols: string[];
+  followers?: string;
+  sacred_texts: string[];
+  holy_days: string[];
+  temples: string[];
+  image?: string;
+}
 
 export default function MythologyPage() {
-  const t = useTranslation();
-  const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [selected, setSelected] = useState<number[]>([]);
+  const queryClient = useQueryClient();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingMythology, setEditingMythology] = useState<MythologyEntity | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [deleteDialog, setDeleteDialog] = useState(false);
-  const [editMythology, setEditMythology] = useState<WorldLore | null>(null);
-  const [activeFilters, setActiveFilters] = useState<Record<string, any>>({});
-  const worldId = 1; // TODO: get from context/props
 
-  const { data: allLore = [], isLoading } = useQuery({
-    queryKey: ["/api/worlds", worldId, "lore"],
-    enabled: !!worldId,
+  // Mock data for demonstration
+  const mockData: MythologyEntity[] = [
+    {
+      id: 1,
+      name: { uk: "Торн Громовержець", en: "Thorn the Thunderer" },
+      type: "deity",
+      description: { 
+        uk: "Могутнє божество бурі та війни, покровитель воїнів та мореплавців", 
+        en: "Mighty deity of storm and war, patron of warriors and sailors" 
+      },
+      domain: "Буря, війна, мужність",
+      power_level: "major",
+      alignment: "chaotic",
+      symbols: ["Молот", "Блискавка", "Дуб"],
+      followers: "Воїни, мореплавці, ковалі",
+      sacred_texts: ["Пісні Грому", "Кодекс Воїна"],
+      holy_days: ["День Грому", "Свято Бурі"],
+      temples: ["Храм Громовержця", "Святилище Бурі"]
+    },
+    {
+      id: 2,
+      name: { uk: "Легенда про Срібного Дракона", en: "Legend of the Silver Dragon" },
+      type: "legend",
+      description: { 
+        uk: "Стародавня легенда про дракона, який пожертвував собою заради миру між расами", 
+        en: "Ancient legend of a dragon who sacrificed himself for peace between races" 
+      },
+      power_level: "supreme",
+      alignment: "good",
+      symbols: ["Срібна луска", "Мирний договір", "Біла троянда"],
+      followers: "Миротворці, дипломати, істори",
+      sacred_texts: ["Хроніки Срібного Дракона"],
+      holy_days: ["День Миру"],
+      temples: ["Меморіал Срібного Дракона"]
+    }
+  ];
+
+  const { data: mythology = mockData, isLoading } = useQuery({
+    queryKey: ['/api/worlds/1/mythology'],
+    queryFn: () => Promise.resolve(mockData),
   });
 
-  // Фільтруємо тільки міфологію
-  const mythologies = (allLore as WorldLore[]).filter(
-    (lore) => lore.type === "mythology"
-  );
+  const createMutation = useMutation({
+    mutationFn: async (data: Omit<MythologyEntity, 'id'>) => {
+      return { id: Date.now(), ...data };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/worlds/1/mythology'] });
+      toast({
+        title: "Міфологію створено",
+        description: "Нову міфологічну сутність успішно додано до світу",
+      });
+    },
+  });
 
-  // Фільтрація даних
-  const filteredMythologies = useMemo(() => {
-    return filterData(mythologies as WorldLore[], activeFilters, [
-      "name",
-      "description",
-    ]);
-  }, [mythologies, activeFilters]);
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, ...data }: MythologyEntity) => {
+      return { id, ...data };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/worlds/1/mythology'] });
+      toast({
+        title: "Міфологію оновлено",
+        description: "Зміни успішно збережено",
+      });
+    },
+  });
 
   const deleteMutation = useMutation({
-    mutationFn: async (ids: number[]) => {
-      await Promise.all(
-        ids.map((id) => apiRequest("DELETE", `/api/lore/${id}`))
-      );
+    mutationFn: async (id: number) => {
+      return id;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["/api/worlds", worldId, "lore"],
-      });
-      setSelected([]);
+      queryClient.invalidateQueries({ queryKey: ['/api/worlds/1/mythology'] });
       toast({
-        title: t.actions.delete,
-        description: t.messages.creatureCreated,
-      });
-    },
-    onError: () => {
-      toast({
-        title: t.actions.delete,
-        description: t.messages.errorDesc,
-        variant: "destructive",
+        title: "Міфологію видалено",
+        description: "Міфологічну сутність успішно вилучено зі світу",
       });
     },
   });
 
-  const bulkUpdateMutation = useMutation({
-    mutationFn: async ({ ids, updates }: { ids: number[]; updates: any }) => {
-      await Promise.all(
-        ids.map((id) => apiRequest("PUT", `/api/lore/${id}`, updates))
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["/api/worlds", worldId, "lore"],
-      });
-      setSelected([]);
-      toast({
-        title: "Оновлено",
-        description: "Властивості міфології змінено",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Помилка",
-        description: "Не вдалося оновити властивості",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const reorderMutation = useMutation({
-    mutationFn: async (reorderedMythologies: WorldLore[]) => {
-      // Оновлюємо порядок у базі даних
-      await Promise.all(
-        reorderedMythologies.map((mythology, index) =>
-          apiRequest("PUT", `/api/lore/${mythology.id}`, {
-            ...mythology,
-            order: index,
-          })
-        )
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["/api/worlds", worldId, "lore"],
-      });
-      toast({
-        title: "Порядок оновлено",
-        description: "Список міфології переупорядковано",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Помилка",
-        description: "Не вдалося оновити порядок",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleSelect = (id: number) => {
-    setSelected((sel) =>
-      sel.includes(id) ? sel.filter((i) => i !== id) : [...sel, id]
-    );
+  const handleCreate = (data: any) => {
+    createMutation.mutate(data);
   };
 
-  const handleDelete = () => {
-    setDeleteDialog(false);
-    if (selected.length) deleteMutation.mutate(selected);
-  };
-
-  const handleEdit = (mythology: WorldLore) => {
-    setEditMythology(mythology);
-    setIsCreateOpen(true);
-  };
-
-  const handleReorder = (reorderedMythologies: WorldLore[]) => {
-    reorderMutation.mutate(reorderedMythologies);
-  };
-
-  const handleFiltersChange = (filters: Record<string, any>) => {
-    setActiveFilters(filters);
-    setSelected([]); // Скидаємо вибір при зміні фільтрів
-  };
-
-  const handleBulkAction = (actionKey: string, value?: string) => {
-    if (actionKey === "delete") {
-      setDeleteDialog(true);
-    } else if (actionKey === "changeType" && value) {
-      bulkUpdateMutation.mutate({
-        ids: selected,
-        updates: { type: value },
-      });
-    } else if (actionKey === "changeCulture" && value) {
-      bulkUpdateMutation.mutate({
-        ids: selected,
-        updates: { culture: value },
-      });
+  const handleEdit = (data: any) => {
+    if (editingMythology) {
+      updateMutation.mutate({ ...data, id: editingMythology.id });
+      setEditingMythology(null);
     }
   };
 
-  const handleSubmit = async (data: any) => {
-    if (editMythology) {
-      // Update
-      await apiRequest("PUT", `/api/lore/${editMythology.id}`, {
-        ...data,
-        type: "mythology",
-      });
-      toast({ title: t.actions.edit, description: t.messages.creatureCreated });
-    } else {
-      // Create
-      await apiRequest("POST", `/api/worlds/${worldId}/lore`, {
-        ...data,
-        type: "mythology",
-      });
-      toast({ title: t.actions.add, description: t.messages.creatureCreated });
+  const filteredMythology = mythology.filter((item: MythologyEntity) => {
+    const matchesSearch = item.name.uk.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         item.name.en.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = filterType === "all" || item.type === filterType;
+    return matchesSearch && matchesFilter;
+  });
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'pantheon': case 'deity': return <Crown className="w-4 h-4" />;
+      case 'spirit': case 'ritual': return <Sparkles className="w-4 h-4" />;
+      case 'legend': case 'creation_myth': return <Sword className="w-4 h-4" />;
+      default: return <Shield className="w-4 h-4" />;
     }
-    queryClient.invalidateQueries({
-      queryKey: ["/api/worlds", worldId, "lore"],
-    });
-    setIsCreateOpen(false);
-    setEditMythology(null);
   };
+
+  const getTypeLabel = (type: string) => {
+    const labels: { [key: string]: string } = {
+      'pantheon': 'Пантеон',
+      'deity': 'Божество',
+      'spirit': 'Дух',
+      'legend': 'Легенда',
+      'creation_myth': 'Міф створення',
+      'prophecy': 'Пророцтво',
+      'ritual': 'Ритуал',
+      'sacred_place': 'Священне місце'
+    };
+    return labels[type] || type;
+  };
+
+  const getPowerLevelColor = (level?: string) => {
+    const colors: { [key: string]: string } = {
+      'minor': 'text-gray-400',
+      'major': 'text-yellow-400',
+      'supreme': 'text-purple-400'
+    };
+    return colors[level || ''] || 'text-gray-400';
+  };
+
+  const getPowerLevelLabel = (level?: string) => {
+    const labels: { [key: string]: string } = {
+      'minor': 'Малий',
+      'major': 'Великий',
+      'supreme': 'Верховний'
+    };
+    return labels[level || ''] || '';
+  };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-64">Завантаження...</div>;
+  }
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <BookOpen className="text-yellow-300" /> Міфологія
-        </h1>
-        <div className="flex gap-2 items-center">
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-purple-100">Міфологія</h1>
+          <p className="text-purple-300 mt-2">
+            Керуйте божествами, легендами, ритуалами та священними місцями вашого світу
+          </p>
+        </div>
+        <Button
+          onClick={() => setIsCreateModalOpen(true)}
+          className="fantasy-button"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Створити міфологію
+        </Button>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-4 items-center">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Input
+            placeholder="Пошук міфології..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-48">
+            <Filter className="w-4 h-4 mr-2" />
+            <SelectValue placeholder="Фільтр за типом" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Всі типи</SelectItem>
+            <SelectItem value="pantheon">Пантеон</SelectItem>
+            <SelectItem value="deity">Божество</SelectItem>
+            <SelectItem value="spirit">Дух</SelectItem>
+            <SelectItem value="legend">Легенда</SelectItem>
+            <SelectItem value="creation_myth">Міф створення</SelectItem>
+            <SelectItem value="prophecy">Пророцтво</SelectItem>
+            <SelectItem value="ritual">Ритуал</SelectItem>
+            <SelectItem value="sacred_place">Священне місце</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <div className="flex gap-2">
           <Button
-            variant={viewMode === "grid" ? "default" : "ghost"}
-            size="icon"
+            variant={viewMode === "grid" ? "default" : "outline"}
+            size="sm"
             onClick={() => setViewMode("grid")}
           >
-            <Grid />
+            <Grid className="w-4 h-4" />
           </Button>
           <Button
-            variant={viewMode === "list" ? "default" : "ghost"}
-            size="icon"
+            variant={viewMode === "list" ? "default" : "outline"}
+            size="sm"
             onClick={() => setViewMode("list")}
           >
-            <List />
-          </Button>
-          <Button
-            onClick={() => {
-              setEditMythology(null);
-              setIsCreateOpen(true);
-            }}
-            className="ml-2"
-            size="lg"
-          >
-            <Plus className="mr-2" /> {t.messages.addFirstCreature}
+            <List className="w-4 h-4" />
           </Button>
         </div>
       </div>
 
-      {/* Фільтри та пошук */}
-      <FilterBar
-        filters={createMythologyFilters()}
-        onFiltersChange={handleFiltersChange}
-        className="mb-6"
-      />
-
-      {/* Масові дії */}
-      <BulkActions
-        selectedCount={selected.length}
-        actions={createMythologyBulkActions()}
-        onAction={handleBulkAction}
-        className="mb-4"
-      />
-
-      {isLoading ? (
-        <div className="text-center text-gray-400 py-16">
-          {t.actions.loading}...
-        </div>
-      ) : mythologies.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
-          <BookOpen className="w-16 h-16 text-yellow-400 mb-4 animate-bounce" />
-          <h2 className="text-2xl font-bold mb-2">
-            У вас ще немає жодного міфу
-          </h2>
-          <p className="mb-6 text-gray-400">
-            Створіть перший міф, щоб оживити легенди світу!
-          </p>
-          <Button
-            size="lg"
-            onClick={() => {
-              setEditMythology(null);
-              setIsCreateOpen(true);
-            }}
-          >
-            <Plus className="mr-2" /> {t.messages.addFirstCreature}
-          </Button>
-        </div>
-      ) : filteredMythologies.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center animate-fade-in">
-          <BookOpen className="w-16 h-16 text-gray-400 mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Немає результатів</h2>
-          <p className="mb-6 text-gray-400">
-            Спробуйте змінити фільтри або пошуковий запит
-          </p>
-          <Button variant="outline" onClick={() => handleFiltersChange({})}>
-            Очистити фільтри
-          </Button>
-        </div>
+      {filteredMythology.length === 0 ? (
+        <Card className="text-center py-12">
+          <CardContent>
+            <div className="text-gray-400 mb-4">
+              <Crown className="w-16 h-16 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Міфологія відсутня</h3>
+              <p>Створіть першу mythологічну сутність для вашого світу</p>
+            </div>
+            <Button onClick={() => setIsCreateModalOpen(true)} className="fantasy-button">
+              <Plus className="w-4 h-4 mr-2" />
+              Створити міфологію
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
-        <ScrollArea className="max-h-[70vh]">
-          <SortableList
-            items={filteredMythologies}
-            onReorder={handleReorder}
-            strategy={viewMode === "grid" ? "grid" : "vertical"}
-            className={
-              viewMode === "grid"
-                ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
-                : "flex flex-col gap-2"
-            }
-          >
-            {(mythology) => (
-              <div key={mythology.id} className="relative group transition-all">
-                <div className="absolute top-2 left-2 z-10">
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(mythology.id)}
-                    onChange={() => handleSelect(mythology.id)}
-                    className="accent-yellow-400 w-5 h-5 rounded shadow"
-                    title="Select"
-                  />
-                </div>
-                <div
-                  className="fantasy-border fantasy-card-hover transition-all duration-300 cursor-pointer group bg-black/40 rounded-lg p-4 flex flex-col gap-2"
-                  onClick={() => handleEdit(mythology)}
-                >
-                  <div className="flex items-center gap-2">
-                    {mythology.icon && (
-                      <span className="text-2xl" title={mythology.icon}>
-                        {mythology.icon}
-                      </span>
-                    )}
-                    <span className="font-semibold text-white truncate max-w-[120px] md:max-w-xs">
-                      {mythology.name}
-                    </span>
-                    {mythology.type && (
-                      <span className="ml-2 text-xs px-2 py-1 rounded bg-green-900 text-green-200">
-                        {mythology.type}
-                      </span>
+        <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
+          {filteredMythology.map((item: MythologyEntity) => (
+            <Card key={item.id} className="fantasy-card hover-glow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-purple-100 flex items-center gap-2">
+                      {getTypeIcon(item.type)}
+                      {item.name.uk}
+                    </CardTitle>
+                    <p className="text-sm text-purple-300">{item.name.en}</p>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Badge variant="secondary">
+                      {getTypeLabel(item.type)}
+                    </Badge>
+                    {item.power_level && (
+                      <Badge 
+                        variant="outline" 
+                        className={getPowerLevelColor(item.power_level)}
+                      >
+                        {getPowerLevelLabel(item.power_level)}
+                      </Badge>
                     )}
                   </div>
-                  {mythology.description && (
-                    <span className="text-gray-400 text-sm max-w-xs truncate">
-                      {mythology.description}
-                    </span>
-                  )}
-                  {mythology.culture && (
-                    <span className="text-gray-500 text-xs">
-                      Культура: {mythology.culture}
-                    </span>
-                  )}
                 </div>
-              </div>
-            )}
-          </SortableList>
-        </ScrollArea>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-300 mb-4">{item.description.uk}</p>
+                
+                {item.domain && (
+                  <div className="mb-2">
+                    <span className="text-xs font-semibold text-purple-200">Сфера:</span>
+                    <p className="text-sm text-gray-300">{item.domain}</p>
+                  </div>
+                )}
+
+                {item.followers && (
+                  <div className="mb-2">
+                    <span className="text-xs font-semibold text-purple-200">Послідовники:</span>
+                    <p className="text-sm text-gray-300">{item.followers}</p>
+                  </div>
+                )}
+
+                {item.symbols.length > 0 && (
+                  <div className="mb-2">
+                    <span className="text-xs font-semibold text-purple-200">Символи:</span>
+                    <p className="text-sm text-gray-300">{item.symbols.slice(0, 3).join(', ')}{item.symbols.length > 3 && '...'}</p>
+                  </div>
+                )}
+
+                {item.sacred_texts.length > 0 && (
+                  <div className="mb-2">
+                    <span className="text-xs font-semibold text-purple-200">Священні тексти:</span>
+                    <p className="text-sm text-gray-300">{item.sacred_texts.slice(0, 2).join(', ')}{item.sacred_texts.length > 2 && '...'}</p>
+                  </div>
+                )}
+
+                {item.holy_days.length > 0 && (
+                  <div className="mb-4">
+                    <span className="text-xs font-semibold text-purple-200">Священні дні:</span>
+                    <p className="text-sm text-gray-300">{item.holy_days.slice(0, 2).join(', ')}{item.holy_days.length > 2 && '...'}</p>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setEditingMythology(item);
+                      setIsCreateModalOpen(true);
+                    }}
+                  >
+                    Редагувати
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => deleteMutation.mutate(item.id)}
+                  >
+                    Видалити
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
 
       <CreateMythologyModal
-        isOpen={isCreateOpen}
+        isOpen={isCreateModalOpen}
         onClose={() => {
-          setIsCreateOpen(false);
-          setEditMythology(null);
+          setIsCreateModalOpen(false);
+          setEditingMythology(null);
         }}
-        onSubmit={handleSubmit}
-        initialData={editMythology as any}
-        allMythologies={mythologies.map((m) => ({
-          id: m.id,
-          name: typeof m.name === "object" ? m.name : { uk: m.name },
-        }))}
+        onSubmit={editingMythology ? handleEdit : handleCreate}
+        initialData={editingMythology || undefined}
+        worldId={1}
       />
-
-      <AlertDialog open={deleteDialog} onOpenChange={setDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t.actions.delete}</AlertDialogTitle>
-          </AlertDialogHeader>
-          <p>{t.messages.errorDesc}</p>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t.forms.cancel}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={deleteMutation.isPending}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {t.actions.delete}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
-// TODO: тултіп, polish анімацій, адаптивність, масові дії (зміна типу/культури)
