@@ -58,6 +58,7 @@ function App() {
                       <Dashboard
                         currentWorldId={currentWorldId}
                         setCurrentWorldId={setCurrentWorldId}
+                        trackAction={trackAction}
                       />
                     )}
                   />

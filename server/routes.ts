@@ -1201,6 +1201,149 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 11.1 Advanced Analytics API
+  app.get("/api/analytics/advanced/:worldId", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const { behaviorTracker } = await import("./behavior-tracker.js");
+      const { contentAnalyzer } = await import("./content-analyzer.js");
+      const { predictionModel } = await import("./prediction-model.js");
+
+      // Завантажити дані світу
+      const [characters, locations, creatures, events] = await Promise.all([
+        storage.getCharacters(worldId),
+        storage.getLocations(worldId),
+        storage.getCreatures(worldId),
+        storage.getEvents(worldId)
+      ]);
+
+      const worldData = { characters, locations, creatures, events };
+      
+      // Завантажити поведінкові дані
+      behaviorTracker.loadFromStorage();
+      
+      // Згенерувати аналітику
+      const productivity = behaviorTracker.generateProductivityReport();
+      const activityPatterns = behaviorTracker.getActivityPatterns(30);
+      const qualityPrediction = predictionModel.assessPublishingReadiness(worldData);
+      const workloadPrediction = predictionModel.forecastCompletion(worldData, productivity.wordsPerDay / 100);
+      const nextSteps = predictionModel.predictNextLogicalStep(worldData, []);
+
+      const analyticsData = {
+        productivity,
+        quality: qualityPrediction,
+        predictions: {
+          nextLogicalSteps: nextSteps,
+          estimatedHours: workloadPrediction.estimatedHours,
+          completionDate: workloadPrediction.completionDate.toISOString(),
+          confidenceLevel: workloadPrediction.confidenceLevel
+        },
+        activity: activityPatterns
+      };
+
+      res.json(analyticsData);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // 11.2 Recommendations API
+  app.get("/api/recommendations/:worldId", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const language = req.query.language as 'uk' | 'pl' | 'en' || 'uk';
+      
+      const { recommendationEngine } = await import("./recommendation-engine.js");
+
+      // Завантажити дані світу
+      const [characters, locations, creatures, events] = await Promise.all([
+        storage.getCharacters(worldId),
+        storage.getLocations(worldId),
+        storage.getCreatures(worldId),
+        storage.getEvents(worldId)
+      ]);
+
+      const worldData = { characters, locations, creatures, events };
+      
+      // Згенерувати рекомендації
+      const recommendations = recommendationEngine.analyzeWorldGaps(worldData, language);
+      
+      res.json(recommendations);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/recommendations/feedback", async (req, res) => {
+    try {
+      const { recommendationId, feedback, worldId } = req.body;
+      
+      // Зберегти feedback для навчання системи
+      // В реальному додатку тут би була логіка збереження в БД
+      console.log(`Feedback for recommendation ${recommendationId}: ${feedback}`);
+      
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to save feedback" });
+    }
+  });
+
+  // 11.3 Behavior Tracking API
+  app.post("/api/analytics/track-action", async (req, res) => {
+    try {
+      const { action, context, duration, metadata } = req.body;
+      const { behaviorTracker } = await import("./behavior-tracker.js");
+      
+      behaviorTracker.trackUserAction(action, context, duration, metadata);
+      
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to track action" });
+    }
+  });
+
+  // 11.4 Character Development Recommendations
+  app.get("/api/recommendations/character/:characterId", async (req, res) => {
+    try {
+      const characterId = parseInt(req.params.characterId);
+      const language = req.query.language as 'uk' | 'pl' | 'en' || 'uk';
+      
+      const { recommendationEngine } = await import("./recommendation-engine.js");
+      const character = await storage.getCharacter(characterId);
+      
+      if (!character) {
+        return res.status(404).json({ error: "Character not found" });
+      }
+      
+      const recommendations = recommendationEngine.suggestCharacterDevelopment(character, language);
+      res.json(recommendations);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // 11.5 Content Quality Analysis
+  app.get("/api/analytics/quality/:worldId", async (req, res) => {
+    try {
+      const worldId = parseInt(req.params.worldId);
+      const { contentAnalyzer } = await import("./content-analyzer.js");
+
+      const [characters, locations, creatures, events] = await Promise.all([
+        storage.getCharacters(worldId),
+        storage.getLocations(worldId),
+        storage.getCreatures(worldId),
+        storage.getEvents(worldId)
+      ]);
+
+      const worldData = { characters, locations, creatures, events };
+      const analysis = contentAnalyzer.analyzeWorld(worldData);
+      
+      res.json(analysis);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
