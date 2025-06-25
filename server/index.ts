@@ -48,6 +48,11 @@ app.use((req, res, next) => {
   next();
 });
 
+  // Health check endpoint for Cloud Run
+  app.get("/api/health", (_req, res) => {
+    res.status(200).json({ status: "healthy", timestamp: new Date().toISOString() });
+  });
+
 (async () => {
   const server = await registerRoutes(app);
 
@@ -80,8 +85,8 @@ app.use((req, res, next) => {
     });
   }
 
-  // Port configuration for deployment - single port for Autoscale
-  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
+  // Port configuration for deployment - use PORT environment variable for Cloud Run
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
   server.listen(port, "0.0.0.0", () => {
     log(`API server listening on port ${port}`);
   });

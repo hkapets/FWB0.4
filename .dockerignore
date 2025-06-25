@@ -1,0 +1,54 @@
+# Ignore development and build artifacts
+node_modules
+.git
+.gitignore
+README*.md
+DEVELOPMENT_GUIDE.md
+PROJECT_ANALYSIS.md
+QUICK_FIX_GUIDE.md
+STAGE_*.md
+TEST_*.md
+attached_assets
+
+# Ignore development files
+.env*
+!.env.example
+.vscode
+.idea
+*.log
+*.swp
+*.swo
+*~
+
+# Ignore build artifacts
+dist-server
+.tsbuildinfo
+
+# Ignore Electron-specific files
+electron
+electron-db
+electron-build
+*.dmg
+*.exe
+*.deb
+*.rpm
+*.snap
+
+# Ignore temporary files
+tmp
+temp
+*.tmp
+*.temp
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore test files
+**/*.test.ts
+**/*.test.js
+**/*.spec.ts
+**/*.spec.js
+test
+tests
+__tests__
