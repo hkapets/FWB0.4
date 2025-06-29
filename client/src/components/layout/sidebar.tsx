@@ -58,7 +58,7 @@ export default function Sidebar({
   currentWorldId,
   setCurrentWorldId,
 }: SidebarProps) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const queryClient = useQueryClient();
   const [isCreateWorldModalOpen, setIsCreateWorldModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);

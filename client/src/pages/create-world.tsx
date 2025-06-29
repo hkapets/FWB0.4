@@ -3,11 +3,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import CreateWorldModal from "@/components/modals/create-world-modal";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 export default function CreateWorldPage() {
   const t = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   return (
     <div className="p-8">
@@ -19,9 +21,26 @@ export default function CreateWorldPage() {
       <CreateWorldModal
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
-        onSubmit={(data) => {
-          toast({ title: "Світ створено!", description: data.name.uk });
-          setIsOpen(false);
+        onSubmit={async (data) => {
+          try {
+            const response = await fetch("/api/worlds", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(data),
+            });
+            const world = await response.json();
+            toast({
+              title: "Світ створено!",
+              description: world.name?.uk || world.name,
+            });
+            setIsOpen(false);
+          } catch (error) {
+            toast({
+              title: "Помилка",
+              description: "Не вдалося створити світ",
+              variant: "destructive",
+            });
+          }
         }}
       />
     </div>

@@ -25,10 +25,17 @@ import LocationCard from "@/components/cards/location-card";
 import CharacterCard from "@/components/cards/character-card";
 import { formatTimeAgo } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
-import type { World, Location, Character } from "@shared/schema";
+import type {
+  World as SharedWorld,
+  Character as SharedCharacter,
+  Location as SharedLocation,
+} from "@shared/schema";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { QuickNavigation, WorldStatistics } from "@/components/integration-helpers";
+import {
+  QuickNavigation,
+  WorldStatistics,
+} from "@/components/integration-helpers";
 import {
   worldTemplates,
   WorldTemplate,
@@ -40,11 +47,26 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
+import { useLocation } from "wouter";
 
 interface DashboardProps {
   currentWorldId: number | null;
   setCurrentWorldId: (id: number | null) => void;
   trackAction?: (action: string, context?: string, metadata?: any) => void;
+}
+
+type Multilang = string | { uk: string } | null;
+
+function getUkOrString(val: unknown): string {
+  if (
+    val &&
+    typeof val === "object" &&
+    "uk" in val &&
+    typeof (val as any).uk === "string"
+  )
+    return String((val as any).uk);
+  if (typeof val === "string") return val;
+  return "";
 }
 
 export default function Dashboard({
@@ -61,11 +83,14 @@ export default function Dashboard({
   const [isCreateCreatureModalOpen, setIsCreateCreatureModalOpen] =
     useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [worldToDelete, setWorldToDelete] = useState<World | null>(null);
+  const [worldToDelete, setWorldToDelete] = useState<SharedWorld | null>(null);
+  const [location, navigate] = useLocation();
 
-  const { data: worlds = [], refetch: refetchWorlds } = useQuery<World[]>({
-    queryKey: ["/api/worlds"],
-  });
+  const { data: worlds = [], refetch: refetchWorlds } = useQuery<SharedWorld[]>(
+    {
+      queryKey: ["/api/worlds"],
+    }
+  );
 
   // Якщо світ не вибрано, вибираємо перший (якщо є)
   useEffect(() => {
@@ -87,12 +112,12 @@ export default function Dashboard({
     enabled: !!worldId,
   });
 
-  const { data: locations = [] } = useQuery<Location[]>({
+  const { data: locations = [] } = useQuery<SharedLocation[]>({
     queryKey: ["/api/worlds", worldId, "locations"],
     enabled: !!worldId,
   });
 
-  const { data: characters = [] } = useQuery<Character[]>({
+  const { data: characters = [] } = useQuery<SharedCharacter[]>({
     queryKey: ["/api/worlds", worldId, "characters"],
     enabled: !!worldId,
   });
@@ -101,7 +126,7 @@ export default function Dashboard({
   const recentCharacters = characters.slice(-4).reverse();
 
   const handleSelectWorld = (id: number) => setCurrentWorldId(id);
-  const handleDeleteWorld = (world: World) => {
+  const handleDeleteWorld = (world: SharedWorld) => {
     setWorldToDelete(world);
     setShowDeleteDialog(true);
   };
@@ -252,7 +277,7 @@ export default function Dashboard({
               rgba(139, 69, 19, 0.1) 50%, 
               rgba(75, 85, 99, 0.2) 75%, 
               rgba(31, 41, 55, 0.3) 100%), 
-            url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"%3E%3Cdefs%3E%3Cfilter id="noise"%3E%3CfeTurbulence baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/%3E%3C/filter%3E%3C/defs%3E%3Crect width="1200" height="800" fill="%23371B58" filter="url(%23noise)" opacity="0.4"/%3E%3C/svg%3E')`
+            url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"%3E%3Cdefs%3E%3Cfilter id="noise"%3E%3CfeTurbulence baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/%3E%3C/filter%3E%3C/defs%3E%3Crect width="1200" height="800" fill="%23371B58" filter="url(%23noise)" opacity="0.4"/%3E%3C/svg%3E')`,
           }}
         />
 
@@ -327,7 +352,7 @@ export default function Dashboard({
               });
               const world = await response.json();
               setCurrentWorldId(world.id);
-              refetchWorlds();
+              refetchWorlds && refetchWorlds();
               setIsCreateWorldModalOpen(false);
             } catch (error) {
               console.error("Error creating world:", error);
@@ -351,7 +376,7 @@ export default function Dashboard({
             rgba(139, 69, 19, 0.1) 50%, 
             rgba(75, 85, 99, 0.2) 75%, 
             rgba(31, 41, 55, 0.3) 100%), 
-          url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"%3E%3Cdefs%3E%3Cfilter id="noise"%3E%3CfeTurbulence baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/%3E%3C/filter%3E%3C/defs%3E%3Crect width="1200" height="800" fill="%23371B58" filter="url(%23noise)" opacity="0.4"/%3E%3C/svg%3E')`
+          url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"%3E%3Cdefs%3E%3Cfilter id="noise"%3E%3CfeTurbulence baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/%3E%3C/filter%3E%3C/defs%3E%3Crect width="1200" height="800" fill="%23371B58" filter="url(%23noise)" opacity="0.4"/%3E%3C/svg%3E')`,
         }}
       />
 
@@ -364,10 +389,10 @@ export default function Dashboard({
             </div>
             <div>
               <h1 className="text-4xl font-fantasy font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-500">
-                {currentWorld?.name}
+                {getUkOrString(currentWorld?.name)}
               </h1>
               <p className="text-purple-200 mt-1 text-lg">
-                {currentWorld?.description || "Ваш фентезі світ"}
+                {getUkOrString(currentWorld?.description) || "Ваш фентезі світ"}
               </p>
             </div>
           </div>
@@ -474,7 +499,7 @@ export default function Dashboard({
           Швидкі дії
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card 
+          <Card
             className="fantasy-border bg-gradient-to-br from-green-900/40 to-green-800/30 backdrop-blur-sm border-green-500/40 hover:border-green-400/60 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-green-500/30"
             onClick={() => setIsCreateLocationModalOpen(true)}
           >
@@ -491,7 +516,7 @@ export default function Dashboard({
             </CardContent>
           </Card>
 
-          <Card 
+          <Card
             className="fantasy-border bg-gradient-to-br from-purple-900/40 to-purple-800/30 backdrop-blur-sm border-purple-500/40 hover:border-purple-400/60 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-500/30"
             onClick={() => setIsCreateCharacterModalOpen(true)}
           >
@@ -508,7 +533,7 @@ export default function Dashboard({
             </CardContent>
           </Card>
 
-          <Card 
+          <Card
             className="fantasy-border bg-gradient-to-br from-orange-900/40 to-orange-800/30 backdrop-blur-sm border-orange-500/40 hover:border-orange-400/60 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-orange-500/30"
             onClick={() => setIsCreateCreatureModalOpen(true)}
           >
@@ -525,9 +550,9 @@ export default function Dashboard({
             </CardContent>
           </Card>
 
-          <Card 
+          <Card
             className="fantasy-border bg-gradient-to-br from-yellow-900/40 to-yellow-800/30 backdrop-blur-sm border-yellow-500/40 hover:border-yellow-400/60 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-yellow-500/30"
-            onClick={() => window.location.href = '/lore'}
+            onClick={() => (window.location.href = "/lore")}
           >
             <CardContent className="p-6 text-center">
               <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4 ring-2 ring-yellow-400/30">
@@ -562,13 +587,20 @@ export default function Dashboard({
               {recentLocations.length > 0 ? (
                 <div className="space-y-4">
                   {recentLocations.map((location) => (
-                    <div key={location.id} className="flex items-center gap-4 p-3 rounded-lg bg-green-900/20 border border-green-500/20 hover:border-green-400/40 transition-colors">
+                    <div
+                      key={location.id}
+                      className="flex items-center gap-4 p-3 rounded-lg bg-green-900/20 border border-green-500/20 hover:border-green-400/40 transition-colors"
+                    >
                       <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center">
                         <MapPin className="w-5 h-5 text-green-400" />
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-semibold text-green-200">{location.name}</h4>
-                        <p className="text-sm text-green-300/70 truncate">{location.description}</p>
+                        <h4 className="font-semibold text-green-200">
+                          {getUkOrString(location.name)}
+                        </h4>
+                        <p className="text-sm text-green-300/70 truncate">
+                          {getUkOrString(location.description)}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -578,7 +610,9 @@ export default function Dashboard({
                   <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
                     <MapPin className="h-8 w-8 text-green-400/50" />
                   </div>
-                  <p className="text-green-300/70 mb-4">Поки що немає локацій</p>
+                  <p className="text-green-300/70 mb-4">
+                    Поки що немає локацій
+                  </p>
                   <Button
                     onClick={() => setIsCreateLocationModalOpen(true)}
                     className="fantasy-button"
@@ -602,13 +636,27 @@ export default function Dashboard({
               {recentCharacters.length > 0 ? (
                 <div className="space-y-4">
                   {recentCharacters.map((character) => (
-                    <div key={character.id} className="flex items-center gap-4 p-3 rounded-lg bg-purple-900/20 border border-purple-500/20 hover:border-purple-400/40 transition-colors">
+                    <div
+                      key={character.id}
+                      className="flex items-center gap-4 p-3 rounded-lg bg-purple-900/20 border border-purple-500/20 hover:border-purple-400/40 transition-colors"
+                    >
                       <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center">
                         <UserPlus className="w-5 h-5 text-purple-400" />
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-semibold text-purple-200">{character.name}</h4>
-                        <p className="text-sm text-purple-300/70">{character.race} {character.class}</p>
+                        <h4 className="font-semibold text-purple-200">
+                          {getUkOrString(character.name)}
+                        </h4>
+                        <p className="text-sm text-purple-300/70">
+                          {getUkOrString(
+                            "race" in character ? character.race : undefined
+                          )}{" "}
+                          {getUkOrString(
+                            "class" in character
+                              ? character["class"]
+                              : undefined
+                          )}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -618,7 +666,9 @@ export default function Dashboard({
                   <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
                     <UserPlus className="h-8 w-8 text-purple-400/50" />
                   </div>
-                  <p className="text-purple-300/70 mb-4">Поки що немає персонажів</p>
+                  <p className="text-purple-300/70 mb-4">
+                    Поки що немає персонажів
+                  </p>
                   <Button
                     onClick={() => setIsCreateCharacterModalOpen(true)}
                     className="fantasy-button"
@@ -651,7 +701,7 @@ export default function Dashboard({
             });
             const world = await response.json();
             setCurrentWorldId(world.id);
-            refetchWorlds();
+            refetchWorlds && refetchWorlds();
             setIsCreateWorldModalOpen(false);
           } catch (error) {
             console.error("Error creating world:", error);
