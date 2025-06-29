@@ -1,14 +1,38 @@
 # Ignore development and build artifacts
 node_modules
+npm-debug.log
 .git
 .gitignore
-README*.md
-DEVELOPMENT_GUIDE.md
-PROJECT_ANALYSIS.md
-QUICK_FIX_GUIDE.md
-STAGE_*.md
-TEST_*.md
-attached_assets
+README.md
+.env
+.nyc_output
+coverage
+.nyc_output
+.coverage
+.cache
+.parcel-cache
+.next
+.nuxt
+dist
+build
+.DS_Store
+*.log
+*.pid
+*.seed
+*.pid.lock
+.npm
+.eslintcache
+.node_repl_history
+.yarn-integrity
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.vscode
+.idea
+*.swp
+*.swo
+*~
 
 # Ignore development files
 .env*

@@ -1,33 +1,58 @@
-# Use Node.js 20 Alpine for smaller image size
-FROM node:20-alpine
+# Multi-stage build для оптимізації розміру
+FROM node:18-alpine AS base
 
-# Set working directory
+# Встановлюємо залежності для SQLite
+RUN apk add --no-cache sqlite
+
+# Встановлюємо залежності для збірки
+FROM base AS deps
 WORKDIR /app
-
-# Copy package files
 COPY package*.json ./
-
-# Install only production dependencies
 RUN npm ci --only=production && npm cache clean --force
 
-# Copy built application
-COPY dist ./dist
-COPY public ./public
+# Збірка клієнта
+FROM base AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
+# Фінальний образ
+FROM base AS runner
+WORKDIR /app
 
-# Change ownership of the app directory
-RUN chown -R nextjs:nodejs /app
+# Створюємо користувача для безпеки
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Копіюємо залежності
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/public ./public
+
+# Створюємо директорію для даних
+RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
+
+# Копіюємо конфігураційні файли
+COPY --from=builder /app/config.ts ./
+COPY --from=builder /app/package.json ./
+
+# Переключаємося на користувача
 USER nextjs
 
-# Expose port (Cloud Run will set PORT environment variable)
+# Відкриваємо порт
 EXPOSE 8080
+
+# Змінні середовища за замовчуванням
+ENV NODE_ENV=production
+ENV STORAGE_TYPE=sqlite
+ENV SQLITE_PATH=/app/data/worlds.db
+ENV PORT=8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 8080) + '/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+  CMD curl -f http://localhost:8080/api/health || exit 1
 
-# Start the application
+# Запуск додатку
 CMD ["node", "dist/index.js"]

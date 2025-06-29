@@ -1,0 +1,89 @@
+version: "3.8"
+
+services:
+  # Основна версія з SQLite (безкоштовна)
+  fantasy-world-builder:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - STORAGE_TYPE=sqlite
+      - SQLITE_PATH=/app/data/worlds.db
+      - AI_PROVIDER=ollama
+      - OLLAMA_URL=http://ollama:11434
+    volumes:
+      - world-data:/app/data
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+  # Ollama для локального ШІ
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+    command: >
+      sh -c "
+        ollama pull mistral &&
+        ollama pull llama2 &&
+        ollama serve
+      "
+
+  # PostgreSQL версія (для production)
+  fantasy-world-builder-postgres:
+    build: .
+    ports:
+      - "8081:8080"
+    environment:
+      - NODE_ENV=production
+      - STORAGE_TYPE=postgresql
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/fantasy_worlds
+      - AI_PROVIDER=ollama
+      - OLLAMA_URL=http://ollama:11434
+    depends_on:
+      - postgres
+      - ollama
+    restart: unless-stopped
+    profiles:
+      - postgres
+
+  # PostgreSQL база даних
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=fantasy_worlds
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    profiles:
+      - postgres
+
+  # Демо версія (in-memory, без ШІ)
+  fantasy-world-builder-demo:
+    build: .
+    ports:
+      - "8082:8080"
+    environment:
+      - NODE_ENV=production
+      - APP_MODE=demo
+      - STORAGE_TYPE=memory
+      - AI_PROVIDER=none
+    restart: unless-stopped
+    profiles:
+      - demo
+
+volumes:
+  world-data:
+    driver: local
+  ollama-data:
+    driver: local
+  postgres-data:
+    driver: local

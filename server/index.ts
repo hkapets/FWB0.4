@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { autoInitializeStorage } from "./storage";
 import path from "path";
 import fs from "fs";
 
@@ -48,46 +49,61 @@ app.use((req, res, next) => {
   next();
 });
 
-  // Health check endpoint for Cloud Run
-  app.get("/api/health", (_req, res) => {
-    res.status(200).json({ status: "healthy", timestamp: new Date().toISOString() });
+// Health check endpoint for Cloud Run
+app.get("/api/health", (_req, res) => {
+  res.status(200).json({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    storage: process.env.STORAGE_TYPE || "sqlite",
   });
+});
 
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    // Ініціалізуємо зберігання
+    const storage = autoInitializeStorage();
+    await storage.migrate();
+    log(`Storage initialized: ${storage.getType()}`);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    const server = await registerRoutes(app);
 
-    res.status(status).json({ message });
-    throw err;
-  });
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
 
-  // In development, redirect to Vite dev server for non-API routes
-  if (process.env.NODE_ENV !== "production") {
-    app.get('*', (req, res) => {
-      if (!req.path.startsWith('/api')) {
-        res.redirect(`http://localhost:5173${req.path}`);
+      res.status(status).json({ message });
+      throw err;
+    });
+
+    // In development, redirect to Vite dev server for non-API routes
+    if (process.env.NODE_ENV !== "production") {
+      app.get("*", (req, res) => {
+        if (!req.path.startsWith("/api")) {
+          res.redirect(`http://localhost:5173${req.path}`);
+        }
+      });
+    } else {
+      // In production, serve static files
+      const distPath = path.resolve(process.cwd(), "public");
+      if (!fs.existsSync(distPath)) {
+        throw new Error(
+          `Could not find the build directory: ${distPath}, make sure to build the client first`
+        );
       }
-    });
-  } else {
-    // In production, serve static files
-    const distPath = path.resolve(process.cwd(), "public");
-    if (!fs.existsSync(distPath)) {
-      throw new Error(
-        `Could not find the build directory: ${distPath}, make sure to build the client first`
-      );
+      app.use(express.static(distPath));
+      app.use("*", (_req, res) => {
+        res.sendFile(path.resolve(distPath, "index.html"));
+      });
     }
-    app.use(express.static(distPath));
-    app.use("*", (_req, res) => {
-      res.sendFile(path.resolve(distPath, "index.html"));
-    });
-  }
 
-  // Port configuration for deployment - use PORT environment variable for Cloud Run
-  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
-  server.listen(port, "0.0.0.0", () => {
-    log(`API server listening on port ${port}`);
-  });
+    // Port configuration for deployment - use PORT environment variable for Cloud Run
+    const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
+    server.listen(port, "0.0.0.0", () => {
+      log(`API server listening on port ${port}`);
+      log(`Storage type: ${storage.getType()}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
 })();

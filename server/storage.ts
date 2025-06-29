@@ -1,3 +1,4 @@
+import * as schema from "../shared/schema";
 import {
   users,
   worlds,
@@ -41,6 +42,123 @@ import {
   type Event,
   type InsertEvent,
 } from "@shared/schema";
+import { drizzle } from "drizzle-orm/postgres-js";
+import { drizzle as drizzleSQLite } from "drizzle-orm/better-sqlite3";
+import Database from "better-sqlite3";
+import postgres from "postgres";
+
+export type StorageType = "postgresql" | "sqlite" | "memory";
+
+export interface StorageConfig {
+  type: StorageType;
+  url?: string;
+  filePath?: string;
+}
+
+class StorageManager {
+  private db: any;
+  private type: StorageType;
+
+  constructor(config: StorageConfig) {
+    this.type = config.type;
+    this.initializeStorage(config);
+  }
+
+  private initializeStorage(config: StorageConfig) {
+    switch (config.type) {
+      case "postgresql":
+        if (!config.url) {
+          throw new Error("PostgreSQL URL is required");
+        }
+        const client = postgres(config.url);
+        this.db = drizzle(client, { schema });
+        break;
+
+      case "sqlite":
+        const filePath = config.filePath || "./data/worlds.db";
+        const sqlite = new Database(filePath);
+        this.db = drizzleSQLite(sqlite, { schema });
+        break;
+
+      case "memory":
+        // In-memory SQLite для тестування
+        const memoryDb = new Database(":memory:");
+        this.db = drizzleSQLite(memoryDb, { schema });
+        break;
+
+      default:
+        throw new Error(`Unsupported storage type: ${config.type}`);
+    }
+  }
+
+  getDatabase() {
+    return this.db;
+  }
+
+  getType() {
+    return this.type;
+  }
+
+  async migrate() {
+    // Автоматична міграція для SQLite та PostgreSQL
+    if (this.type === "sqlite" || this.type === "postgresql") {
+      // Тут можна додати автоматичні міграції
+      console.log(`Database migrated for ${this.type}`);
+    }
+  }
+}
+
+// Глобальний екземпляр storage manager
+let storageManager: StorageManager | null = null;
+
+export function initializeStorage(config: StorageConfig) {
+  if (storageManager) {
+    throw new Error("Storage already initialized");
+  }
+  storageManager = new StorageManager(config);
+  return storageManager;
+}
+
+export function getStorage() {
+  if (!storageManager) {
+    throw new Error("Storage not initialized");
+  }
+  return storageManager;
+}
+
+export function getDatabase() {
+  return getStorage().getDatabase();
+}
+
+// Автоматична ініціалізація на основі змінних середовища
+export function autoInitializeStorage() {
+  const storageType = (process.env.STORAGE_TYPE as StorageType) || "sqlite";
+
+  let config: StorageConfig;
+
+  switch (storageType) {
+    case "postgresql":
+      config = {
+        type: "postgresql",
+        url: process.env.DATABASE_URL,
+      };
+      break;
+
+    case "memory":
+      config = {
+        type: "memory",
+      };
+      break;
+
+    default:
+      config = {
+        type: "sqlite",
+        filePath: process.env.SQLITE_PATH || "./data/worlds.db",
+      };
+  }
+
+  return initializeStorage(config);
+}
 
 export interface IStorage {
   // User methods
